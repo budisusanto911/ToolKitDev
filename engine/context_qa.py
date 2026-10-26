@@ -5,8 +5,12 @@ Provides answers backed by full project ancestry:
 - Grounded Q&A reasoning with source citations
 """
 
+import os
+import json
 import re
 from typing import Dict, Any, List
+
+from engine.ai_forensic_agent import AiForensicAgent
 
 HISTORICAL_FEATURES = [
     {
@@ -105,7 +109,22 @@ HISTORICAL_FEATURES = [
 
 class ContextQaEngine:
     def __init__(self):
-        pass
+        self.forensic_agent = AiForensicAgent()
+        self._cached_apk_context = None
+
+    def _get_default_apk_context(self) -> Dict[str, Any]:
+        if self._cached_apk_context:
+            return self._cached_apk_context
+        public_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public")
+        json_path = os.path.join(public_dir, "alfagift_analysis.json")
+        if os.path.exists(json_path):
+            try:
+                with open(json_path, "r", encoding="utf-8") as fp:
+                    self._cached_apk_context = json.load(fp)
+                    return self._cached_apk_context
+            except Exception:
+                pass
+        return {}
 
     def search_historical_features(self, query: str = "") -> List[Dict[str, Any]]:
         """Search historical feature implementations by keyword or return all."""
@@ -122,47 +141,28 @@ class ContextQaEngine:
     def answer_question(self, question: str, apk_context: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Answer questions with grounded project citations:
+        - If query asks about security / APK / Frida / exploit -> grounds on APK scan results & compliance
         - If query asks about features/history -> grounds on Git history & PRDs
-        - If query asks about security / APK -> grounds on APK scan results & compliance
         """
         q_lower = question.lower()
         sources = []
-        
-        # If user asks about APK or Mobile Security
-        if any(w in q_lower for w in ["apk", "mobile", "debuggable", "exported", "manifest", "permission", "security"]):
-            if apk_context and "metadata" in apk_context:
-                app_name = apk_context["metadata"].get("app_label", "Uploaded App")
-                pkg = apk_context["metadata"].get("package_name", "app")
-                score = apk_context.get("security_score", 0)
-                findings = apk_context.get("findings", [])
-                
-                finding_bullets = "\n".join([f"- **[{f['severity']}] {f['title']}**: {f['description']}" for f in findings[:3]])
-                answer = (
-                    f"Berdasarkan hasil static analysis pada binary **{app_name}** (`{pkg}`):\n\n"
-                    f"Skor keamanan APK saat ini adalah **{score}/100**.\n\n"
-                    f"**Temuan Kritis Teratas:**\n{finding_bullets}\n\n"
-                    f"**Rekomendasi Perbaikan Teknis:**\n"
-                    f"1. Pada `AndroidManifest.xml`, pastikan `android:debuggable=\"false\"` sebelum build release.\n"
-                    f"2. Tutup komponen yang tidak perlu diakses aplikasi lain dengan `android:exported=\"false\"` atau tambahkan permission guard.\n"
-                    f"3. Sign APK dengan Production Release Keystore, bukan Android Debug Keystore."
-                )
-                sources = [
-                    {"type": "apk", "title": f"Binary Analysis: {pkg}", "ref": "AndroidManifest.xml"},
-                    {"type": "rule", "title": "OWASP Mobile Top 10 (M1/M2)", "ref": "Security Standard"}
-                ]
-            else:
-                answer = (
-                    "Fitur Bedah APK ToolKitDev dapat menganalisis binary Android secara instan: memeriksa flag "
-                    "`android:debuggable`, `android:allowBackup`, komponen yang diekspor tanpa proteksi, "
-                    "secret/API key yang bocor di bytecode, serta audit izin berbahaya (Dangerous Permissions). "
-                    "Silakan drag-and-drop file APK pada tab **APK Teardown** untuk melihat rincian spesifik."
-                )
-                sources = [
-                    {"type": "docs", "title": "ToolKitDev Mobile Security Spec", "ref": "docs/apk-audit.md"}
-                ]
+
+        active_ctx = apk_context or self._get_default_apk_context()
+
+        # Check if question is oriented toward mobile security, APK teardown, frida, exploits, compliance
+        forensic_keywords = [
+            "apk", "mobile", "debuggable", "exported", "manifest", "permission", "security",
+            "frida", "hook", "ssl", "unpinning", "bypass", "exploit", "poc", "moedebugger",
+            "wallet", "token", "kredensial", "rahasia", "secret", "md5", "blowfish", "cipher",
+            "kriptografi", "cleartext", "http", "owasp", "masvs", "pci", "ojk", "uu pdp",
+            "am start", "intent", "methodchannel", "dto", "intersep", "telemetri", "score"
+        ]
+
+        if any(w in q_lower for w in forensic_keywords) or (apk_context and len(apk_context) > 0):
+            return self.forensic_agent.analyze_and_respond(question, active_ctx)
 
         # If user asks about past implementations / history
-        elif any(w in q_lower for w in ["kapan", "kenapa", "siapa", "riwayat", "fitur", "pr", "commit", "history"]):
+        if any(w in q_lower for w in ["kapan", "kenapa", "siapa", "riwayat", "fitur", "pr", "commit", "history"]):
             matched_feats = self.search_historical_features(question)
             f = matched_feats[0]
             answer = (

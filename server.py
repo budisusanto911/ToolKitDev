@@ -12,10 +12,13 @@ Serves the Codexer.ai-styled frontend and handles:
 """
 
 import os
+import io
 import sys
 import json
 import cgi
+import zipfile
 import tempfile
+import datetime
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
@@ -26,6 +29,7 @@ from engine.correlation_graph import CorrelationGraphEngine
 from engine.mcp_hub import McpHub
 from engine.context_qa import ContextQaEngine
 from engine.auth_manager import AuthManager
+from engine.pdf_reporter import ExecutivePdfReporter
 
 PORT = int(os.environ.get("PORT", 8080))
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
@@ -79,7 +83,8 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
         elif path == "/api/dependencies":
             self._send_json(graph_engine.get_dependencies_list())
         elif path == "/api/scan-sample-apk":
-            sample_apk = os.path.join(SAMPLES_DIR, "sample-debug.apk")
+            base_apk = os.path.join(UPLOADS_DIR, "base.apk")
+            sample_apk = base_apk if os.path.exists(base_apk) else os.path.join(SAMPLES_DIR, "sample-debug.apk")
             if os.path.exists(sample_apk):
                 analyzer = ApkAnalyzer(sample_apk)
                 self._send_json(analyzer.analyze())
@@ -92,6 +97,122 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                 self._send_json(analyzer.analyze())
             else:
                 self._send_json({"error": "Target AAB file not found in uploads"}, status=404)
+        elif path == "/api/apk/decompiled":
+            mode = query.get("mode", ["manifest"])[0]
+            file_name = os.path.basename(query.get("file", [""])[0])
+            target_path = self._resolve_apk_file(file_name)
+            if not target_path:
+                self._send_json({"error": "APK/AAB binary not found"}, status=404)
+                return
+            try:
+                analyzer = ApkAnalyzer(target_path)
+                if mode == "manifest":
+                    xml_str = analyzer.get_reconstructed_manifest_xml()
+                    self._send_json({"file": os.path.basename(target_path), "mode": "manifest", "content": xml_str})
+                elif mode in ("java", "smali"):
+                    files_list = analyzer.get_decompiled_sources(mode=mode, limit=80)
+                    self._send_json({"file": os.path.basename(target_path), "mode": mode, "files": files_list})
+                else:
+                    self._send_json({"error": "Invalid mode"}, status=400)
+            except Exception as e:
+                self._send_json({"error": str(e)}, status=500)
+        elif path == "/api/apk/download":
+            dl_type = query.get("type", ["apk"])[0]
+            file_name = os.path.basename(query.get("file", [""])[0])
+            target_path = self._resolve_apk_file(file_name)
+            if not target_path:
+                self._send_json({"error": "APK/AAB binary not found"}, status=404)
+                return
+            try:
+                base_stem = os.path.splitext(os.path.basename(target_path))[0]
+                if dl_type == "apk":
+                    with open(target_path, "rb") as f:
+                        raw_bytes = f.read()
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/vnd.android.package-archive")
+                    self.send_header("Content-Disposition", f'attachment; filename="{os.path.basename(target_path)}"')
+                    self.send_header("Content-Length", str(len(raw_bytes)))
+                    self.end_headers()
+                    self.wfile.write(raw_bytes)
+                elif dl_type in ("java", "smali"):
+                    analyzer = ApkAnalyzer(target_path)
+                    sources = analyzer.get_decompiled_sources(mode=dl_type, limit=120)
+                    mem_zip = io.BytesIO()
+                    with zipfile.ZipFile(mem_zip, "w", zipfile.ZIP_DEFLATED) as zf:
+                        zf.writestr("AndroidManifest.xml", analyzer.get_reconstructed_manifest_xml())
+                        prefix = "src/main/java/" if dl_type == "java" else "smali/"
+                        for item in sources:
+                            zf.writestr(prefix + item["path"], item["code"])
+                    zip_bytes = mem_zip.getvalue()
+                    out_name = f"{base_stem}-{dl_type}-code.zip"
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/zip")
+                    self.send_header("Content-Disposition", f'attachment; filename="{out_name}"')
+                    self.send_header("Content-Length", str(len(zip_bytes)))
+                    self.end_headers()
+                    self.wfile.write(zip_bytes)
+                else:
+                    self._send_json({"error": "Unsupported download type"}, status=400)
+            except Exception as e:
+                self._send_json({"error": str(e)}, status=500)
+        elif path == "/api/apk/export-pdf":
+            file_name = query.get("file", [""])[0]
+            auditor = query.get("auditor", ["ToolKitDev Autonomous SecOps"])[0]
+            org = query.get("org", ["Enterprise Audit Target"])[0]
+            scope = query.get("scope", ["OWASP MASVS, PCI-DSS & OJK Audit"])[0]
+            is_inline = query.get("inline", ["0"])[0] in ("1", "true")
+
+            analysis_data = None
+            # 1. Check if an analysis json exists directly (e.g. alfagift_analysis.json)
+            if file_name and file_name.endswith(".json"):
+                json_path = os.path.join(PUBLIC_DIR, os.path.basename(file_name))
+                if os.path.exists(json_path):
+                    try:
+                        with open(json_path, "r", encoding="utf-8") as fp:
+                            analysis_data = json.load(fp)
+                    except Exception as e:
+                        sys.stderr.write(f"Error loading analysis json: {e}\n")
+
+            # 2. Or check uploaded/sample apk/aab
+            if not analysis_data:
+                target_path = self._resolve_apk_file(os.path.basename(file_name) if file_name else "")
+                if target_path and os.path.isfile(target_path):
+                    try:
+                        analyzer = ApkAnalyzer(target_path)
+                        analysis_data = analyzer.analyze()
+                    except Exception as e:
+                        sys.stderr.write(f"Error analyzing apk for pdf: {e}\n")
+
+            # 3. Fallback to alfagift_analysis.json
+            if not analysis_data:
+                alfagift_json = os.path.join(PUBLIC_DIR, "alfagift_analysis.json")
+                if os.path.exists(alfagift_json):
+                    try:
+                        with open(alfagift_json, "r", encoding="utf-8") as fp:
+                            analysis_data = json.load(fp)
+                    except Exception as e:
+                        sys.stderr.write(f"Error loading fallback json: {e}\n")
+
+            if not analysis_data:
+                self._send_json({"error": "No analysis data available to generate report"}, status=404)
+                return
+
+            try:
+                reporter = ExecutivePdfReporter(analysis_data, auditor_name=auditor, organization=org, scope=scope)
+                pdf_bytes = reporter.generate_pdf()
+                target_pkg = analysis_data.get("metadata", {}).get("package_name") or "mobile-app"
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+                pdf_filename = f"ToolKitDev-Audit-Report-{target_pkg}-{timestamp}.pdf"
+
+                disp = "inline" if is_inline else "attachment"
+                self.send_response(200)
+                self.send_header("Content-Type", "application/pdf")
+                self.send_header("Content-Disposition", f'{disp}; filename="{pdf_filename}"')
+                self.send_header("Content-Length", str(len(pdf_bytes)))
+                self.end_headers()
+                self.wfile.write(pdf_bytes)
+            except Exception as e:
+                self._send_json({"error": f"Failed to generate PDF: {str(e)}"}, status=500)
         elif path == "/api/mcp/oauth-url":
             conn = query.get("connector", ["github"])[0]
             cid = query.get("client_id", [""])[0]
@@ -291,6 +412,19 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                 self._send_json({"error": "Invalid Content-Type, expected multipart/form-data"}, status=400)
         else:
             self._send_json({"error": "Not Found"}, status=404)
+
+    def _resolve_apk_file(self, file_name: str) -> str:
+        """Resolve an APK/AAB filename in uploads/ or samples/, falling back to base.apk or sample-debug.apk."""
+        candidates = []
+        if file_name:
+            candidates.append(os.path.join(UPLOADS_DIR, file_name))
+            candidates.append(os.path.join(SAMPLES_DIR, file_name))
+        candidates.append(os.path.join(UPLOADS_DIR, "base.apk"))
+        candidates.append(os.path.join(SAMPLES_DIR, "sample-debug.apk"))
+        for c in candidates:
+            if os.path.isfile(c):
+                return c
+        return ""
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")

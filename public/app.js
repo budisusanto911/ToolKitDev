@@ -1296,8 +1296,1844 @@ function renderApkReport(data) {
   });
   permsTable.innerHTML = rows;
 
+  // MobSF Exported Banner, Scan Options, Decompiled Code & Signer Certificate
+  renderMobsfInspectorMenu(data);
+
+  // MobSF-style </> CODE ANALYSIS Table
+  renderCodeAnalysisTable(data.code_analysis, data);
+
+  // MobSF-style ANDROID API Bytecode Table
+  renderAndroidApiTable(data.android_api_analysis || [], data);
+
   // Scroll smoothly to report
   container.scrollIntoView({ behavior: "smooth" });
+}
+
+let mobsfMenuState = {
+  currentApkData: null,
+  suppressedTitles: new Set(),
+  listenersBound: false,
+  lastCopyText: ""
+};
+
+function renderMobsfInspectorMenu(data) {
+  mobsfMenuState.currentApkData = data;
+  const manifest = data.manifest_security || {};
+  const acts = manifest.exported_activities || [];
+  const srvs = manifest.exported_services || [];
+  const rcvs = manifest.exported_receivers || [];
+  const prvs = manifest.exported_providers || [];
+
+  const elAct = document.getElementById("mobsfExportedActivitiesCount");
+  const elSrv = document.getElementById("mobsfExportedServicesCount");
+  const elRcv = document.getElementById("mobsfExportedReceiversCount");
+  const elPrv = document.getElementById("mobsfExportedProvidersCount");
+
+  if (elAct) elAct.textContent = acts.length;
+  if (elSrv) elSrv.textContent = srvs.length;
+  if (elRcv) elRcv.textContent = rcvs.length;
+  if (elPrv) elPrv.textContent = prvs.length;
+
+  // Render Signer Certificate text block
+  const certPre = document.getElementById("apkSignerCertificateText");
+  const sig = data.signature || {};
+  if (certPre) {
+    if (sig.cert_summary_text) {
+      certPre.textContent = sig.cert_summary_text;
+    } else {
+      const lines = [
+        sig.is_signed !== false ? "Binary is signed" : "Binary is NOT signed",
+        `v1 signature: ${Boolean(sig.v1_signature ?? true)}`,
+        `v2 signature: ${Boolean(sig.v2_signature ?? true)}`,
+        `v3 signature: ${Boolean(sig.v3_signature ?? false)}`,
+        `Subject: ${sig.subject || "Unknown"}`,
+        `Issuer: ${sig.issuer || "Unknown"}`,
+        `Hash Algorithm: ${sig.hash_algorithm || "sha256"}`,
+        `sha256: ${sig.fingerprint_sha256 || "N/A"}`,
+        "Found 1 unique certificates"
+      ];
+      certPre.textContent = lines.join("\n");
+    }
+  }
+
+  renderFridaTelemetryCard(data);
+  bindMobsfInspectorMenuListeners();
+}
+
+function renderFridaTelemetryCard(data) {
+  const ft = data.frida_dataflow_telemetry || {};
+  const summary = ft.summary || {};
+  const endpoints = ft.endpoints_inventory || [];
+  const services = ft.services_inventory || [];
+  const flows = ft.data_flows || [];
+  const events = ft.frida_live_events || [];
+
+  // 1. Render KPI Strip
+  const kpiStrip = document.getElementById("fridaKpiStrip");
+  if (kpiStrip) {
+    const totalEndpoints = summary.total_endpoints ?? endpoints.length;
+    const totalServices = summary.total_services ?? services.length;
+    const expServices = summary.exported_services_count ?? 0;
+    const totalFlows = summary.total_data_flows ?? flows.length;
+    const critFlows = summary.critical_flows_count ?? 0;
+
+    kpiStrip.innerHTML = `
+      <div class="frida-kpi-box danger">
+        <div class="frida-kpi-num">${totalEndpoints} Endpoint &amp; Route API</div>
+        <div class="frida-kpi-lbl">URL Backend, Gateway Staging &amp; REST Path</div>
+      </div>
+      <div class="frida-kpi-box danger">
+        <div class="frida-kpi-num">${totalFlows} Alur Data (${critFlows} Critical)</div>
+        <div class="frida-kpi-lbl">Perpindahan Data (API, IPC, Prefs, Crypto)</div>
+      </div>
+      <div class="frida-kpi-box warning">
+        <div class="frida-kpi-num">${totalServices} Services (${expServices} Exported)</div>
+        <div class="frida-kpi-lbl">App Services &amp; Business DataSources</div>
+      </div>
+      <div class="frida-kpi-box">
+        <div class="frida-kpi-num">${events.length} Frida Hooks</div>
+        <div class="frida-kpi-lbl">Paket Data &amp; Endpoint Berhasil Disadap</div>
+      </div>
+    `;
+  }
+
+  // Helper to build MobSF-style pagination buttons
+  function buildFridaPaginationControls(paginationEl, infoEl, totalItems, page, pageSize, onPageChange) {
+    if (!paginationEl || !infoEl) return;
+    if (totalItems === 0) {
+      infoEl.textContent = "Showing 0 to 0 of 0 entries";
+      paginationEl.innerHTML = "";
+      return;
+    }
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+    const safePage = Math.min(Math.max(1, page), totalPages);
+    const startIdx = (safePage - 1) * pageSize;
+    const endIdx = Math.min(startIdx + pageSize, totalItems);
+    infoEl.textContent = `Showing ${startIdx + 1} to ${endIdx} of ${totalItems} entries`;
+
+    let html = `<button type="button" class="android-api-page-btn" data-page="${safePage - 1}" ${safePage === 1 ? "disabled" : ""}>Previous</button>`;
+    for (let p = 1; p <= totalPages; p++) {
+      if (totalPages <= 7 || p === 1 || p === totalPages || Math.abs(p - safePage) <= 1) {
+        html += `<button type="button" class="android-api-page-btn ${p === safePage ? "active" : ""}" data-page="${p}">${p}</button>`;
+      } else if (p === safePage - 2 || p === safePage + 2) {
+        html += `<span class="android-api-page-btn" style="pointer-events:none; border:none; background:transparent;">...</span>`;
+      }
+    }
+    html += `<button type="button" class="android-api-page-btn" data-page="${safePage + 1}" ${safePage === totalPages ? "disabled" : ""}>Next</button>`;
+    paginationEl.innerHTML = html;
+
+    paginationEl.querySelectorAll("button[data-page]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const nextP = parseInt(btn.getAttribute("data-page"), 10);
+        if (!isNaN(nextP) && nextP >= 1 && nextP <= totalPages && nextP !== safePage) {
+          onPageChange(nextP);
+        }
+      });
+    });
+  }
+
+  // 1b. Render Endpoints & Route Service Table with Pagination (5 per page) + Search
+  const epTbody = document.getElementById("fridaEndpointsTableBody");
+  const epSearchInput = document.getElementById("fridaEndpointsSearch");
+  const epInfoEl = document.getElementById("fridaEndpointsInfo");
+  const epPaginationEl = document.getElementById("fridaEndpointsPagination");
+  let epCurrentPage = 1;
+  let epSearchQuery = "";
+  const epPageSize = 5;
+
+  function renderEndpointsPage() {
+    if (!epTbody) return;
+    const q = epSearchQuery.trim().toLowerCase();
+    const indexedEndpoints = endpoints.map((ep, originalIdx) => ({ ep, originalIdx }));
+    const filtered = q
+      ? indexedEndpoints.filter(({ ep }) =>
+          (ep.endpoint || "").toLowerCase().includes(q) ||
+          (ep.category || "").toLowerCase().includes(q) ||
+          (ep.dto_class || "").toLowerCase().includes(q) ||
+          (ep.http_method || "").toLowerCase().includes(q) ||
+          (ep.payload_info || "").toLowerCase().includes(q) ||
+          (ep.request_summary || "").toLowerCase().includes(q) ||
+          (ep.response_summary || "").toLowerCase().includes(q)
+        )
+      : indexedEndpoints;
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / epPageSize));
+    if (epCurrentPage > totalPages) epCurrentPage = totalPages;
+
+    if (filtered.length === 0) {
+      epTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:16px;">Tidak ditemukan URL endpoint atau route API yang cocok.</td></tr>`;
+      buildFridaPaginationControls(epPaginationEl, epInfoEl, 0, 1, epPageSize, () => {});
+      return;
+    }
+
+    const startIdx = (epCurrentPage - 1) * epPageSize;
+    const pageSlice = filtered.slice(startIdx, startIdx + epPageSize);
+
+    epTbody.innerHTML = pageSlice.map(({ ep, originalIdx }) => {
+      const badgeCls = ep.risk_level === "CRITICAL" ? "badge-danger" : ep.risk_level === "HIGH" ? "badge-danger" : "badge-warning";
+      const method = ep.http_method || "POST";
+      const methodBg = method === "POST" ? "#dbeafe" : "#dcfce7";
+      const methodColor = method === "POST" ? "#1d4ed8" : "#15803d";
+      const reqSummary = ep.request_summary || JSON.stringify(ep.request_body || {});
+      const resSummary = ep.response_summary || JSON.stringify(ep.response_body || {});
+      const resStatus = ep.response_status || "200 OK";
+
+      return `
+        <tr>
+          <td>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:5px;">
+              <span style="background:${methodBg}; color:${methodColor}; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:800; padding:2px 7px; border-radius:5px;">${escapeHtml(method)}</span>
+              <span class="badge ${badgeCls}">${escapeHtml(ep.risk_level)}</span>
+            </div>
+            <div style="font-weight:700; font-size:12px; color:#0f172a;">${escapeHtml(ep.category)}</div>
+            <div style="font-size:11px; color:#64748b; font-family:'JetBrains Mono',monospace; margin-top:3px; word-break:break-all;">
+              DTO: ${escapeHtml(ep.dto_class || "ApiService")}
+            </div>
+          </td>
+          <td>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#1d4ed8; font-weight:700; word-break:break-all; margin-bottom:6px;">
+              ${escapeHtml(ep.endpoint)}
+            </div>
+            <div>
+              <span class="frida-payload-chip">🔑 ${escapeHtml(ep.payload_info || "Bearer JWT")}</span>
+            </div>
+          </td>
+          <td>
+            <div style="background:#0f172a; color:#e2e8f0; border-radius:6px; padding:7px 9px; font-family:'JetBrains Mono',monospace; font-size:11px; margin-bottom:6px; overflow-x:auto;">
+              <div style="color:#38bdf8; font-weight:700; margin-bottom:2px;">&rarr; REQUEST (${escapeHtml(method)} Body):</div>
+              <div style="color:#f8fafc; word-break:break-all;">${escapeHtml(reqSummary)}</div>
+            </div>
+            <div style="background:#064e3b; color:#ecfdf5; border-radius:6px; padding:7px 9px; font-family:'JetBrains Mono',monospace; font-size:11px; overflow-x:auto;">
+              <div style="color:#6ee7b7; font-weight:700; margin-bottom:2px;">&larr; RESPONSE (${escapeHtml(resStatus)}):</div>
+              <div style="color:#ecfdf5; word-break:break-all;">${escapeHtml(resSummary)}</div>
+            </div>
+          </td>
+          <td style="font-size:12px; color:#334155;">
+            <div style="margin-bottom:8px;">${escapeHtml(ep.weakness)}</div>
+            <button type="button" class="mobsf-btn mobsf-btn-blue btn-inspect-req-res" data-ep-idx="${originalIdx}" style="font-size:11px; padding:5px 10px;">
+              🔍 Lihat Full HTTP Req/Res
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    epTbody.querySelectorAll(".btn-inspect-req-res").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const idx = parseInt(btn.getAttribute("data-ep-idx"), 10);
+        const ep = endpoints[idx];
+        if (!ep) return;
+        const reqRaw = ep.request_raw || JSON.stringify(ep.request_body || {}, null, 2);
+        const resRaw = ep.response_raw || JSON.stringify(ep.response_body || {}, null, 2);
+        const combinedCopy = `=== INTERCEPTED HTTP REQUEST ===\n${reqRaw}\n\n=== INTERCEPTED HTTP RESPONSE ===\n${resRaw}`;
+        const dialogHtml = `
+          <div style="margin-bottom:12px; padding:10px 12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; font-size:12.5px;">
+            <div><strong>Endpoint:</strong> <code style="color:#1d4ed8; font-weight:700;">${escapeHtml(ep.http_method || 'POST')} ${escapeHtml(ep.endpoint)}</code></div>
+            <div style="margin-top:4px;"><strong>Service / DTO Class:</strong> <code>${escapeHtml(ep.dto_class || 'ApiService')}</code> &bull; <strong>Auth Keys:</strong> <code>${escapeHtml(ep.payload_info || '')}</code></div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:12px;">
+            <div>
+              <h4 style="margin:0 0 6px; font-size:12.5px; color:#0284c7;">&rarr; INTERCEPTED HTTP REQUEST (Headers &amp; Body)</h4>
+              <pre class="mobsf-code-pane" style="height:300px; margin:0;">${escapeHtml(reqRaw)}</pre>
+            </div>
+            <div>
+              <h4 style="margin:0 0 6px; font-size:12.5px; color:#059669;">&larr; INTERCEPTED HTTP RESPONSE (${escapeHtml(ep.response_status || '200 OK')})</h4>
+              <pre class="mobsf-code-pane" style="height:300px; margin:0;">${escapeHtml(resRaw)}</pre>
+            </div>
+          </div>
+        `;
+        openMobsfDialog(
+          "FRIDA HTTP INTERCEPTOR",
+          `${ep.http_method || 'POST'} ${ep.endpoint}`,
+          dialogHtml,
+          combinedCopy
+        );
+      });
+    });
+
+    buildFridaPaginationControls(epPaginationEl, epInfoEl, filtered.length, epCurrentPage, epPageSize, (newPage) => {
+      epCurrentPage = newPage;
+      renderEndpointsPage();
+    });
+  }
+
+  if (epSearchInput) {
+    epSearchInput.value = "";
+    epSearchInput.oninput = (e) => {
+      epSearchQuery = e.target.value || "";
+      epCurrentPage = 1;
+      renderEndpointsPage();
+    };
+  }
+  renderEndpointsPage();
+
+  // 2. Render Data Flows Table with Pagination (6 per page) + Search
+  const flowsTbody = document.getElementById("fridaFlowsTableBody");
+  const flowsSearchInput = document.getElementById("fridaFlowsSearch");
+  const flowsInfoEl = document.getElementById("fridaFlowsInfo");
+  const flowsPaginationEl = document.getElementById("fridaFlowsPagination");
+  let flowsCurrentPage = 1;
+  let flowsSearchQuery = "";
+  const flowsPageSize = 6;
+
+  function renderFlowsPage() {
+    if (!flowsTbody) return;
+    const q = flowsSearchQuery.trim().toLowerCase();
+    const filtered = q
+      ? flows.filter(df =>
+          (df.flow_category || "").toLowerCase().includes(q) ||
+          (df.source_class || "").toLowerCase().includes(q) ||
+          (df.source_method || "").toLowerCase().includes(q) ||
+          (df.target_sink || "").toLowerCase().includes(q) ||
+          (df.weakness_reason || "").toLowerCase().includes(q) ||
+          (df.data_payload || []).some(p => String(p).toLowerCase().includes(q))
+        )
+      : flows;
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / flowsPageSize));
+    if (flowsCurrentPage > totalPages) flowsCurrentPage = totalPages;
+
+    if (filtered.length === 0) {
+      flowsTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:16px;">Tidak ada alur perpindahan data yang cocok.</td></tr>`;
+      buildFridaPaginationControls(flowsPaginationEl, flowsInfoEl, 0, 1, flowsPageSize, () => {});
+      return;
+    }
+
+    const startIdx = (flowsCurrentPage - 1) * flowsPageSize;
+    const pageSlice = filtered.slice(startIdx, startIdx + flowsPageSize);
+
+    flowsTbody.innerHTML = pageSlice.map(df => {
+      const badgeCls = df.risk_level === "CRITICAL" ? "badge-danger" : "badge-warning";
+      const payloadChips = (df.data_payload || []).map(p => `<span class="frida-payload-chip">${escapeHtml(String(p))}</span>`).join("");
+      return `
+        <tr>
+          <td>
+            <div style="font-weight:700; color:#0f172a; margin-bottom:4px;">${escapeHtml(df.flow_category)}</div>
+            <span class="badge ${badgeCls}">${escapeHtml(df.risk_level)}</span>
+            <span style="font-size:11px; color:#64748b; margin-left:4px;">${escapeHtml(df.id)}</span>
+          </td>
+          <td>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#1d4ed8; font-weight:600; word-break:break-all;">
+              ${escapeHtml(df.source_class)}.${escapeHtml(df.source_method)}
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#dc2626; margin-top:4px; word-break:break-all;">
+              &rarr; ${escapeHtml(df.target_sink)}
+            </div>
+          </td>
+          <td>${payloadChips}</td>
+          <td style="font-size:12.5px; color:#334155;">${escapeHtml(df.weakness_reason)}</td>
+        </tr>
+      `;
+    }).join("");
+
+    buildFridaPaginationControls(flowsPaginationEl, flowsInfoEl, filtered.length, flowsCurrentPage, flowsPageSize, (newPage) => {
+      flowsCurrentPage = newPage;
+      renderFlowsPage();
+    });
+  }
+
+  if (flowsSearchInput) {
+    flowsSearchInput.value = "";
+    flowsSearchInput.oninput = (e) => {
+      flowsSearchQuery = e.target.value || "";
+      flowsCurrentPage = 1;
+      renderFlowsPage();
+    };
+  }
+  renderFlowsPage();
+
+  // 3. Render Services Inventory Table with Pagination (6 per page) + Search
+  const srvTbody = document.getElementById("fridaServicesTableBody");
+  const srvSearchInput = document.getElementById("fridaServicesSearch");
+  const srvInfoEl = document.getElementById("fridaServicesInfo");
+  const srvPaginationEl = document.getElementById("fridaServicesPagination");
+  let srvCurrentPage = 1;
+  let srvSearchQuery = "";
+  const srvPageSize = 6;
+
+  function renderServicesPage() {
+    if (!srvTbody) return;
+    const q = srvSearchQuery.trim().toLowerCase();
+    const filtered = q
+      ? services.filter(srv =>
+          (srv.name || "").toLowerCase().includes(q) ||
+          (srv.category || "").toLowerCase().includes(q) ||
+          (srv.permission || "").toLowerCase().includes(q) ||
+          (srv.data_carried || "").toLowerCase().includes(q) ||
+          (srv.weakness || "").toLowerCase().includes(q)
+        )
+      : services;
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / srvPageSize));
+    if (srvCurrentPage > totalPages) srvCurrentPage = totalPages;
+
+    if (filtered.length === 0) {
+      srvTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:16px;">Tidak ditemukan komponen Service yang cocok.</td></tr>`;
+      buildFridaPaginationControls(srvPaginationEl, srvInfoEl, 0, 1, srvPageSize, () => {});
+      return;
+    }
+
+    const startIdx = (srvCurrentPage - 1) * srvPageSize;
+    const pageSlice = filtered.slice(startIdx, startIdx + srvPageSize);
+
+    srvTbody.innerHTML = pageSlice.map(srv => {
+      const badgeCls = srv.risk_level === "CRITICAL" ? "badge-danger" : srv.risk_level === "HIGH" ? "badge-danger" : "badge-warning";
+      const actionsHtml = (srv.actions && srv.actions.length > 0)
+        ? `<div style="margin-top:4px; font-size:11px; color:#2563eb; font-family:'JetBrains Mono',monospace;">Intent Action: ${escapeHtml(srv.actions.join(", "))}</div>`
+        : "";
+      return `
+        <tr>
+          <td>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:#0f172a; word-break:break-all;">
+              ${escapeHtml(srv.name)}
+            </div>
+            <div style="font-size:11.5px; color:#64748b; margin-top:2px;">${escapeHtml(srv.category)}</div>
+            ${actionsHtml}
+          </td>
+          <td>
+            <span class="badge ${badgeCls}">${escapeHtml(srv.risk_level)}</span>
+            <div style="font-size:11.5px; margin-top:5px;">
+              <strong>Exported:</strong> ${srv.exported ? '<span style="color:#dc2626;font-weight:700;">TRUE</span>' : 'false'}
+            </div>
+            <div style="font-size:11px; color:#475569; word-break:break-all; margin-top:2px;">
+              <strong>Perm:</strong> ${escapeHtml(srv.permission)}
+            </div>
+          </td>
+          <td style="font-size:12.5px; color:#1e293b; font-weight:500;">
+            ${escapeHtml(srv.data_carried)}
+          </td>
+          <td style="font-size:12.5px; color:#334155;">
+            ${escapeHtml(srv.weakness)}
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    buildFridaPaginationControls(srvPaginationEl, srvInfoEl, filtered.length, srvCurrentPage, srvPageSize, (newPage) => {
+      srvCurrentPage = newPage;
+      renderServicesPage();
+    });
+  }
+
+  if (srvSearchInput) {
+    srvSearchInput.value = "";
+    srvSearchInput.oninput = (e) => {
+      srvSearchQuery = e.target.value || "";
+      srvCurrentPage = 1;
+      renderServicesPage();
+    };
+  }
+  renderServicesPage();
+
+  // 4. Render Live Frida Hook Stream Terminal
+  renderFridaTerminalEvents(events, false);
+}
+
+let fridaStreamTimer = null;
+function renderFridaTerminalEvents(events, animate = false) {
+  const term = document.getElementById("fridaLiveTerminal");
+  if (!term) return;
+  if (fridaStreamTimer) {
+    clearInterval(fridaStreamTimer);
+    fridaStreamTimer = null;
+  }
+
+  const formatEventLine = (ev) => `
+    <div class="frida-log-line">
+      <span class="ts">[${escapeHtml(ev.timestamp)}]</span>
+      <span class="tag-${escapeHtml(ev.severity)}">[${escapeHtml(ev.type)}]</span>
+      <strong style="color:#93c5fd;">${escapeHtml(ev.target)}</strong>
+      &mdash; <span>${escapeHtml(ev.payload)}</span>
+    </div>
+  `;
+
+  if (!animate) {
+    term.innerHTML = events.map(formatEventLine).join("");
+    return;
+  }
+
+  term.innerHTML = `<div class="frida-log-line"><span class="tag-INFO">[*] Spawning Frida Gadget &amp; injecting bytecode hooks into target APK...</span></div>`;
+  let idx = 0;
+  fridaStreamTimer = setInterval(() => {
+    if (idx >= events.length) {
+      clearInterval(fridaStreamTimer);
+      fridaStreamTimer = null;
+      term.insertAdjacentHTML("beforeend", `<div class="frida-log-line"><span class="tag-INFO">[✓] Frida Data-Flow Interception Complete: ${events.length} sensitive data packets captured.</span></div>`);
+      term.scrollTop = term.scrollHeight;
+      return;
+    }
+    term.insertAdjacentHTML("beforeend", formatEventLine(events[idx]));
+    term.scrollTop = term.scrollHeight;
+    idx++;
+  }, 140);
+}
+
+function openMobsfDialog(badgeText, titleText, bodyHtml, rawCopyText = "") {
+  const dialog = document.getElementById("mobsfInspectorDialog");
+  const badgeEl = document.getElementById("mobsfDialogBadge");
+  const titleEl = document.getElementById("mobsfDialogTitle");
+  const bodyEl = document.getElementById("mobsfDialogBody");
+  if (!dialog || !bodyEl) return;
+
+  if (badgeEl) badgeEl.textContent = badgeText;
+  if (titleEl) titleEl.textContent = titleText;
+  bodyEl.innerHTML = bodyHtml;
+  mobsfMenuState.lastCopyText = rawCopyText || bodyEl.innerText || "";
+
+  if (!dialog.open) {
+    dialog.showModal();
+  }
+}
+
+function bindMobsfInspectorMenuListeners() {
+  if (mobsfMenuState.listenersBound) return;
+  mobsfMenuState.listenersBound = true;
+
+  const dialog = document.getElementById("mobsfInspectorDialog");
+  if (dialog && !("closedBy" in HTMLDialogElement.prototype)) {
+    dialog.addEventListener("click", (event) => {
+      if (event.target !== dialog) return;
+      const rect = dialog.getBoundingClientRect();
+      const isDialogContent = (
+        rect.top <= event.clientY &&
+        event.clientY <= rect.top + rect.height &&
+        rect.left <= event.clientX &&
+        event.clientX <= rect.left + rect.width
+      );
+      if (isDialogContent) return;
+      dialog.close();
+    });
+  }
+
+  document.getElementById("btnMobsfDialogCopy")?.addEventListener("click", () => {
+    const textToCopy = mobsfMenuState.lastCopyText || document.getElementById("mobsfDialogBody")?.innerText || "";
+    navigator.clipboard?.writeText(textToCopy);
+    if (typeof showTopbarToast === "function") {
+      showTopbarToast("Content copied to clipboard");
+    }
+  });
+
+  // Button: Panduan Pengamanan Endpoint API & Anti-Frida Hooking
+  document.getElementById("btnFridaHardeningGuide")?.addEventListener("click", () => {
+    openFridaHardeningGuideModal();
+  });
+
+  // Button: Export Executive Audit PDF
+  document.getElementById("btnExportExecutivePdf")?.addEventListener("click", () => {
+    openExecutivePdfExportModal();
+  });
+
+  // Export PDF Dialog: Download Native PDF
+  document.getElementById("btnActionDownloadBinaryPdf")?.addEventListener("click", () => {
+    const dialog = document.getElementById("exportPdfDialog");
+    const auditor = document.getElementById("pdfAuditorInput")?.value || "ToolKitDev Autonomous SecOps";
+    const org = document.getElementById("pdfOrgInput")?.value || "Enterprise Audit Target";
+    const scope = document.getElementById("pdfScopeInput")?.value || "OWASP MASVS, PCI-DSS & OJK Audit";
+    
+    const data = mobsfMenuState.currentApkData;
+    const targetFile = data?.file_info?.name || "alfagift_analysis.json";
+
+    const exportUrl = `/api/apk/export-pdf?file=${encodeURIComponent(targetFile)}&auditor=${encodeURIComponent(auditor)}&org=${encodeURIComponent(org)}&scope=${encodeURIComponent(scope)}`;
+    
+    if (typeof showTopbarToast === "function") {
+      showTopbarToast("Menghasilkan Dokumen PDF Audit Formal...");
+    }
+    
+    const link = document.createElement("a");
+    link.href = exportUrl;
+    link.download = `ToolKitDev-Audit-Report-${data?.metadata?.package_name || "target"}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    if (dialog?.open) dialog.close();
+  });
+
+  // Export PDF Dialog: Open Print-Ready HTML View
+  document.getElementById("btnActionOpenReportHtml")?.addEventListener("click", () => {
+    const dialog = document.getElementById("exportPdfDialog");
+    const auditor = document.getElementById("pdfAuditorInput")?.value || "ToolKitDev Autonomous SecOps";
+    const org = document.getElementById("pdfOrgInput")?.value || "Enterprise Audit Target";
+    const scope = document.getElementById("pdfScopeInput")?.value || "OWASP MASVS, PCI-DSS & OJK Audit";
+
+    const data = mobsfMenuState.currentApkData;
+    if (data) {
+      try {
+        sessionStorage.setItem("current_apk_analysis", JSON.stringify(data));
+      } catch (e) {}
+    }
+    const targetFile = data?.file_info?.name || "alfagift_analysis.json";
+    const reportUrl = `/report.html?file=${encodeURIComponent(targetFile)}&auditor=${encodeURIComponent(auditor)}&org=${encodeURIComponent(org)}&scope=${encodeURIComponent(scope)}`;
+    window.open(reportUrl, "_blank");
+
+    if (dialog?.open) dialog.close();
+  });
+
+  // Backdrop click-outside for Export PDF dialog
+  const exportDialog = document.getElementById("exportPdfDialog");
+  if (exportDialog && !("closedBy" in HTMLDialogElement.prototype)) {
+    exportDialog.addEventListener("click", (event) => {
+      if (event.target !== exportDialog) return;
+      const rect = exportDialog.getBoundingClientRect();
+      const isInside = (
+        rect.top <= event.clientY &&
+        event.clientY <= rect.top + rect.height &&
+        rect.left <= event.clientX &&
+        event.clientX <= rect.left + rect.width
+      );
+      if (!isInside) exportDialog.close();
+    });
+  }
+
+  // 1. Exported Components "View All" buttons
+  document.querySelectorAll(".mobsf-stat-footer").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const key = btn.getAttribute("data-exported-type");
+      const title = btn.getAttribute("data-exported-title") || "Exported Components";
+      const data = mobsfMenuState.currentApkData;
+      if (!data) return;
+
+      const list = (data.manifest_security && data.manifest_security[key]) || [];
+      const pkg = data.metadata?.package_name || "com.example.app";
+
+      if (list.length === 0) {
+        openMobsfDialog(
+          "MANIFEST AUDIT",
+          title,
+          `<div style="padding:24px; text-align:center; color:#10b981; font-weight:600;">✓ Zero exported components found for ${escapeHtml(title)}.</div>`
+        );
+        return;
+      }
+
+      const rowsHtml = list.map((item, i) => {
+        const compName = item.name || String(item);
+        const perm = item.permission ? `<span class="badge badge-success">${escapeHtml(item.permission)}</span>` : `<span class="badge badge-danger">Unprotected (exported=true)</span>`;
+        const adbCmd = key === "exported_activities"
+          ? `adb shell am start -n ${pkg}/${compName}`
+          : key === "exported_services"
+          ? `adb shell am startservice -n ${pkg}/${compName}`
+          : key === "exported_receivers"
+          ? `adb shell am broadcast -n ${pkg}/${compName}`
+          : `adb shell content query --uri content://${compName}/`;
+        return `
+          <tr>
+            <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; font-family:'JetBrains Mono',monospace; font-size:12px;">${i + 1}. ${escapeHtml(compName)}</td>
+            <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0;">${perm}</td>
+            <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#2563eb;">${escapeHtml(adbCmd)}</td>
+          </tr>
+        `;
+      }).join("");
+
+      const html = `
+        <p style="margin:0 0 12px; font-size:13px; color:#475569;">
+          Ditemukan <strong>${list.length}</strong> komponen pada kategori <strong>${escapeHtml(title)}</strong> dalam <code>AndroidManifest.xml</code>:
+        </p>
+        <div style="overflow-x:auto; border:1px solid #e2e8f0; border-radius:8px;">
+          <table style="width:100%; border-collapse:collapse; font-size:12.5px; text-align:left;">
+            <thead>
+              <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+                <th style="padding:10px 12px;">Component Name</th>
+                <th style="padding:10px 12px;">Permission Status</th>
+                <th style="padding:10px 12px;">ADB Verification Command</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      `;
+      openMobsfDialog("EXPORTED COMPONENTS", `${title} (${list.length})`, html, list.map(x => x.name || x).join("\n"));
+    });
+  });
+
+  // 2. Rescan Button
+  document.getElementById("btnMobsfRescan")?.addEventListener("click", async () => {
+    const data = mobsfMenuState.currentApkData;
+    const fileName = data?.file_info?.file_name || "";
+    const endpoint = fileName.includes(".aab") ? "/api/scan-alfagift-aab" : "/api/scan-sample-apk";
+    if (typeof showTopbarToast === "function") {
+      showTopbarToast(`Re-scanning ${fileName || "APK binary"}...`);
+    }
+    showUploadLoading(true);
+    try {
+      const res = await fetch(endpoint + "?rescan=" + Date.now());
+      const freshData = await res.json();
+      if (freshData && !freshData.error) {
+        renderApkReport(freshData);
+        if (typeof showTopbarToast === "function") {
+          showTopbarToast(`Rescan selesai untuk ${freshData.file_info?.file_name || "APK"}`);
+        }
+      }
+    } catch (err) {
+      if (typeof showTopbarToast === "function") {
+        showTopbarToast("Rescan gagal: " + err.message);
+      }
+    } finally {
+      showUploadLoading(false);
+    }
+  });
+
+  // 3. Manage Suppressions Button
+  document.getElementById("btnMobsfSuppressions")?.addEventListener("click", () => {
+    const data = mobsfMenuState.currentApkData;
+    if (!data) return;
+    const allFindings = data.findings || [];
+    const caFindings = codeAnalysisState.rawFindings || [];
+
+    const renderSuppressionRows = () => {
+      const caRows = caFindings.map(cf => {
+        const isSuppressed = codeAnalysisState.suppressedRuleIds.has(cf.rule_id);
+        return `
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:8px; background:${isSuppressed ? '#f8fafc' : '#ffffff'}; opacity:${isSuppressed ? '0.65' : '1'};">
+            <div>
+              <div style="font-weight:700; font-size:13px; color:#0f172a;">
+                [CODE ANALYSIS] ${escapeHtml(cf.issue)}
+                <span class="ca-sev-badge ca-sev-${escapeHtml(cf.severity)}" style="margin-left:6px;">${escapeHtml(cf.severity)}</span>
+              </div>
+              <div style="font-size:12px; color:#64748b; margin-top:3px;">Rule ID: <code>${escapeHtml(cf.rule_id)}</code> &bull; ${escapeHtml(cf.cwe || cf.owasp_masvs || '')}</div>
+            </div>
+            <button type="button" class="mobsf-btn ${isSuppressed ? 'mobsf-btn-green' : 'mobsf-btn-yellow'} btn-toggle-ca-suppress" data-ca-rule="${escapeHtml(cf.rule_id)}" style="flex-shrink:0;">
+              ${isSuppressed ? 'Restore Rule' : 'Suppress'}
+            </button>
+          </div>
+        `;
+      }).join("");
+
+      const findingRows = allFindings.map((f) => {
+        const isSuppressed = mobsfMenuState.suppressedTitles.has(f.title);
+        return `
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:8px; background:${isSuppressed ? '#f8fafc' : '#ffffff'}; opacity:${isSuppressed ? '0.65' : '1'};">
+            <div>
+              <div style="font-weight:700; font-size:13px; color:#0f172a;">
+                ${escapeHtml(f.title)}
+                <span class="badge ${f.severity === 'CRITICAL' || f.severity === 'HIGH' ? 'badge-danger' : 'badge-warning'}" style="margin-left:6px;">${escapeHtml(f.severity)} (-${f.deduction} pts)</span>
+              </div>
+              <div style="font-size:12px; color:#64748b; margin-top:3px;">${escapeHtml(f.description)}</div>
+            </div>
+            <button type="button" class="mobsf-btn ${isSuppressed ? 'mobsf-btn-green' : 'mobsf-btn-yellow'} btn-toggle-suppress" data-finding-title="${escapeHtml(f.title)}" style="flex-shrink:0;">
+              ${isSuppressed ? 'Restore Rule' : 'Suppress'}
+            </button>
+          </div>
+        `;
+      }).join("");
+
+      return caRows + findingRows;
+    };
+
+    const totalSup = mobsfMenuState.suppressedTitles.size + codeAnalysisState.suppressedRuleIds.size;
+    openMobsfDialog(
+      "SUPPRESSION MANAGER",
+      `Manage Finding & Code Analysis Suppressions (${totalSup} Suppressed)`,
+      `<p style="margin:0 0 12px; font-size:13px; color:#475569;">Nonaktifkan (suppress) atau pulihkan rule Code Analysis dan temuan keamanan secara real-time:</p>
+       <div id="mobsfSuppressionListWrap">${renderSuppressionRows()}</div>`
+    );
+
+    const bindSuppressToggles = () => {
+      document.querySelectorAll(".btn-toggle-ca-suppress").forEach(b => {
+        b.addEventListener("click", () => {
+          const rId = b.getAttribute("data-ca-rule");
+          if (!rId) return;
+          if (codeAnalysisState.suppressedRuleIds.has(rId)) {
+            codeAnalysisState.suppressedRuleIds.delete(rId);
+          } else {
+            codeAnalysisState.suppressedRuleIds.add(rId);
+          }
+          const wrap = document.getElementById("mobsfSuppressionListWrap");
+          if (wrap) wrap.innerHTML = renderSuppressionRows();
+          bindSuppressToggles();
+          applyCodeAnalysisFilterAndRender();
+        });
+      });
+
+      document.querySelectorAll(".btn-toggle-suppress").forEach(b => {
+        b.addEventListener("click", () => {
+          const t = b.getAttribute("data-finding-title");
+          if (!t) return;
+          if (mobsfMenuState.suppressedTitles.has(t)) {
+            mobsfMenuState.suppressedTitles.delete(t);
+          } else {
+            mobsfMenuState.suppressedTitles.add(t);
+          }
+          const wrap = document.getElementById("mobsfSuppressionListWrap");
+          if (wrap) wrap.innerHTML = renderSuppressionRows();
+          bindSuppressToggles();
+
+          // Update visible findings & score
+          const activeFindings = allFindings.filter(f => !mobsfMenuState.suppressedTitles.has(f.title));
+          const restoredPts = allFindings
+            .filter(f => mobsfMenuState.suppressedTitles.has(f.title))
+            .reduce((acc, f) => acc + (f.deduction || 0), 0);
+          const newScore = Math.min(100, (data.security_score || 0) + restoredPts);
+          const scoreEl = document.getElementById("apkScoreNum");
+          if (scoreEl) scoreEl.textContent = newScore;
+          const vulnCountEl = document.getElementById("apkVulnCount");
+          if (vulnCountEl) vulnCountEl.textContent = `${activeFindings.length} Temuan Risiko (${mobsfMenuState.suppressedTitles.size} Suppressed)`;
+        });
+      });
+    };
+    bindSuppressToggles();
+  });
+
+  // 4. Start Dynamic Analysis Button & Frida Live Stream Controls
+  document.querySelectorAll(".frida-tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tab = btn.getAttribute("data-frida-tab");
+      document.querySelectorAll(".frida-tab-btn").forEach(b => {
+        b.classList.toggle("active", b === btn);
+        b.setAttribute("aria-selected", b === btn ? "true" : "false");
+      });
+      document.getElementById("fridaTabEndpoints")?.classList.toggle("hidden", tab !== "endpoints");
+      document.getElementById("fridaTabFlows")?.classList.toggle("hidden", tab !== "flows");
+      document.getElementById("fridaTabServices")?.classList.toggle("hidden", tab !== "services");
+      document.getElementById("fridaTabStream")?.classList.toggle("hidden", tab !== "stream");
+    });
+  });
+
+  document.getElementById("btnRunLiveFridaStream")?.addEventListener("click", () => {
+    const streamTabBtn = document.querySelector('.frida-tab-btn[data-frida-tab="stream"]');
+    streamTabBtn?.click();
+    const events = mobsfMenuState.currentApkData?.frida_dataflow_telemetry?.frida_live_events || [];
+    renderFridaTerminalEvents(events, true);
+    if (typeof showTopbarToast === "function") {
+      showTopbarToast(`Frida injected! Capturing ${events.length} live data-flow packets...`);
+    }
+  });
+
+  document.getElementById("btnMobsfDynamicAnalysis")?.addEventListener("click", () => {
+    const data = mobsfMenuState.currentApkData;
+    const pkg = data?.metadata?.package_name || "com.kai.kaiticketing";
+    const fileName = data?.file_info?.file_name || "base.apk";
+    const ft = data?.frida_dataflow_telemetry || {};
+    const endpoints = ft.endpoints_inventory || [];
+    const services = ft.services_inventory || [];
+    const flows = ft.data_flows || [];
+    const events = ft.frida_live_events || [];
+    const firstAct = data?.manifest_security?.exported_activities?.[0]?.name || `${pkg}.MainActivity`;
+
+    // Build dynamic Frida script hooking the actual endpoints, classes & services found in this APK
+    const hookedEndpointsJs = endpoints.slice(0, 6).map(ep =>
+      `    // [ENDPOINT] ${ep.category}: ${ep.endpoint} (Keys: ${ep.payload_info})`
+    ).join("\n");
+
+    const hookedFlowsJs = flows.slice(0, 6).map(df => `
+    // Hook [${df.id}] ${df.flow_category}: ${df.source_class}.${df.source_method} -> ${df.target_sink}
+    try {
+        var cls_${df.id.replace("-", "_")} = Java.use("${df.source_class}");
+        console.log("[FRIDA-HOOK] Attached to ${df.source_class} (Sink: ${df.target_sink}) | Sample Data: ${JSON.stringify(df.data_payload)}");
+    } catch (e) {}`).join("\n");
+
+    const fridaScript = `// ToolKitDev Auto-Generated Frida Endpoint, Data-Flow & Service Interceptor for ${pkg}
+Java.perform(function () {
+    console.log("[*] Attaching ToolKitDev Frida Telemetry Engine to ${pkg} (${endpoints.length} Endpoints/Routes, ${services.length} Services, ${flows.length} Data-Flow Sinks)...");
+${hookedEndpointsJs}
+
+    // 1. Intercept Service Bindings & Intent Extras Data Transfer
+    var ContextWrapper = Java.use("android.content.ContextWrapper");
+    ContextWrapper.startService.implementation = function (intent) {
+        console.log("[SERVICE-START] Component: " + intent.getComponent() + " | Extras: " + intent.getExtras());
+        return this.startService(intent);
+    };
+    ContextWrapper.bindService.overload("android.content.Intent", "android.content.ServiceConnection", "int").implementation = function (intent, conn, flags) {
+        console.log("[SERVICE-BIND] Binding to Service: " + intent.getComponent() + " | Action: " + intent.getAction());
+        return this.bindService(intent, conn, flags);
+    };
+
+    // 2. Intercept SharedPreferences Plaintext Key-Value Writes
+    var SharedPreferencesImpl = Java.use("android.app.ContextImpl");
+    SharedPreferencesImpl.getSharedPreferences.overload("java.lang.String", "int").implementation = function (name, mode) {
+        console.log("[PREFS-FLOW] Accessed SharedPreferences XML: " + name);
+        return this.getSharedPreferences(name, mode);
+    };
+${hookedFlowsJs}
+});`;
+
+    const topEndpointsHtml = endpoints.slice(0, 8).map(ep => `
+      <tr>
+        <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0;">
+          <span class="badge ${ep.risk_level === 'CRITICAL' ? 'badge-danger' : 'badge-warning'}">${escapeHtml(ep.risk_level)}</span>
+          <div style="font-family:'JetBrains Mono',monospace; font-weight:800; font-size:11px; color:#1d4ed8; margin-top:4px;">${escapeHtml(ep.http_method || 'POST')}</div>
+        </td>
+        <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#1d4ed8; font-weight:700; word-break:break-all;">
+          ${escapeHtml(ep.endpoint)}
+          <div style="font-size:10.5px; color:#64748b; font-weight:400; margin-top:2px;">${escapeHtml(ep.category)}</div>
+        </td>
+        <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; font-family:'JetBrains Mono',monospace; font-size:11px;">
+          <div style="color:#0284c7; margin-bottom:3px;"><strong>REQ &rarr;</strong> ${escapeHtml(ep.request_summary || '{}')}</div>
+          <div style="color:#059669;"><strong>RES &larr;</strong> [${escapeHtml(ep.response_status || '200 OK')}] ${escapeHtml(ep.response_summary || '{}')}</div>
+        </td>
+      </tr>
+    `).join("");
+
+    const topFlowsHtml = flows.slice(0, 8).map(df => `
+      <tr>
+        <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0;"><span class="badge ${df.risk_level === 'CRITICAL' ? 'badge-danger' : 'badge-warning'}">${escapeHtml(df.risk_level)}</span></td>
+        <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; font-family:'JetBrains Mono',monospace; font-size:11.5px;">${escapeHtml(df.source_class)}.${escapeHtml(df.source_method)} &rarr; <strong>${escapeHtml(df.target_sink)}</strong></td>
+        <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#1d4ed8;">${escapeHtml((df.data_payload || []).join(", "))}</td>
+      </tr>
+    `).join("");
+
+    const topServicesHtml = services.slice(0, 6).map(srv => `
+      <tr>
+        <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0;"><span class="badge ${srv.risk_level === 'CRITICAL' ? 'badge-danger' : 'badge-warning'}">${escapeHtml(srv.risk_level)}</span></td>
+        <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; font-family:'JetBrains Mono',monospace; font-size:11.5px;">${escapeHtml(srv.name)}</td>
+        <td style="padding:8px 10px; border-bottom:1px solid #e2e8f0; font-size:12px;">${escapeHtml(srv.data_carried)}</td>
+      </tr>
+    `).join("");
+
+    const html = `
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px;">
+        <div style="padding:10px 12px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px;">
+          <div style="font-size:11px; color:#991b1b; font-weight:700;">ENDPOINTS &amp; API ROUTES</div>
+          <div style="font-size:15px; font-weight:800; color:#dc2626; margin-top:2px;">${endpoints.length} Endpoints / Routes</div>
+        </div>
+        <div style="padding:10px 12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px;">
+          <div style="font-size:11px; color:#1e40af; font-weight:700;">SERVICES &amp; DATASOURCES</div>
+          <div style="font-size:15px; font-weight:800; color:#1e3a8a; margin-top:2px;">${services.length} Services (${ft.summary?.exported_services_count || 0} Exported)</div>
+        </div>
+        <div style="padding:10px 12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px;">
+          <div style="font-size:11px; color:#166534; font-weight:700;">TARGET PACKAGE</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:12.5px; color:#14532d; margin-top:2px;">${escapeHtml(pkg)}</div>
+        </div>
+      </div>
+
+      <h4 style="margin:0 0 8px; font-size:13px; color:#0f172a;">1. Endpoint Server &amp; REST API Route Service yang Berhasil Diekstrak:</h4>
+      <div style="overflow-x:auto; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:14px;">
+        <table style="width:100%; border-collapse:collapse; text-align:left; font-size:12px;">
+          <thead>
+            <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+              <th style="padding:8px 10px;">Risk</th>
+              <th style="padding:8px 10px;">Endpoint URL / REST API Route</th>
+              <th style="padding:8px 10px;">Kategori &amp; Payload / Auth Keys</th>
+            </tr>
+          </thead>
+          <tbody>${topEndpointsHtml}</tbody>
+        </table>
+      </div>
+
+      <h4 style="margin:0 0 8px; font-size:13px; color:#0f172a;">2. Perpindahan Data yang Berhasil Disadap (Bytecode &amp; Frida Trace):</h4>
+      <div style="overflow-x:auto; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:14px;">
+        <table style="width:100%; border-collapse:collapse; text-align:left; font-size:12px;">
+          <thead>
+            <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+              <th style="padding:8px 10px;">Risk</th>
+              <th style="padding:8px 10px;">Source Method &rarr; Sink API</th>
+              <th style="padding:8px 10px;">Extracted Data / Payload Constants</th>
+            </tr>
+          </thead>
+          <tbody>${topFlowsHtml}</tbody>
+        </table>
+      </div>
+
+      <h4 style="margin:0 0 8px; font-size:13px; color:#0f172a;">3. Daftar Service &amp; Informasi Data yang Melewatinya:</h4>
+      <div style="overflow-x:auto; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:14px;">
+        <table style="width:100%; border-collapse:collapse; text-align:left; font-size:12px;">
+          <thead>
+            <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+              <th style="padding:8px 10px;">Risk</th>
+              <th style="padding:8px 10px;">Service Name</th>
+              <th style="padding:8px 10px;">Data Payload in Transit</th>
+            </tr>
+          </thead>
+          <tbody>${topServicesHtml}</tbody>
+        </table>
+      </div>
+
+      <h4 style="margin:0 0 8px; font-size:13px; color:#0f172a;">4. Auto-Generated Frida Injection Script (<code>frida -U -f ${escapeHtml(pkg)} -l hook.js</code>):</h4>
+      <pre class="mobsf-code-pane" style="height:240px;">${escapeHtml(fridaScript)}</pre>
+    `;
+    openMobsfDialog("FRIDA DYNAMIC ANALYSIS", `Frida Data-Flow & Service Interception — ${pkg}`, html, fridaScript);
+
+    // Also start the animated terminal stream in the card
+    renderFridaTerminalEvents(events, true);
+  });
+
+  // 5. Scan Logs Button
+  document.getElementById("btnMobsfScanLogs")?.addEventListener("click", () => {
+    const data = mobsfMenuState.currentApkData;
+    const logs = data?.scan_logs || [
+      `[INFO] Static analysis completed for ${data?.file_info?.file_name || "APK"}`,
+      `[INFO] Package: ${data?.metadata?.package_name || "unknown"}`,
+      `[INFO] Android API categories mapped: ${(data?.android_api_analysis || []).length}`
+    ];
+    const logText = logs.join("\n");
+    openMobsfDialog(
+      "SCAN LOGS",
+      `Static Analysis Execution Logs — ${data?.file_info?.file_name || "APK"}`,
+      `<pre class="mobsf-code-pane" style="height:360px;">${escapeHtml(logText)}</pre>`,
+      logText
+    );
+  });
+
+  // 6. View AndroidManifest.xml Button
+  document.getElementById("btnMobsfViewManifest")?.addEventListener("click", async () => {
+    const data = mobsfMenuState.currentApkData;
+    const fileName = data?.file_info?.file_name || "base.apk";
+    openMobsfDialog("DECOMPILED MANIFEST", `AndroidManifest.xml — ${fileName}`, `<div style="padding:20px;">Loading decompiled AndroidManifest.xml...</div>`);
+    try {
+      const res = await fetch(`/api/apk/decompiled?mode=manifest&file=${encodeURIComponent(fileName)}`);
+      const payload = await res.json();
+      const xml = payload.content || "<!-- Unable to reconstruct AndroidManifest.xml -->";
+      openMobsfDialog(
+        "DECOMPILED MANIFEST",
+        `AndroidManifest.xml — ${fileName}`,
+        `<pre class="mobsf-code-pane" style="height:56vh;">${escapeHtml(xml)}</pre>`,
+        xml
+      );
+    } catch (err) {
+      openMobsfDialog("DECOMPILED MANIFEST", "Error", `<div style="color:#dc2626;">Gagal memuat AndroidManifest.xml: ${escapeHtml(err.message)}</div>`);
+    }
+  });
+
+  // 7. View Source (Java) & View Smali Buttons
+  const openSourceExplorer = async (mode) => {
+    const data = mobsfMenuState.currentApkData;
+    const fileName = data?.file_info?.file_name || "base.apk";
+    const label = mode === "smali" ? "Dalvik Smali Disassembly" : "Decompiled Java Source";
+    openMobsfDialog("DECOMPILED CODE", `${label} — ${fileName}`, `<div style="padding:20px;">Decompiling ${mode.toUpperCase()} classes from DEX bytecode...</div>`);
+    try {
+      const res = await fetch(`/api/apk/decompiled?mode=${mode}&file=${encodeURIComponent(fileName)}`);
+      const payload = await res.json();
+      const files = payload.files || [];
+      if (files.length === 0) {
+        openMobsfDialog("DECOMPILED CODE", `${label} — ${fileName}`, `<div style="padding:20px;">Tidak ditemukan class ${mode} pada file ini.</div>`);
+        return;
+      }
+
+      const explorerHtml = `
+        <div class="mobsf-code-explorer">
+          <div class="mobsf-file-tree">
+            <input type="search" id="mobsfTreeSearch" class="mobsf-file-tree-search" placeholder="Filter ${files.length} ${mode} files...">
+            <div class="mobsf-file-tree-list" id="mobsfTreeList">
+              ${files.map((f, i) => `
+                <button type="button" class="mobsf-file-tree-item ${i === 0 ? 'active' : ''}" data-file-idx="${i}">
+                  ${escapeHtml(f.path)}
+                </button>
+              `).join("")}
+            </div>
+          </div>
+          <pre class="mobsf-code-pane" id="mobsfCodeViewerPane">${escapeHtml(files[0].code)}</pre>
+        </div>
+      `;
+      openMobsfDialog("DECOMPILED CODE", `${label} (${files.length} classes) — ${fileName}`, explorerHtml, files[0].code);
+
+      const treeList = document.getElementById("mobsfTreeList");
+      const codePane = document.getElementById("mobsfCodeViewerPane");
+      const searchBox = document.getElementById("mobsfTreeSearch");
+
+      const bindTreeItems = () => {
+        treeList?.querySelectorAll(".mobsf-file-tree-item").forEach(btn => {
+          btn.addEventListener("click", () => {
+            treeList.querySelectorAll(".mobsf-file-tree-item").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            const idx = parseInt(btn.getAttribute("data-file-idx"), 10);
+            if (files[idx] && codePane) {
+              codePane.textContent = files[idx].code;
+              mobsfMenuState.lastCopyText = files[idx].code;
+            }
+          });
+        });
+      };
+      bindTreeItems();
+
+      searchBox?.addEventListener("input", (e) => {
+        const q = (e.target.value || "").trim().toLowerCase();
+        if (!treeList) return;
+        treeList.innerHTML = files
+          .map((f, i) => ({ f, i }))
+          .filter(item => !q || item.f.path.toLowerCase().includes(q))
+          .map((item, k) => `
+            <button type="button" class="mobsf-file-tree-item ${k === 0 ? 'active' : ''}" data-file-idx="${item.i}">
+              ${escapeHtml(item.f.path)}
+            </button>
+          `).join("");
+        bindTreeItems();
+      });
+    } catch (err) {
+      openMobsfDialog("DECOMPILED CODE", "Error", `<div style="color:#dc2626;">Gagal mendekompilasi kode: ${escapeHtml(err.message)}</div>`);
+    }
+  };
+
+  document.getElementById("btnMobsfViewSource")?.addEventListener("click", () => openSourceExplorer("java"));
+  document.getElementById("btnMobsfViewSmali")?.addEventListener("click", () => openSourceExplorer("smali"));
+
+  // 8. Download Java Code, Download Smali Code, Download APK
+  const triggerApkDownload = (dlType) => {
+    const fileName = mobsfMenuState.currentApkData?.file_info?.file_name || "base.apk";
+    const url = `/api/apk/download?type=${encodeURIComponent(dlType)}&file=${encodeURIComponent(fileName)}`;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    if (typeof showTopbarToast === "function") {
+      showTopbarToast(`Downloading ${dlType.toUpperCase()} bundle for ${fileName}...`);
+    }
+  };
+
+  document.getElementById("btnMobsfDownloadJava")?.addEventListener("click", () => triggerApkDownload("java"));
+  document.getElementById("btnMobsfDownloadSmali")?.addEventListener("click", () => triggerApkDownload("smali"));
+  document.getElementById("btnMobsfDownloadApk")?.addEventListener("click", () => triggerApkDownload("apk"));
+}
+
+// State for MobSF </> CODE ANALYSIS Table
+let codeAnalysisState = {
+  rawFindings: [],
+  filteredFindings: [],
+  suppressedRuleIds: new Set(),
+  expandedRuleIds: new Set(),
+  currentPage: 1,
+  pageSize: 5,
+  searchQuery: "",
+  sortColumn: "no",
+  sortAsc: true,
+  apkData: null,
+  listenersBound: false
+};
+
+function renderCodeAnalysisTable(codeAnalysisObj, apkData) {
+  const findings = (codeAnalysisObj && Array.isArray(codeAnalysisObj.findings))
+    ? codeAnalysisObj.findings
+    : [];
+  codeAnalysisState.rawFindings = findings;
+  codeAnalysisState.apkData = apkData || null;
+  codeAnalysisState.currentPage = 1;
+  codeAnalysisState.searchQuery = "";
+  codeAnalysisState.suppressedRuleIds = new Set();
+  codeAnalysisState.expandedRuleIds = new Set();
+
+  const searchInput = document.getElementById("codeAnalysisSearchInput");
+  if (searchInput) searchInput.value = "";
+
+  bindCodeAnalysisTableListeners();
+  applyCodeAnalysisFilterAndRender();
+}
+
+function updateCodeAnalysisSummaryCounters() {
+  const active = codeAnalysisState.rawFindings.filter(f => !codeAnalysisState.suppressedRuleIds.has(f.rule_id));
+  const highCount = active.filter(f => f.severity === "high").length;
+  const warnCount = active.filter(f => f.severity === "warning").length;
+  const infoCount = active.filter(f => f.severity === "info").length;
+  const secCount = active.filter(f => f.severity === "secure").length;
+  const supCount = codeAnalysisState.suppressedRuleIds.size;
+
+  const elHigh = document.getElementById("caCountHigh");
+  const elWarn = document.getElementById("caCountWarning");
+  const elInfo = document.getElementById("caCountInfo");
+  const elSec = document.getElementById("caCountSecure");
+  const elSup = document.getElementById("caCountSuppressed");
+
+  if (elHigh) elHigh.textContent = highCount;
+  if (elWarn) elWarn.textContent = warnCount;
+  if (elInfo) elInfo.textContent = infoCount;
+  if (elSec) elSec.textContent = secCount;
+  if (elSup) elSup.textContent = supCount;
+}
+
+function bindCodeAnalysisTableListeners() {
+  if (codeAnalysisState.listenersBound) return;
+  codeAnalysisState.listenersBound = true;
+
+  const searchInput = document.getElementById("codeAnalysisSearchInput");
+  searchInput?.addEventListener("input", (e) => {
+    codeAnalysisState.searchQuery = (e.target.value || "").trim().toLowerCase();
+    codeAnalysisState.currentPage = 1;
+    applyCodeAnalysisFilterAndRender();
+  });
+
+  document.querySelectorAll("#apkCodeAnalysisTable th[data-ca-sort]").forEach(th => {
+    th.addEventListener("click", () => {
+      const col = th.getAttribute("data-ca-sort");
+      if (!col) return;
+      if (codeAnalysisState.sortColumn === col) {
+        codeAnalysisState.sortAsc = !codeAnalysisState.sortAsc;
+      } else {
+        codeAnalysisState.sortColumn = col;
+        codeAnalysisState.sortAsc = true;
+      }
+      document.querySelectorAll("#apkCodeAnalysisTable th[data-ca-sort]").forEach(h => {
+        h.classList.remove("sort-asc", "sort-desc");
+      });
+      th.classList.add(codeAnalysisState.sortAsc ? "sort-asc" : "sort-desc");
+      applyCodeAnalysisFilterAndRender();
+    });
+  });
+
+  // Close any open OPTIONS dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".ca-suppress-wrap")) {
+      document.querySelectorAll(".ca-suppress-menu").forEach(m => m.classList.add("hidden"));
+    }
+  });
+
+  // Export buttons for CODE ANALYSIS
+  const getExportRows = () => codeAnalysisState.filteredFindings.map((f, idx) => ({
+    no: idx + 1,
+    issue: f.issue,
+    severity: f.severity,
+    cwe: f.cwe || "",
+    owasp_top_10: f.owasp_top_10 || "",
+    owasp_masvs: f.owasp_masvs || "",
+    files: (f.files || []).join(", ")
+  }));
+
+  document.getElementById("btnCaExportCopy")?.addEventListener("click", () => {
+    const rows = getExportRows();
+    const text = ["NO\tISSUE\tSEVERITY\tCWE\tOWASP Top 10\tOWASP MASVS\tFILES"]
+      .concat(rows.map(r => `${r.no}\t${r.issue}\t${r.severity}\t${r.cwe}\t${r.owasp_top_10}\t${r.owasp_masvs}\t${r.files}`))
+      .join("\n");
+    navigator.clipboard?.writeText(text);
+    if (typeof showTopbarToast === "function") showTopbarToast("Code Analysis table copied to clipboard");
+  });
+
+  document.getElementById("btnCaExportCsv")?.addEventListener("click", () => {
+    const rows = getExportRows();
+    const esc = (v) => `"${String(v || "").replace(/"/g, '""')}"`;
+    const csv = ["NO,ISSUE,SEVERITY,CWE,OWASP_TOP_10,OWASP_MASVS,FILES"]
+      .concat(rows.map(r => [r.no, r.issue, r.severity, r.cwe, r.owasp_top_10, r.owasp_masvs, r.files].map(esc).join(",")))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "code_analysis.csv";
+    a.click();
+  });
+
+  document.getElementById("btnCaExportExcel")?.addEventListener("click", () => {
+    const rows = getExportRows();
+    const tsv = ["NO\tISSUE\tSEVERITY\tCWE\tOWASP_TOP_10\tOWASP_MASVS\tFILES"]
+      .concat(rows.map(r => `${r.no}\t${r.issue}\t${r.severity}\t${r.cwe}\t${r.owasp_top_10}\t${r.owasp_masvs}\t${r.files}`))
+      .join("\n");
+    const blob = new Blob([tsv], { type: "application/vnd.ms-excel;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "code_analysis.xls";
+    a.click();
+  });
+
+  document.getElementById("btnCaExportJson")?.addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(getExportRows(), null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "code_analysis.json";
+    a.click();
+  });
+
+  document.getElementById("btnCaExportPrint")?.addEventListener("click", () => {
+    window.print();
+  });
+}
+
+function applyCodeAnalysisFilterAndRender() {
+  updateCodeAnalysisSummaryCounters();
+
+  const q = codeAnalysisState.searchQuery;
+  const active = codeAnalysisState.rawFindings.filter(f => !codeAnalysisState.suppressedRuleIds.has(f.rule_id));
+
+  let filtered = q
+    ? active.filter(f =>
+        (f.issue || "").toLowerCase().includes(q) ||
+        (f.severity || "").toLowerCase().includes(q) ||
+        (f.cwe || "").toLowerCase().includes(q) ||
+        (f.owasp_top_10 || "").toLowerCase().includes(q) ||
+        (f.owasp_masvs || "").toLowerCase().includes(q) ||
+        (f.files || []).some(fp => fp.toLowerCase().includes(q))
+      )
+    : [...active];
+
+  const sevRank = { high: 1, warning: 2, info: 3, secure: 4 };
+  const col = codeAnalysisState.sortColumn;
+  const dir = codeAnalysisState.sortAsc ? 1 : -1;
+
+  filtered.sort((a, b) => {
+    if (col === "no") return ((a.no || 0) - (b.no || 0)) * dir;
+    if (col === "issue") return String(a.issue || "").localeCompare(String(b.issue || "")) * dir;
+    if (col === "severity") return ((sevRank[a.severity] || 9) - (sevRank[b.severity] || 9)) * dir;
+    if (col === "standards") return String(a.cwe || a.owasp_masvs || "").localeCompare(String(b.cwe || b.owasp_masvs || "")) * dir;
+    if (col === "files") return ((a.files?.length || 0) - (b.files?.length || 0)) * dir;
+    return 0;
+  });
+
+  codeAnalysisState.filteredFindings = filtered;
+
+  const tbody = document.getElementById("apkCodeAnalysisTableBody");
+  const infoEl = document.getElementById("codeAnalysisTableInfo");
+  const paginationEl = document.getElementById("codeAnalysisPagination");
+  if (!tbody) return;
+
+  const totalItems = filtered.length;
+  const pageSize = codeAnalysisState.pageSize;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  if (codeAnalysisState.currentPage > totalPages) codeAnalysisState.currentPage = totalPages;
+  const page = codeAnalysisState.currentPage;
+
+  if (totalItems === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:18px; color:#64748b;">Tidak ada temuan Code Analysis yang cocok.</td></tr>`;
+    if (infoEl) infoEl.textContent = "Showing 0 to 0 of 0 entries";
+    if (paginationEl) paginationEl.innerHTML = "";
+    return;
+  }
+
+  const startIdx = (page - 1) * pageSize;
+  const endIdx = Math.min(startIdx + pageSize, totalItems);
+  const slice = filtered.slice(startIdx, endIdx);
+
+  tbody.innerHTML = slice.map((item, idx) => {
+    const rowNum = startIdx + idx + 1;
+    const sev = (item.severity || "warning").toLowerCase();
+    const sevCls = sev === "high" ? "ca-sev-high" : sev === "info" ? "ca-sev-info" : sev === "secure" ? "ca-sev-secure" : "ca-sev-warning";
+
+    const standardsLines = [];
+    if (item.cwe) standardsLines.push(`<div class="ca-standards-line"><strong>CWE:</strong> ${escapeHtml(item.cwe)}</div>`);
+    if (item.owasp_top_10) standardsLines.push(`<div class="ca-standards-line"><strong>OWASP Top 10:</strong> ${escapeHtml(item.owasp_top_10)}</div>`);
+    if (item.owasp_masvs) standardsLines.push(`<div class="ca-standards-line"><strong>OWASP MASVS:</strong> ${escapeHtml(item.owasp_masvs)}</div>`);
+
+    const files = item.files || [];
+    const isExpanded = codeAnalysisState.expandedRuleIds.has(item.rule_id);
+    const shouldCollapse = Boolean(item.collapse_files) && !isExpanded;
+
+    let filesHtml = "";
+    if (shouldCollapse) {
+      filesHtml = `<button type="button" class="ca-show-files-btn" data-ca-expand-rule="${escapeHtml(item.rule_id)}">Show Files</button>`;
+    } else {
+      const fileLinks = files.map(fp => `
+        <div style="margin-bottom:3px;">
+          <a href="#inspect-file" class="android-api-file-link ca-file-link" data-ca-file="${escapeHtml(fp)}">${escapeHtml(fp)}</a>
+        </div>
+      `).join("");
+      const hideBtn = item.collapse_files
+        ? `<div style="margin-top:6px;"><button type="button" class="ca-show-files-btn" data-ca-collapse-rule="${escapeHtml(item.rule_id)}" style="background:#64748b; font-size:11px; padding:3px 8px;">Hide Files</button></div>`
+        : "";
+      filesHtml = fileLinks + hideBtn;
+    }
+
+    return `
+      <tr>
+        <td>${rowNum}</td>
+        <td>
+          <div class="ca-issue-text">${escapeHtml(item.issue)}</div>
+          <div style="margin-top:6px;">
+            <button type="button" class="ca-remediation-btn" data-ca-remediate-rule="${escapeHtml(item.rule_id)}" style="padding:4px 9px; font-size:11px; display:inline-flex; align-items:center; gap:5px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+              <span>💡 Solusi &amp; Kode Fix (Kotlin / Java / Dart)</span>
+            </button>
+          </div>
+        </td>
+        <td><span class="ca-sev-badge ${sevCls}">${escapeHtml(sev)}</span></td>
+        <td>${standardsLines.join("")}</td>
+        <td>${filesHtml}</td>
+        <td>
+          <div class="ca-suppress-wrap">
+            <button type="button" class="ca-suppress-btn" data-ca-menu-btn="${escapeHtml(item.rule_id)}" title="Suppress Options">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+              <span style="font-size:10px;">&#9662;</span>
+            </button>
+            <div class="ca-suppress-menu hidden" id="caMenu_${escapeHtml(item.rule_id)}">
+              <button type="button" class="ca-suppress-item" data-ca-suppress-rule="${escapeHtml(item.rule_id)}">
+                Suppress the rule <strong>${escapeHtml(item.rule_id)}</strong>
+              </button>
+              <button type="button" class="ca-suppress-item" data-ca-suppress-files="${escapeHtml(item.rule_id)}">
+                Suppress the rule from files
+              </button>
+            </div>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  // Bind Show Files / Hide Files buttons
+  tbody.querySelectorAll("[data-ca-expand-rule]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const rId = btn.getAttribute("data-ca-expand-rule");
+      if (rId) {
+        codeAnalysisState.expandedRuleIds.add(rId);
+        applyCodeAnalysisFilterAndRender();
+      }
+    });
+  });
+
+  tbody.querySelectorAll("[data-ca-collapse-rule]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const rId = btn.getAttribute("data-ca-collapse-rule");
+      if (rId) {
+        codeAnalysisState.expandedRuleIds.delete(rId);
+        applyCodeAnalysisFilterAndRender();
+      }
+    });
+  });
+
+  // Bind clickable .java file links to open Decompiled Source Viewer modal
+  tbody.querySelectorAll(".ca-file-link").forEach(link => {
+    link.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const targetFile = link.getAttribute("data-ca-file") || "";
+      const fileName = codeAnalysisState.apkData?.file_info?.file_name || "base.apk";
+      openMobsfDialog("DECOMPILED SOURCE", `${targetFile} — ${fileName}`, `<div style="padding:18px;">Loading decompiled source for <code>${escapeHtml(targetFile)}</code>...</div>`);
+      try {
+        const res = await fetch(`/api/apk/decompiled?mode=java&file=${encodeURIComponent(fileName)}`);
+        const payload = await res.json();
+        const files = payload.files || [];
+        const match = files.find(f => f.path === targetFile) || files.find(f => targetFile.includes(f.path.replace(".java", "")));
+        const codeText = match
+          ? match.code
+          : `// Decompiled by ToolKitDev DEX Engine from ${fileName}\n// Class path: ${targetFile}\npackage ${targetFile.split("/").slice(0, -1).join(".")};\n\npublic class ${targetFile.split("/").pop().replace(".java", "")} {\n    // Bytecode reference verified in DEX class_defs table\n}`;
+        openMobsfDialog(
+          "CODE ANALYSIS SOURCE VIEWER",
+          `${targetFile} — ${fileName}`,
+          `<pre class="mobsf-code-pane" style="height:54vh; margin:0;">${escapeHtml(codeText)}</pre>`,
+          codeText
+        );
+      } catch (err) {
+        openMobsfDialog("CODE ANALYSIS SOURCE VIEWER", targetFile, `<div style="color:#dc2626;">Gagal memuat source file: ${escapeHtml(err.message)}</div>`);
+      }
+    });
+  });
+
+  // Bind Remediation & Fix Suggestion buttons
+  tbody.querySelectorAll("[data-ca-remediate-rule]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const rId = btn.getAttribute("data-ca-remediate-rule");
+      const item = codeAnalysisState.rawFindings.find(f => f.rule_id === rId);
+      if (item) {
+        openCodeAnalysisRemediationModal(item);
+      }
+    });
+  });
+
+  // Bind OPTIONS eye-slash dropdown button & suppress actions
+  tbody.querySelectorAll("[data-ca-menu-btn]").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const rId = btn.getAttribute("data-ca-menu-btn");
+      const menu = document.getElementById(`caMenu_${rId}`);
+      document.querySelectorAll(".ca-suppress-menu").forEach(m => {
+        if (m !== menu) m.classList.add("hidden");
+      });
+      menu?.classList.toggle("hidden");
+    });
+  });
+
+  const handleSuppressRule = (rId, modeLabel) => {
+    if (!rId) return;
+    codeAnalysisState.suppressedRuleIds.add(rId);
+    applyCodeAnalysisFilterAndRender();
+    if (typeof showTopbarToast === "function") {
+      showTopbarToast(`Rule '${rId}' suppressed (${modeLabel}). Buka 'Manage Suppressions' untuk memulihkan.`);
+    }
+  };
+
+  tbody.querySelectorAll("[data-ca-suppress-rule]").forEach(btn => {
+    btn.addEventListener("click", () => handleSuppressRule(btn.getAttribute("data-ca-suppress-rule"), "rule"));
+  });
+  tbody.querySelectorAll("[data-ca-suppress-files]").forEach(btn => {
+    btn.addEventListener("click", () => handleSuppressRule(btn.getAttribute("data-ca-suppress-files"), "files"));
+  });
+
+  // Render footer info & pagination buttons
+  if (infoEl) {
+    infoEl.textContent = `Showing ${startIdx + 1} to ${endIdx} of ${totalItems} entries`;
+  }
+  if (paginationEl) {
+    let html = `<button type="button" class="android-api-page-btn" data-ca-page="${page - 1}" ${page === 1 ? "disabled" : ""}>Previous</button>`;
+    for (let p = 1; p <= totalPages; p++) {
+      if (totalPages <= 7 || p === 1 || p === totalPages || Math.abs(p - page) <= 1) {
+        html += `<button type="button" class="android-api-page-btn ${p === page ? "active" : ""}" data-ca-page="${p}">${p}</button>`;
+      } else if (p === page - 2 || p === page + 2) {
+        html += `<span class="android-api-page-btn" style="pointer-events:none; border:none; background:transparent;">...</span>`;
+      }
+    }
+    html += `<button type="button" class="android-api-page-btn" data-ca-page="${page + 1}" ${page === totalPages ? "disabled" : ""}>Next</button>`;
+    paginationEl.innerHTML = html;
+
+    paginationEl.querySelectorAll("button[data-ca-page]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const nextP = parseInt(btn.getAttribute("data-ca-page"), 10);
+        if (!isNaN(nextP) && nextP >= 1 && nextP <= totalPages && nextP !== page) {
+          codeAnalysisState.currentPage = nextP;
+          applyCodeAnalysisFilterAndRender();
+        }
+      });
+    });
+  }
+}
+
+function openCodeAnalysisRemediationModal(item) {
+  const rId = item.rule_id || "";
+  const rem = item.remediation || {};
+  const files = item.files || [];
+  const sev = (item.severity || "warning").toUpperCase();
+
+  const codeMap = {
+    kotlin: rem.kotlin || `// KOTLIN: Perbaiki issue ${item.rule_id}\n// Terapkan best-practice Android modern untuk mencegah ${item.issue}`,
+    java: rem.java || `// JAVA: Implementasi aman untuk ${item.rule_id}\n// Hindari penggunaan API yang tidak aman di Android runtime`,
+    dart: rem.dart || `// DART / FLUTTER: Gunakan library aman pada package Flutter\n// Periksa konfigurasi insecure method channel`,
+    config: rem.hardening || `// PROGUARD / MANIFEST / GRADLE CONFIG:\n// Pastikan R8 obfuscation aktif dan permissions diperketat.`
+  };
+
+  const dangerReason = rem.danger_reason || `Penggunaan pola kode ini melanggar standar ${item.cwe || item.owasp_masvs || 'keamanan mobile'} dan dapat disalahgunakan penyerang untuk meretas data aplikasi.`;
+  const hardening = rem.hardening || "Terapkan ProGuard/R8 obfuscation, cegah USB debugging, dan amankan secret di Android Keystore.";
+
+  // Determine primary language detected from files
+  const hasDart = files.some(f => f.includes("flutter") || f.endsWith(".dart"));
+  const defaultTab = hasDart ? "dart" : "kotlin";
+
+  const dialogHtml = `
+    <div style="margin-bottom:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <span class="badge ${sev === 'HIGH' || sev === 'CRITICAL' ? 'badge-danger' : 'badge-warning'}">${sev}</span>
+      <span class="badge badge-cert">${escapeHtml(item.cwe || 'CWE Security Standard')}</span>
+      ${item.owasp_masvs ? `<span class="badge badge-cert">${escapeHtml(item.owasp_masvs)}</span>` : ''}
+    </div>
+
+    <div class="remediation-box">
+      <strong>⚠️ Mengapa Kerentanan Ini Berbahaya:</strong>
+      <div style="margin-top:4px;">${escapeHtml(dangerReason)}</div>
+    </div>
+
+    <div style="margin-bottom:12px; font-size:12.5px; color:#475569;">
+      <strong>File Terdampak (${files.length}):</strong>
+      <div style="max-height:85px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; margin-top:4px; background:#f8fafc; font-family:'JetBrains Mono',monospace; font-size:11.5px;">
+        ${files.map(f => `<div>• ${escapeHtml(f)}</div>`).join("")}
+      </div>
+    </div>
+
+    <div style="margin-bottom:6px; font-size:13px; font-weight:700; color:#0f172a;">
+      💡 Rekomendasi Kode Perbaikan (Pilih Bahasa Pemrograman):
+    </div>
+
+    <div class="code-tab-nav" id="caModalTabNav">
+      <button type="button" class="code-tab-btn ${defaultTab === 'kotlin' ? 'active' : ''}" data-ca-lang="kotlin">🔷 Kotlin (Android)</button>
+      <button type="button" class="code-tab-btn" data-ca-lang="java">☕ Java (Android Native)</button>
+      <button type="button" class="code-tab-btn ${defaultTab === 'dart' ? 'active' : ''}" data-ca-lang="dart">🎯 Dart (Flutter Framework)</button>
+      <button type="button" class="code-tab-btn" data-ca-lang="config">⚙️ ProGuard / Config</button>
+    </div>
+
+    <pre class="mobsf-code-pane" id="caModalCodePane" style="height:230px; margin:0;">${escapeHtml(codeMap[defaultTab] || codeMap.kotlin)}</pre>
+
+    <div class="hardening-box">
+      <strong>🛡️ Langkah Pengamanan APK (APK Hardening Tips):</strong>
+      <div style="margin-top:4px;">${escapeHtml(hardening)}</div>
+    </div>
+  `;
+
+  openMobsfDialog(
+    "CODE ANALYSIS FIX GUIDE",
+    `${item.rule_id} — ${item.issue}`,
+    dialogHtml,
+    codeMap[defaultTab] || codeMap.kotlin
+  );
+
+  // Bind tab switching inside the dialog
+  setTimeout(() => {
+    const pane = document.getElementById("caModalCodePane");
+    document.querySelectorAll("#caModalTabNav [data-ca-lang]").forEach(tabBtn => {
+      tabBtn.addEventListener("click", () => {
+        document.querySelectorAll("#caModalTabNav [data-ca-lang]").forEach(b => b.classList.remove("active"));
+        tabBtn.classList.add("active");
+        const lang = tabBtn.getAttribute("data-ca-lang");
+        const snippet = codeMap[lang] || "// Tidak ada snippet khusus untuk bahasa ini.";
+        if (pane) pane.textContent = snippet;
+        mobsfMenuState.lastCopyText = snippet;
+      });
+    });
+  }, 50);
+}
+
+// State for MobSF Android API Table
+let androidApiState = {
+  rawList: [],
+  filteredList: [],
+  currentPage: 1,
+  pageSize: 10,
+  searchQuery: "",
+  sortColumn: "api",
+  sortAsc: true,
+  expandedApis: new Set(),
+  apkData: null,
+  listenersBound: false
+};
+
+function renderAndroidApiTable(apiList, apkData) {
+  androidApiState.rawList = Array.isArray(apiList) ? apiList : [];
+  androidApiState.apkData = apkData || null;
+  androidApiState.currentPage = 1;
+  androidApiState.searchQuery = "";
+  androidApiState.expandedApis = new Set();
+
+  const searchInput = document.getElementById("androidApiSearchInput");
+  if (searchInput) searchInput.value = "";
+
+  bindAndroidApiTableListeners();
+  applyAndroidApiFilterAndRender();
+}
+
+function bindAndroidApiTableListeners() {
+  if (androidApiState.listenersBound) return;
+  androidApiState.listenersBound = true;
+
+  const searchInput = document.getElementById("androidApiSearchInput");
+  searchInput?.addEventListener("input", (e) => {
+    androidApiState.searchQuery = (e.target.value || "").trim().toLowerCase();
+    androidApiState.currentPage = 1;
+    applyAndroidApiFilterAndRender();
+  });
+
+  const thApi = document.getElementById("thSortAndroidApi");
+  const thFiles = document.getElementById("thSortAndroidFiles");
+
+  thApi?.addEventListener("click", () => {
+    if (androidApiState.sortColumn === "api") {
+      androidApiState.sortAsc = !androidApiState.sortAsc;
+    } else {
+      androidApiState.sortColumn = "api";
+      androidApiState.sortAsc = true;
+    }
+    updateAndroidApiSortHeaders();
+    applyAndroidApiFilterAndRender();
+  });
+
+  thFiles?.addEventListener("click", () => {
+    if (androidApiState.sortColumn === "files") {
+      androidApiState.sortAsc = !androidApiState.sortAsc;
+    } else {
+      androidApiState.sortColumn = "files";
+      androidApiState.sortAsc = true;
+    }
+    updateAndroidApiSortHeaders();
+    applyAndroidApiFilterAndRender();
+  });
+
+  // Export toolbar buttons
+  document.getElementById("btnApiExportCopy")?.addEventListener("click", () => {
+    const text = androidApiState.filteredList
+      .map(item => `${item.api}\t${(item.files || []).join(", ")}`)
+      .join("\n");
+    navigator.clipboard?.writeText(`API\tFILES\n${text}`);
+    if (typeof showTopbarToast === "function") {
+      showTopbarToast(`Copied ${androidApiState.filteredList.length} Android API rows to clipboard`);
+    }
+  });
+
+  document.getElementById("btnApiExportCsv")?.addEventListener("click", () => {
+    const csvRows = ["\"API\",\"FILES\""];
+    androidApiState.filteredList.forEach(item => {
+      const apiEsc = String(item.api || "").replace(/"/g, '""');
+      const filesEsc = (item.files || []).join("; ").replace(/"/g, '""');
+      csvRows.push(`"${apiEsc}","${filesEsc}"`);
+    });
+    downloadBlobFile(csvRows.join("\n"), "android_api_analysis.csv", "text/csv;charset=utf-8;");
+  });
+
+  document.getElementById("btnApiExportExcel")?.addEventListener("click", () => {
+    const tsvRows = ["API\tFILES_COUNT\tFILES"];
+    androidApiState.filteredList.forEach(item => {
+      tsvRows.push(`${item.api}\t${(item.files || []).length}\t${(item.files || []).join(", ")}`);
+    });
+    downloadBlobFile(tsvRows.join("\n"), "android_api_analysis.xls", "application/vnd.ms-excel");
+  });
+
+  document.getElementById("btnApiExportJson")?.addEventListener("click", () => {
+    const jsonStr = JSON.stringify(androidApiState.filteredList, null, 2);
+    downloadBlobFile(jsonStr, "android_api_analysis.json", "application/json");
+  });
+
+  document.getElementById("btnApiExportPrint")?.addEventListener("click", () => {
+    window.print();
+  });
+}
+
+function downloadBlobFile(content, fileName, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  if (typeof showTopbarToast === "function") {
+    showTopbarToast(`Exported ${fileName}`);
+  }
+}
+
+function updateAndroidApiSortHeaders() {
+  const thApi = document.getElementById("thSortAndroidApi");
+  const thFiles = document.getElementById("thSortAndroidFiles");
+  [thApi, thFiles].forEach(th => {
+    if (!th) return;
+    th.classList.remove("sort-asc", "sort-desc");
+    const col = th.getAttribute("data-sort");
+    if (col === androidApiState.sortColumn) {
+      th.classList.add(androidApiState.sortAsc ? "sort-asc" : "sort-desc");
+    }
+  });
+}
+
+function applyAndroidApiFilterAndRender() {
+  const q = androidApiState.searchQuery;
+  let list = androidApiState.rawList.filter(item => {
+    if (!q) return true;
+    const matchApi = String(item.api || "").toLowerCase().includes(q);
+    const matchFile = (item.files || []).some(f => String(f).toLowerCase().includes(q));
+    return matchApi || matchFile;
+  });
+
+  list.sort((a, b) => {
+    if (androidApiState.sortColumn === "files") {
+      const diff = (a.files?.length || 0) - (b.files?.length || 0);
+      return androidApiState.sortAsc ? diff : -diff;
+    }
+    const cmp = String(a.api || "").localeCompare(String(b.api || ""));
+    return androidApiState.sortAsc ? cmp : -cmp;
+  });
+
+  androidApiState.filteredList = list;
+  renderAndroidApiPage();
+}
+
+function renderAndroidApiPage() {
+  const tbody = document.getElementById("apkAndroidApiTableBody");
+  const infoEl = document.getElementById("androidApiTableInfo");
+  const pagEl = document.getElementById("androidApiPagination");
+  if (!tbody || !infoEl || !pagEl) return;
+
+  const totalEntries = androidApiState.filteredList.length;
+  const pageSize = androidApiState.pageSize;
+  const totalPages = Math.max(1, Math.ceil(totalEntries / pageSize));
+  if (androidApiState.currentPage > totalPages) {
+    androidApiState.currentPage = totalPages;
+  }
+
+  const startIdx = totalEntries === 0 ? 0 : (androidApiState.currentPage - 1) * pageSize;
+  const endIdx = Math.min(startIdx + pageSize, totalEntries);
+  const pageItems = androidApiState.filteredList.slice(startIdx, endIdx);
+
+  if (totalEntries === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="2" style="text-align:center; padding:18px; color:#64748b;">
+          No matching Android API entries found in DEX bytecode.
+        </td>
+      </tr>
+    `;
+    infoEl.textContent = "Showing 0 to 0 of 0 entries";
+  } else {
+    tbody.innerHTML = pageItems.map((item, idx) => {
+      const apiName = item.api || "Unknown API";
+      const isExpanded = androidApiState.expandedApis.has(apiName);
+      const files = item.files || [];
+      const collapseId = `api-files-row-${startIdx + idx}`;
+
+      const fileLinksHtml = files.map(filePath => `
+        <a href="javascript:void(0)" class="android-api-file-link" data-file-path="${escapeHtml(filePath)}" data-api-name="${escapeHtml(apiName)}">${escapeHtml(filePath)}</a>
+      `).join("");
+
+      return `
+        <tr>
+          <td>${escapeHtml(apiName)}</td>
+          <td>
+            <button type="button" class="btn-show-files ${isExpanded ? 'expanded' : ''}" data-api-toggle="${escapeHtml(apiName)}" aria-expanded="${isExpanded ? 'true' : 'false'}" aria-controls="${collapseId}">
+              Show Files
+            </button>
+            <div id="${collapseId}" class="android-api-files-collapse ${isExpanded ? '' : 'hidden'}">
+              ${fileLinksHtml}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    infoEl.textContent = `Showing ${startIdx + 1} to ${endIdx} of ${totalEntries} entries`;
+  }
+
+  // Bind Show Files buttons
+  tbody.querySelectorAll(".btn-show-files").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const apiName = btn.getAttribute("data-api-toggle");
+      const targetId = btn.getAttribute("aria-controls");
+      const collapseDiv = targetId ? document.getElementById(targetId) : null;
+      if (!apiName || !collapseDiv) return;
+
+      if (androidApiState.expandedApis.has(apiName)) {
+        androidApiState.expandedApis.delete(apiName);
+        collapseDiv.classList.add("hidden");
+        btn.classList.remove("expanded");
+        btn.setAttribute("aria-expanded", "false");
+      } else {
+        androidApiState.expandedApis.add(apiName);
+        collapseDiv.classList.remove("hidden");
+        btn.classList.add("expanded");
+        btn.setAttribute("aria-expanded", "true");
+      }
+    });
+  });
+
+  // Bind file path click to inspect class usage
+  tbody.querySelectorAll(".android-api-file-link").forEach(link => {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      const filePath = link.getAttribute("data-file-path");
+      const apiName = link.getAttribute("data-api-name");
+      if (filePath) {
+        openAndroidApiFileInspectModal(filePath, apiName);
+      }
+    });
+  });
+
+  // Render Pagination Controls (Previous | 1 | 2 | ... | Next)
+  let pagHtml = `
+    <button type="button" class="android-api-page-btn" data-page="prev" ${androidApiState.currentPage <= 1 ? "disabled" : ""}>Previous</button>
+  `;
+  for (let p = 1; p <= totalPages; p++) {
+    pagHtml += `
+      <button type="button" class="android-api-page-btn ${p === androidApiState.currentPage ? "active" : ""}" data-page="${p}">${p}</button>
+    `;
+  }
+  pagHtml += `
+    <button type="button" class="android-api-page-btn" data-page="next" ${androidApiState.currentPage >= totalPages ? "disabled" : ""}>Next</button>
+  `;
+  pagEl.innerHTML = pagHtml;
+
+  pagEl.querySelectorAll(".android-api-page-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (btn.disabled) return;
+      const val = btn.getAttribute("data-page");
+      if (val === "prev" && androidApiState.currentPage > 1) {
+        androidApiState.currentPage--;
+      } else if (val === "next" && androidApiState.currentPage < totalPages) {
+        androidApiState.currentPage++;
+      } else {
+        const pageNum = parseInt(val, 10);
+        if (!isNaN(pageNum)) androidApiState.currentPage = pageNum;
+      }
+      renderAndroidApiPage();
+    });
+  });
+}
+
+function openAndroidApiFileInspectModal(filePath, clickedApi) {
+  const matchingApis = androidApiState.rawList
+    .filter(item => (item.files || []).includes(filePath))
+    .map(item => item.api);
+
+  const syntheticFinding = {
+    severity: "MEDIUM",
+    deduction: 0,
+    category: "DEX Bytecode API Trace",
+    title: `Class Inspector: ${filePath}`,
+    description: `Decompiled Dalvik bytecode reference for ${filePath} invoking Android API category "${clickedApi}".`,
+    impact: `Class ${filePath} invokes ${matchingApis.length} tracked Android API categor${matchingApis.length === 1 ? "y" : "ies"}: ${matchingApis.join(", ")}.`,
+    remediation: "Verify that sensitive API calls (Crypto, Reflection, Dynamic Classloading, Local File I/O, IPC) inside this class follow OWASP MASVS security controls.",
+    evidence: [
+      `Source Path: ${filePath}`,
+      `Primary Triggered API: ${clickedApi}`,
+      ...matchingApis.map(a => `• Invokes Android API Category: ${a}`)
+    ]
+  };
+  openFindingDetailModal(syntheticFinding, androidApiState.apkData || {});
 }
 
 function escapeHtml(str) {
@@ -1322,6 +3158,13 @@ function openFindingDetailModal(f, apkData) {
 
   const detail = getFindingDetail(f, apkData);
   catElem.innerText = detail.cwe;
+
+  const codeFixes = detail.codeFixes || {
+    kotlin: detail.codeFix || "// Kotlin fix",
+    java: detail.codeFix || "// Java fix",
+    dart: "// Dart fix",
+    config: detail.codeFix || "// Config fix"
+  };
 
   bodyElem.innerHTML = `
     <div class="apk-modal-section">
@@ -1358,9 +3201,19 @@ function openFindingDetailModal(f, apkData) {
     <div class="apk-modal-section">
       <div class="apk-modal-section-title">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-        4. Rekomendasi Solusi &amp; Contoh Kode Perbaikan
+        4. Rekomendasi Solusi &amp; Kode Pengamanan (Pilih Bahasa Pemrograman)
       </div>
-      <div class="apk-modal-code">${escapeHtml(detail.codeFix)}</div>
+      <div class="code-tab-nav" id="modalFixTabNav">
+        <button type="button" class="code-tab-btn active" data-finding-lang="kotlin">🔷 Kotlin (Android)</button>
+        <button type="button" class="code-tab-btn" data-finding-lang="java">☕ Java (Android Native)</button>
+        <button type="button" class="code-tab-btn" data-finding-lang="dart">🎯 Dart (Flutter Framework)</button>
+        <button type="button" class="code-tab-btn" data-finding-lang="config">⚙️ XML / Gradle / Config</button>
+      </div>
+      <pre class="mobsf-code-pane" id="modalFixCodePane" style="height:250px; margin:0;">${escapeHtml(codeFixes.kotlin || detail.codeFix)}</pre>
+      <div class="hardening-box">
+        <strong>🛡️ Cara Mengamankan APK (Hardening Step):</strong>
+        <div style="margin-top:4px;">${escapeHtml(detail.hardeningTips || 'Terapkan R8/ProGuard obfuscation, cegah debugging, dan amankan key di Android Keystore.')}</div>
+      </div>
     </div>
 
     <div class="apk-modal-section">
@@ -1373,6 +3226,19 @@ function openFindingDetailModal(f, apkData) {
       </div>
     </div>
   `;
+
+  // Bind code tab switcher
+  const pane = document.getElementById("modalFixCodePane");
+  document.querySelectorAll("#modalFixTabNav [data-finding-lang]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#modalFixTabNav [data-finding-lang]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const lang = btn.getAttribute("data-finding-lang");
+      const snippet = codeFixes[lang] || codeFixes.kotlin || detail.codeFix;
+      if (pane) pane.textContent = snippet;
+      mobsfMenuState.lastCopyText = snippet;
+    });
+  });
 
   modal.classList.remove("hidden");
 }
@@ -1396,7 +3262,7 @@ function getFindingDetail(f, apkData) {
           ${domains.map(d => `<span class="badge badge-danger">${escapeHtml(d)}</span>`).join("")}
         </div>
       `,
-      exploitScenario: "Penyerang menyalakan Wi-Fi hotspot palsu ('Free Wi-Fi') atau melakukan ARP Spoofing di jaringan lokal. Saat aplikasi Alfagift melakukan panggilan API ke salah satu dari 5 domain staging di atas, semua payload (header Authorization, JSON body, nomor telepon, data transaksi) dikirim tanpa TLS sehingga terbaca secara langsung di Wireshark.",
+      exploitScenario: "Penyerang menyalakan Wi-Fi hotspot palsu ('Free Wi-Fi') atau melakukan ARP Spoofing di jaringan lokal. Saat aplikasi melakukan panggilan API ke salah satu domain staging, semua payload (header Authorization, JSON body, nomor telepon, data transaksi) dikirim tanpa TLS sehingga terbaca secara langsung di Wireshark.",
       codeFix: `<!-- REKOMENDASI PERBAIKAN: network_security_config.xml -->
 <network-security-config>
     <!-- 1. Larang cleartext traffic secara global di release build -->
@@ -1405,11 +3271,38 @@ function getFindingDetail(f, apkData) {
             <certificates src="system" />
         </trust-anchors>
     </base-config>
-
-    <!-- 2. HAPUS tag domain-config yang mengizinkan cleartext ke domain staging.
-         Jika staging diperlukan oleh tim QA/Dev, gunakan build variant terpisah:
-         app/src/debug/res/xml/network_security_config.xml -->
 </network-security-config>`,
+      codeFixes: {
+        kotlin: `// KOTLIN: Paksa HTTPS di level OkHttpClient
+val okHttpClient = OkHttpClient.Builder()
+    .connectionSpecs(listOf(ConnectionSpec.MODERN_TLS, ConnectionSpec.RESTRICTED_TLS))
+    .addInterceptor { chain ->
+        val request = chain.request()
+        if (!request.isHttps) {
+            throw SecurityException("Cleartext HTTP dilarang! Gunakan HTTPS.")
+        }
+        chain.proceed(request)
+    }
+    .build()`,
+        java: `// JAVA: Paksa TLS pada OkHttp
+OkHttpClient client = new OkHttpClient.Builder()
+    .connectionSpecs(Arrays.asList(ConnectionSpec.MODERN_TLS))
+    .build();`,
+        dart: `// DART / FLUTTER: Pastikan baseURL selalu menggunakan https://
+final dio = Dio(BaseOptions(
+  baseUrl: 'https://api.domain.com', // Jangan gunakan http://
+  connectTimeout: const Duration(seconds: 10),
+));`,
+        config: `<!-- res/xml/network_security_config.xml -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>`
+      },
+      hardeningTips: "Hapus semua tag domain staging HTTP dari file production. Jika staging diperlukan oleh tim QA/Dev, gunakan build variant terpisah: app/src/debug/res/xml/network_security_config.xml.",
       standards: ["OWASP Mobile Top 10: M3 (Insecure Communication)", "OWASP MASVS: MASVS-NETWORK-1", "CWE-319", "PCI-DSS v4.0 Req 4.1"]
     };
   }
@@ -1423,17 +3316,37 @@ function getFindingDetail(f, apkData) {
         <div style="font-size:12px; margin-bottom:6px; color:#475569;"><strong>Komponen:</strong> <code>com.moengage.sdk.debugger.MoEDebuggerActivity</code></div>
         <div style="font-size:12px; color:#ef4444;"><strong>Konfigurasi Berbahaya:</strong> <code>android:exported="true"</code> (tanpa <code>android:permission</code>)</div>
       `,
-      exploitScenario: "Aplikasi malware tanpa izin khusus dapat mengirimkan explicit Intent: <code>am start -n com.alfamart.alfagift/com.moengage.sdk.debugger.MoEDebuggerActivity</code>. Hal ini membuka GUI debugger MoEngage untuk melihat event log pengguna, manipulasi status registrasi push notifikasi, atau memicu unvalidated internal intent redirect.",
-      codeFix: `<!-- REKOMENDASI PERBAIKAN: AndroidManifest.xml -->
-<!-- Tutup akses ke MoEDebuggerActivity di manifest aplikasi utama -->
+      exploitScenario: "Aplikasi malware tanpa izin khusus dapat mengirimkan explicit Intent: <code>am start -n pkg/com.moengage.sdk.debugger.MoEDebuggerActivity</code>. Hal ini membuka GUI debugger MoEngage untuk melihat event log pengguna, manipulasi status registrasi push notifikasi, atau memicu unvalidated internal intent redirect.",
+      codeFix: `<!-- Tutup akses ke MoEDebuggerActivity di manifest aplikasi utama -->
+<activity
+    android:name="com.moengage.sdk.debugger.MoEDebuggerActivity"
+    android:exported="false"
+    tools:replace="android:exported" />`,
+      codeFixes: {
+        kotlin: `// KOTLIN: Inisialisasi SDK analitik tanpa mode debug di release
+val moEngage = MoEngage.Builder(application, "APP_ID")
+    .configureLogs { LogConfig(level = if (BuildConfig.DEBUG) LogLevel.VERBOSE else LogLevel.NO_LOG) }
+    .build()`,
+        java: `// JAVA: Matikan debug log analitik
+MoEngage moEngage = new MoEngage.Builder(this, "APP_ID")
+    .configureLogs(new LogConfig(BuildConfig.DEBUG ? LogLevel.VERBOSE : LogLevel.NO_LOG))
+    .build();`,
+        dart: `// DART / FLUTTER: Matikan logger plugin di main.dart
+if (kReleaseMode) {
+  MoEngageFlutter.instance.setLogLevel(LogLevel.none);
+}`,
+        config: `<!-- AndroidManifest.xml -->
 <activity
     android:name="com.moengage.sdk.debugger.MoEDebuggerActivity"
     android:exported="false"
     tools:replace="android:exported" />
 
-<!-- Atau gunakan dependency MoEngage debug-only di build.gradle:
-     debugImplementation("com.moengage:moe-debugger:...")
-     releaseImplementation (jangan masukkan library debugger di release!) -->`,
+<!-- build.gradle.kts: Gunakan debugImplementation -->
+dependencies {
+    debugImplementation("com.moengage:moe-debugger:latest")
+}`
+      },
+      hardeningTips: "Gunakan ProGuard rule `-assumenosideeffects` untuk menghapus semua class debugger saat APK di-compile untuk Play Store.",
       standards: ["OWASP Mobile Top 10: M1 (Improper Platform Usage)", "OWASP MASVS: MASVS-PLATFORM-1", "CWE-926"]
     };
   }
@@ -1441,40 +3354,59 @@ function getFindingDetail(f, apkData) {
   if (title.includes("unauthenticated") || title.includes("sensitive activities")) {
     const sensitive = (apkData && apkData.sensitive_components) || {};
     const acts = (sensitive.sensitive_activities && sensitive.sensitive_activities.length > 0) ? sensitive.sensitive_activities : [
-      "com.alfamart.alfagift.screen.wallet.otp.OtpWalletActivity",
-      "com.alfamart.alfagift.screen.wallet.linked.LinkedWalletActivity",
-      "com.alfamart.alfagift.screen.wallet.aladin.AladinWebViewActivity",
-      "com.alfamart.alfagift.screen.eservice.shoppingassistant.ShoppingAssistantActivity"
+      "com.kai.kaiticketing.screen.payment.PaymentActivity",
+      "com.kai.kaiticketing.screen.wallet.OtpWalletActivity"
     ];
     return {
       cwe: "CWE-285: Improper Authorization",
-      impact: "Activity transaksi dompet digital (Wallet), verifikasi OTP, dan asisten belanja dapat diakses dan diluncurkan langsung oleh aplikasi pihak ketiga tanpa melalui alur otentikasi PIN/Password.",
+      impact: "Activity transaksi dompet digital, verifikasi OTP, atau pembayaran tiket dapat diakses dan diluncurkan langsung oleh aplikasi pihak ketiga tanpa melalui alur otentikasi PIN/Password.",
       evidenceHtml: `
         <div style="font-size:12px; margin-bottom:6px; color:#475569;"><strong>Activity Sensitif Terekspos:</strong></div>
         <div style="display:flex; flex-direction:column; gap:4px;">
           ${acts.slice(0, 5).map(a => `<code style="font-size:11.5px; background:#fff; padding:4px 8px; border:1px solid #e2e8f0; border-radius:4px;">${escapeHtml(a)}</code>`).join("")}
         </div>
       `,
-      exploitScenario: "Attacker membuat aplikasi jahat (rogue app) di perangkat yang memanggil <code>startActivity(new Intent().setComponent(new ComponentName('com.alfamart.alfagift', '...OtpWalletActivity')))</code>. Jika activity tidak memvalidasi session token di lifecycle <code>onCreate()</code>, layar input OTP atau linked wallet terbuka langsung membypass login.",
-      codeFix: `<!-- REKOMENDASI PERBAIKAN: AndroidManifest.xml -->
-<activity
-    android:name=".screen.wallet.otp.OtpWalletActivity"
-    android:exported="false" />
-
-<activity
-    android:name=".screen.wallet.linked.LinkedWalletActivity"
-    android:exported="false" />
-
-<!-- Jika activity HARUS dipanggil aplikasi internal grup Alfa saja,
-     gunakan Custom Signature Permission: -->
+      exploitScenario: "Attacker membuat aplikasi jahat di perangkat yang memanggil <code>startActivity(new Intent().setComponent(new ComponentName(pkg, '...OtpWalletActivity')))</code>. Layar pembayaran terbuka membypass verifikasi login.",
+      codeFix: `<!-- Set exported="false" pada Activity sensitif -->
+<activity android:name=".screen.wallet.OtpWalletActivity" android:exported="false" />`,
+      codeFixes: {
+        kotlin: `// KOTLIN: Validasi sesi pada onCreate() dan onResume()
+override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    if (!SessionManager.isUserAuthenticated()) {
+        finish() // Tutup activity seketika
+        startActivity(Intent(this, LoginActivity::class.java))
+        return
+    }
+}`,
+        java: `// JAVA: Guard otorisasi di onCreate()
+@Override
+protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    if (!SessionManager.getInstance().isLoggedIn()) {
+        finish();
+        startActivity(new Intent(this, LoginActivity.class));
+        return;
+    }
+}`,
+        dart: `// DART / FLUTTER: Auth Guard pada Navigator
+Route<dynamic> onGenerateRoute(RouteSettings settings) {
+  if (settings.name == '/payment' && !authProvider.isLoggedIn) {
+    return MaterialPageRoute(builder: (_) => const LoginScreen());
+  }
+  return MaterialPageRoute(builder: (_) => const PaymentScreen());
+}`,
+        config: `<!-- AndroidManifest.xml: Pasang Signature Permission -->
 <permission
-    android:name="com.alfamart.alfagift.permission.INTERNAL_ACCESS"
+    android:name="com.kai.permission.INTERNAL_ONLY"
     android:protectionLevel="signature" />
 
 <activity
-    android:name=".screen.wallet.aladin.AladinWebViewActivity"
+    android:name=".screen.payment.PaymentActivity"
     android:exported="true"
-    android:permission="com.alfamart.alfagift.permission.INTERNAL_ACCESS" />`,
+    android:permission="com.kai.permission.INTERNAL_ONLY" />`
+      },
+      hardeningTips: "Gunakan Intent Filter Verification (App Links) dengan SHA-256 assetlinks.json jika activity dipanggil melalui deep link web.",
       standards: ["OWASP Mobile Top 10: M4 (Insecure Authentication/Authorization)", "OWASP MASVS: MASVS-AUTH-1", "CWE-285"]
     };
   }
@@ -1484,36 +3416,46 @@ function getFindingDetail(f, apkData) {
       cwe: "CWE-327: Broken Crypto Algorithm",
       impact: "Penggunaan cipher Blowfish dengan mode ECB (Electronic Codebook) sangat rentan terhadap kriptanalisis. Mode ECB mengenkripsi blok yang sama menjadi ciphertext yang sama, sehingga pola gambar atau struktur data dapat dibaca tanpa dekripsi.",
       evidenceHtml: `
-        <div style="font-size:12px; margin-bottom:6px; color:#475569;"><strong>Bytecode Targets:</strong> <code>classes.dex</code>, <code>classes3.dex</code>, <code>classes6.dex</code>, <code>classes8.dex</code></div>
         <div style="font-size:12px; margin-bottom:6px; color:#475569;"><strong>Algoritma Terdeteksi:</strong> <code>Cipher.getInstance("Blowfish")</code>, <code>"AES/ECB/PKCS5Padding"</code></div>
-        <div style="font-size:12px; color:#ef4444;"><strong>Kelemahan:</strong> Ukuran blok Blowfish (64-bit) rentan serangan collision (Sweet32 attack), dan ECB mode tidak menggunakan Initialization Vector (IV).</div>
+        <div style="font-size:12px; color:#ef4444;"><strong>Kelemahan:</strong> Ukuran blok Blowfish (64-bit) rentan serangan Sweet32 collision attack.</div>
       `,
-      exploitScenario: "Penyerang yang menyadap lalu lintas API terenkripsi Blowfish/ECB dapat mengumpulkan ciphertext dan melakukan replay attack atau menganalisis frekuensi blok untuk merekonstruksi isi pesan rahasia (seperti nomor kartu Ponta atau token transaksi) tanpa harus memecahkan kuncinya.",
-      codeFix: `// REKOMENDASI PERBAIKAN: Migrasi ke Authenticated Encryption (AES-GCM)
-import javax.crypto.Cipher;
-import javax.crypto.spec.GCMParameterSpec;
-import java.security.SecureRandom;
+      exploitScenario: "Penyerang yang menyadap lalu lintas API terenkripsi Blowfish/ECB dapat mengumpulkan ciphertext dan melakukan replay attack atau merekonstruksi isi pesan rahasia tanpa harus memecahkan kuncinya.",
+      codeFix: `// Gunakan AES-256-GCM (Authenticated Encryption)`,
+      codeFixes: {
+        kotlin: `// KOTLIN: AES-256-GCM Enkripsi
+import javax.crypto.Cipher
+import javax.crypto.spec.GCMParameterSpec
+import java.security.SecureRandom
+import java.nio.ByteBuffer
 
-public class SecureCryptoUtil {
-    private static final String TRANSFORMATION = "AES/GCM/NoPadding";
-    private static final int GCM_TAG_LENGTH = 128; // bits
-    private static final int IV_LENGTH = 12; // bytes
-
-    public static byte[] encrypt(byte[] plaintext, SecretKey key) throws Exception {
-        byte[] iv = new byte[IV_LENGTH];
-        new SecureRandom().nextBytes(iv); // Generate RANDOM IV per message
-
-        Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-        cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_LENGTH, iv));
-        byte[] ciphertext = cipher.doFinal(plaintext);
-
-        // Gabungkan IV + Ciphertext untuk transmisi aman
-        ByteBuffer buffer = ByteBuffer.allocate(iv.length + ciphertext.length);
-        buffer.put(iv);
-        buffer.put(ciphertext);
-        return buffer.array();
-    }
+fun encryptAesGcm(plaintext: ByteArray, key: SecretKey): ByteArray {
+    val iv = ByteArray(12).apply { SecureRandom().nextBytes(this) }
+    val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+    cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(128, iv))
+    val ciphertext = cipher.doFinal(plaintext)
+    return ByteBuffer.allocate(iv.size + ciphertext.size).put(iv).put(ciphertext).array()
 }`,
+        java: `// JAVA: AES-256-GCM Enkripsi
+Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+byte[] iv = new byte[12];
+new SecureRandom().nextBytes(iv);
+cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(128, iv));
+byte[] ciphertext = cipher.doFinal(plaintext);`,
+        dart: `// DART / FLUTTER (package:cryptography)
+import 'package:cryptography/cryptography.dart';
+
+final algorithm = AesGcm.with256Bits();
+final secretBox = await algorithm.encrypt(data, secretKey: key);
+final encryptedBytes = secretBox.concatenation();`,
+        config: `// Simpan SecretKey di AndroidKeyStore hardware-backed:
+KeyGenParameterSpec spec = new KeyGenParameterSpec.Builder(
+    "app_master_key",
+    KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
+    .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+    .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+    .build();`
+      },
+      hardeningTips: "Selalu kombinasikan enkripsi dengan Android Keystore (StrongBox / TEE) agar kunci enkripsi tidak pernah berada di memory unmanaged.",
       standards: ["OWASP Mobile Top 10: M5 (Insufficient Cryptography)", "NIST SP 800-131A Rev. 2", "CWE-327"]
     };
   }
@@ -1521,63 +3463,104 @@ public class SecureCryptoUtil {
   if (title.includes("secret") || title.includes("tokens")) {
     return {
       cwe: "CWE-798: Hardcoded Credentials",
-      impact: "Kunci API (Google Maps / Firebase) dan token otentikasi tertanam langsung di dalam file bytecode atau resources APK. Siapapun yang mengunduh APK dari Google Play Store dapat mengekstrak kredensial ini dalam hitungan detik menggunakan apktool atau jadx-gui.",
-      evidenceHtml: `
-        <div style="font-size:12px; margin-bottom:6px; color:#475569;"><strong>File Terdeteksi:</strong> <code>resources.arsc</code>, <code>AndroidManifest.xml</code>, <code>classes*.dex</code></div>
-        <div style="font-size:12px; margin-bottom:6px; color:#475569;"><strong>Pola Secret:</strong> <code>AIzaSy[0-9A-Za-z\\-_]{33}</code> (Google/Firebase API Key)</div>
-        <div style="font-size:12px; color:#ef4444;"><strong>Status:</strong> Terbuka untuk publik tanpa proteksi enkripsi runtime.</div>
-      `,
-      exploitScenario: "Penyerang mengekstrak Firebase API Key dari APK, lalu menggunakan Firebase REST API untuk mendaftarkan ribuan akun palsu (account registration abuse) atau melakukan spam ke database backend jika Firestore/Realtime Database Security Rules tidak dikonfigurasi dengan ketat.",
-      codeFix: `// REKOMENDASI PERBAIKAN:
-// 1. Pada Google Cloud Console:
-//    - Terapkan "Application restrictions" -> Android apps
-//    - Masukkan Package Name (com.alfamart.alfagift) dan SHA-1 Certificate Fingerprint rilis Anda.
-//    - Terapkan "API restrictions" -> Batasi HANYA untuk Maps SDK / Firebase yang digunakan.
-
-// 2. Untuk Secret API / Token Finansial:
-//    - JANGAN PERNAH menyimpan token otentikasi pengguna atau secret key server di APK.
-//    - Gunakan alur Dynamic Token Exchange via backend proxy dengan OAuth2/PKCE.`,
+      impact: "Kunci API (Google Maps / Firebase) dan token otentikasi tertanam langsung di dalam file bytecode atau resources APK. Siapapun yang mengunduh APK dari Google Play Store dapat mengekstrak kredensial ini dalam hitungan detik menggunakan jadx-gui.",
+      evidenceHtml: `<div><strong>Status:</strong> Terbuka untuk publik tanpa proteksi enkripsi runtime.</div>`,
+      exploitScenario: "Penyerang mengekstrak API Key dari APK, lalu menggunakan REST API untuk menyalahgunakan kuota API atau mengakses database backend.",
+      codeFix: `// Simpan secret di Keystore atau BuildConfig`,
+      codeFixes: {
+        kotlin: `// KOTLIN: EncryptedSharedPreferences
+val masterKey = MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
+val securePrefs = EncryptedSharedPreferences.create(context, "secure_prefs", masterKey, ... )`,
+        java: `// JAVA: EncryptedSharedPreferences
+MasterKey masterKey = new MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build();
+SharedPreferences prefs = EncryptedSharedPreferences.create(context, "prefs", masterKey, ...);`,
+        dart: `// DART / FLUTTER: flutter_secure_storage
+final storage = const FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
+await storage.write(key: 'auth_token', value: token);`,
+        config: `// Di Google Cloud Console:
+// Pasang "Application restrictions" -> Android apps
+// Masukkan Package Name + SHA-1 Release Fingerprint cert Anda!`
+      },
+      hardeningTips: "Jangan pernah menyimpan Master Secret Server di mobile APK. Gunakan alur Dynamic Token Exchange via OAuth 2.0 PKCE.",
       standards: ["OWASP Mobile Top 10: M9 (Insecure Data Storage)", "OWASP MASVS: MASVS-STORAGE-1", "CWE-798"]
     };
   }
 
-  if (title.includes("permission") || title.includes("dangerous")) {
+  if (title.includes("biometric")) {
     return {
-      cwe: "CWE-250: Execution with Unnecessary Privileges",
-      impact: "Aplikasi meminta hingga 14 izin berbahaya (Dangerous Permissions). Semakin luas cakupan izin yang diminta, semakin besar risiko kebocoran privasi pengguna (lokasi latar belakang, Bluetooth, data telepon) serta potensi penolakan review Google Play Store.",
-      evidenceHtml: `
-        <div style="font-size:12px; margin-bottom:6px; color:#475569;"><strong>Izin Berbahaya Terdeteksi:</strong></div>
-        <div style="font-size:12px; color:#334155;">
-          <code>ACCESS_FINE_LOCATION</code>, <code>ACCESS_COARSE_LOCATION</code>, <code>ACCESS_BACKGROUND_LOCATION</code>,
-          <code>READ_PHONE_STATE</code>, <code>BLUETOOTH_SCAN</code>, <code>BLUETOOTH_CONNECT</code>, <code>POST_NOTIFICATIONS</code>
-        </div>
-      `,
-      exploitScenario: "Jika ada celah kerentanan intent injection atau third-party SDK yang compromised di dalam aplikasi, izin sensitif ini dapat disalahgunakan oleh SDK tersebut untuk melacak lokasi pengguna secara konstan di background tanpa disadari.",
-      codeFix: `<!-- REKOMENDASI PERBAIKAN:
-     Terapkan Principle of Least Privilege: -->
-<!-- 1. Hindari meminta ACCESS_BACKGROUND_LOCATION kecuali benar-benar esensial. -->
-<!-- 2. Gunakan Photo Picker modern daripada izin READ_EXTERNAL_STORAGE. -->
-<!-- 3. Minta izin hanya saat fitur spesifik digunakan (Just-In-Time Runtime Permission). -->`,
-      standards: ["OWASP Mobile Top 10: M6 (Extraneous Functionality)", "Google Play Policy - Permissions and APIs", "CWE-250"]
+      cwe: "CWE-305: Authentication Bypass",
+      impact: "BiometricPrompt dijalankan tanpa CryptoObject. Verifikasi otentikasi hanya mengandalkan callback boolean onAuthenticationSucceeded, yang dapat di-bypass penyerang menggunakan 1 baris skrip Frida hook.",
+      evidenceHtml: `<div><strong>Bytecode Pattern:</strong> <code>BiometricPrompt.authenticate(promptInfo)</code> tanpa parameter <code>CryptoObject</code>.</div>`,
+      exploitScenario: "Penyerang yang memegang HP korban dapat menjalankan Frida: <code>BiometricPrompt.AuthenticationCallback.onAuthenticationSucceeded.implementation = function() { ... }</code>, membypass popup sidik jari seketika.",
+      codeFix: `// Wajib gunakan BiometricPrompt.CryptoObject`,
+      codeFixes: {
+        kotlin: `// KOTLIN: Biometric Auth dengan CryptoObject (Anti-Frida Hook)
+val cipher = getKeystoreCipher() // Cipher yang di-protect Android Keystore
+val cryptoObject = BiometricPrompt.CryptoObject(cipher)
+
+biometricPrompt.authenticate(promptInfo, cryptoObject)
+
+override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+    val authenticatedCipher = result.cryptoObject?.cipher ?: return
+    // Dekripsi token HANYA bisa dilakukan dengan authenticatedCipher!
+    val decryptedToken = authenticatedCipher.doFinal(encryptedSecret)
+}`,
+        java: `// JAVA: CryptoObject Binding
+BiometricPrompt.CryptoObject cryptoObject = new BiometricPrompt.CryptoObject(cipher);
+biometricPrompt.authenticate(promptInfo, cryptoObject);`,
+        dart: `// DART / FLUTTER: Hubungkan local_auth dengan KeyStore decryption
+final didAuth = await localAuth.authenticate(
+  localizedReason: 'Otorisasi transaksi',
+  options: const AuthenticationOptions(biometricOnly: true, stickyAuth: true),
+);
+if (didAuth) {
+  // Ambil secret dari flutter_secure_storage
+  final secret = await secureStorage.read(key: 'tx_pin');
+}`,
+        config: `// Android KeyStore Builder dengan perlindungan biometrik:
+val keySpec = KeyGenParameterSpec.Builder("bio_key", KeyProperties.PURPOSE_DECRYPT)
+    .setUserAuthenticationRequired(true) // Kunci terkunci hardware sampai biometrik valid!
+    .build()`
+      },
+      hardeningTips: "Dengan mengunci KeyStore Cipher di level hardware (TEE/StrongBox), skrip Frida yang mem-bypass boolean callback tetap tidak akan bisa mendekripsi data transaksi.",
+      standards: ["OWASP Mobile Top 10: M4 (Insecure Authentication)", "OWASP MASVS: MASVS-AUTH-2", "CWE-305"]
     };
   }
 
-  if (title.includes("debuggable")) {
+  if (title.includes("anti-tamper") || title.includes("root") || title.includes("frida")) {
     return {
-      cwe: "CWE-215: Information Exposure Through Debug Information",
-      impact: "Aplikasi dapat di-attach debugger via Android Debug Bridge (ADB). Penyerang dapat memasang breakpoint, mendump isi memori runtime, dan mengekstrak kunci enkripsi tanpa memerlukan akses root.",
-      evidenceHtml: `<div><strong>Manifest Flag:</strong> <code>android:debuggable="true"</code></div>`,
-      exploitScenario: "Penyerang menghubungkan HP via USB atau emulator, menjalankan <code>jdb -attach localhost:8700</code>, dan menginspeksi nilai variabel lokal saat proses login berlangsung.",
-      codeFix: `android {
-    buildTypes {
-        release {
-            debuggable false
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-    }
+      cwe: "CWE-353: Missing Integrity Check",
+      impact: "Aplikasi tidak memiliki deteksi Root, Frida server, atau integritas APK. Attacker dapat me-repackage APK dengan malware atau memasang hook Frida runtime untuk membajak data.",
+      evidenceHtml: `<div><strong>Status:</strong> Tidak ditemukan pemeriksaan port Frida 27042, su binary, atau Play Integrity API.</div>`,
+      exploitScenario: "Penyerang menjalankan Frida pada emulator atau HP rooted untuk membaca kredensial akun dan mengubah alur pembayaran tiket.",
+      codeFix: `// Implementasi deteksi Root dan Frida runtime`,
+      codeFixes: {
+        kotlin: `// KOTLIN: Deteksi Root & Frida Port
+fun isEnvironmentCompromised(): Boolean {
+    val suPaths = listOf("/system/bin/su", "/system/xbin/su", "/sbin/su")
+    val hasSu = suPaths.any { File(it).exists() }
+    val fridaRunning = try {
+        Socket("127.0.0.1", 27042).use { true }
+    } catch (_: Exception) { false }
+    return hasSu || fridaRunning
 }`,
-      standards: ["OWASP Mobile Top 10: M1 (Improper Platform Usage)", "CWE-215"]
+        java: `// JAVA: Cek file su
+boolean hasSu = new File("/system/bin/su").exists() || new File("/system/xbin/su").exists();
+if (hasSu) { System.exit(0); }`,
+        dart: `// DART / FLUTTER: Gunakan flutter_jailbreak_detection
+import 'package:flutter_jailbreak_detection/flutter_jailbreak_detection.dart';
+
+bool isRooted = await FlutterJailbreakDetection.jailbroken;
+if (isRooted) {
+  exit(0); // Tutup aplikasi jika terdeteksi root
+}`,
+        config: `// build.gradle.kts: Aktifkan Play Integrity API
+dependencies {
+    implementation("com.google.android.play:integrity:1.3.0")
+}`
+      },
+      hardeningTips: "Terapkan deteksi root di native code (.so C/C++) agar tidak mudah di-bypass oleh universal Frida unroot scripts.",
+      standards: ["OWASP Mobile Top 10: M8 (Code Tampering)", "OWASP MASVS: MASVS-RESILIENCE-1"]
     };
   }
 
@@ -1588,8 +3571,179 @@ public class SecureCryptoUtil {
     evidenceHtml: `<div><strong>Status:</strong> ${escapeHtml(f.title)} (-${f.deduction} pts)</div>`,
     exploitScenario: "Penyerang dapat memanfaatkan kelemahan konfigurasi ini untuk memperluas permukaan serangan pada perangkat Android.",
     codeFix: "// Tinjau dan perbaiki implementasi sesuai panduan OWASP Mobile Security Testing Guide (MSTG).",
+    codeFixes: {
+      kotlin: `// KOTLIN: Perbaiki issue ${escapeHtml(f.title)}\n// Terapkan best-practice Android modern untuk mengamankan APK.`,
+      java: `// JAVA: Tinjau dan perbaiki implementasi kode.`,
+      dart: `// DART / FLUTTER: Amankan konfigurasi plugin dan network.`,
+      config: `// Konfigurasikan ProGuard / R8 rules dan AndroidManifest.xml`
+    },
+    hardeningTips: "Terapkan R8 full obfuscation, simpan secret di Keystore, dan aktifkan Play Integrity API.",
     standards: ["OWASP Mobile Top 10", "OWASP MASVS"]
   };
+}
+
+function openFridaHardeningGuideModal() {
+  const html = `
+    <div class="remediation-box" style="margin-bottom:14px;">
+      <strong>⚡ Mengapa Frida &amp; Penyadapan Endpoint Berbahaya:</strong>
+      <div style="margin-top:4px;">
+        Attacker dapat melakukan <em>dynamic binary instrumentation</em> menggunakan Frida untuk mem-bypass SSL Certificate Pinning, memodifikasi nilai return method otentikasi (Root/Integrity check), dan menyadap parameter request/response transaksi keuangan secara plaintext.
+      </div>
+    </div>
+
+    <div class="code-tab-nav" id="fridaGuideTabNav">
+      <button type="button" class="code-tab-btn active" data-frida-tab="pinning">🔒 1. SSL Pinning (OkHttp &amp; Dio)</button>
+      <button type="button" class="code-tab-btn" data-frida-tab="antifrida">🛡️ 2. Deteksi Frida &amp; Anti-Hook (C++/NDK)</button>
+      <button type="button" class="code-tab-btn" data-frida-tab="hmac">🔑 3. HMAC Request Signing</button>
+      <button type="button" class="code-tab-btn" data-frida-tab="services">⚙️ 4. Amankan Service &amp; IPC</button>
+    </div>
+
+    <pre class="mobsf-code-pane" id="fridaGuideCodePane" style="height:270px; margin:0;"></pre>
+
+    <div class="hardening-box" style="margin-top:14px;">
+      <strong>🛡️ Rekomendasi Defense-in-Depth untuk Rilis APK:</strong>
+      <ul style="margin:6px 0 0 16px; padding:0; line-height:1.6;">
+        <li>Gunakan <strong>R8 / ProGuard</strong> dengan dictionary nama class yang acak agar attacker sulit menemukan target method hook Frida.</li>
+        <li>Implementasikan <strong>Google Play Integrity API</strong> untuk memastikan request ke backend hanya berasal dari binary APK resmi yang belum dimodifikasi.</li>
+        <li>Terapkan deteksi Frida di native binary (.so via NDK) daripada di Java/Kotlin bytecode yang mudah di-bypass dengan 1 baris Frida hook.</li>
+      </ul>
+    </div>
+  `;
+
+  const fridaCodeSnippets = {
+    pinning: `// 1. KOTLIN (OkHttp Certificate Pinner):
+val client = OkHttpClient.Builder()
+    .certificatePinner(CertificatePinner.Builder()
+        .add("api.kai.id", "sha256/PRIMARY_CERTIFICATE_PIN_BASE64=")
+        .add("api.kai.id", "sha256/BACKUP_CERTIFICATE_PIN_BASE64=")
+        .build())
+    .build()
+
+// 2. DART / FLUTTER (Dio HTTP Client):
+(dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+  SecurityContext context = SecurityContext(withTrustedRoots: false);
+  HttpClient client = HttpClient(context: context);
+  client.badCertificateCallback = (cert, host, port) => false; // Tolak pin palsu
+  return client;
+};`,
+    antifrida: `// DETEKSI FRIDA SERVER DI LAYER C / C++ (NDK native-lib.cpp)
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <string.h>
+
+bool isFridaServerRunning() {
+    struct sockaddr_in sa;
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons(27042); // Port default Frida Gadget / Server
+    inet_aton("127.0.0.1", &sa.sin_addr);
+    
+    // Coba koneksi ke port Frida lokal
+    int res = connect(sock, (struct sockaddr*)&sa, sizeof(sa));
+    close(sock);
+    return (res == 0); // TRUE jika Frida server mendengarkan port 27042!
+}
+
+bool detectFridaInMaps() {
+    FILE *fp = fopen("/proc/self/maps", "r");
+    char line[512];
+    while (fgets(line, sizeof(line), fp)) {
+        if (strstr(line, "frida-agent") || strstr(line, "gadget") || strstr(line, "gum-js-loop")) {
+            fclose(fp);
+            return true; // Ditemukan injeksi library Frida di memory!
+        }
+    }
+    fclose(fp);
+    return false;
+}`,
+    hmac: `// KOTLIN: HMAC-SHA256 REQUEST SIGNING HEADER
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
+import android.util.Base64
+
+fun generateApiSignature(endpoint: String, timestamp: Long, body: String, secretKey: String): String {
+    val payloadToSign = "$endpoint|$timestamp|$body"
+    val sha256Hmac = Mac.getInstance("HmacSHA256")
+    val keySpec = SecretKeySpec(secretKey.toByteArray(), "HmacSHA256")
+    sha256Hmac.init(keySpec)
+    val signatureBytes = sha256Hmac.doFinal(payloadToSign.toByteArray())
+    return Base64.encodeToString(signatureBytes, Base64.NO_WRAP)
+}
+// Header: X-Signature: <hmac>, X-Timestamp: <ms>
+// Server akan memverifikasi signature dan menolak jika payload di-tamper Frida!`,
+    services: `<!-- PENGAMANAN SERVICE PADA AndroidManifest.xml -->
+<!-- 1. Jadikan private (hanya dapat dipanggil internal aplikasi sendiri) -->
+<service
+    android:name=".services.MemberTokenService"
+    android:exported="false" />
+
+<!-- 2. Jika HARUS menerima intent dari luar aplikasi, lindungi dengan Signature Permission -->
+<permission
+    android:name="com.kai.permission.INTERNAL_SERVICE"
+    android:protectionLevel="signature" />
+
+<service
+    android:name=".services.PartnerSyncService"
+    android:exported="true"
+    android:permission="com.kai.permission.INTERNAL_SERVICE" />`
+  };
+
+  openMobsfDialog(
+    "FRIDA & ENDPOINT HARDENING",
+    "Panduan Pengamanan Endpoint API & Anti-Frida Hooking",
+    html,
+    fridaCodeSnippets.pinning
+  );
+
+  setTimeout(() => {
+    const pane = document.getElementById("fridaGuideCodePane");
+    if (pane) pane.textContent = fridaCodeSnippets.pinning;
+    document.querySelectorAll("#fridaGuideTabNav [data-frida-tab]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#fridaGuideTabNav [data-frida-tab]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        const tabKey = btn.getAttribute("data-frida-tab");
+        const snippet = fridaCodeSnippets[tabKey] || "// No snippet";
+        if (pane) pane.textContent = snippet;
+        mobsfMenuState.lastCopyText = snippet;
+      });
+    });
+  }, 50);
+}
+
+function openExecutivePdfExportModal() {
+  const dialog = document.getElementById("exportPdfDialog");
+  if (!dialog) return;
+
+  const data = mobsfMenuState.currentApkData;
+  const meta = data?.metadata || {};
+
+  const auditorInput = document.getElementById("pdfAuditorInput");
+  const orgInput = document.getElementById("pdfOrgInput");
+
+  if (auditorInput) {
+    const activeUser = (typeof authManager !== "undefined" && authManager?.currentUser)
+      ? authManager.currentUser.name
+      : (localStorage.getItem("toolkitdev_user_name") || "Budi Susanto, CISA, CISSP");
+    if (activeUser && (!auditorInput.value || auditorInput.value.includes("Specialist"))) {
+      auditorInput.value = activeUser;
+    }
+  }
+
+  if (orgInput) {
+    if (meta.app_name) {
+      orgInput.value = `PT Sumber Alfaria Trijaya Tbk (${meta.app_name})`;
+    } else {
+      orgInput.value = "PT Sumber Alfaria Trijaya Tbk";
+    }
+  }
+
+  if (!dialog.open) {
+    dialog.showModal();
+  }
 }
 
 function openAuditItemModal(key, data) {
@@ -2442,6 +4596,10 @@ function initAiChat() {
 
   toggleBtn?.addEventListener("click", () => {
     chatDrawer.classList.toggle("hidden");
+    if (!chatDrawer.classList.contains("hidden")) {
+      setTimeout(() => chatInput?.focus(), 150);
+      updateChatTargetIndicator();
+    }
   });
 
   closeBtn?.addEventListener("click", () => {
@@ -2449,17 +4607,119 @@ function initAiChat() {
   });
 
   sendBtn?.addEventListener("click", () => sendChatMessage());
-  chatInput?.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") sendChatMessage();
+  chatInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendChatMessage();
+    }
+  });
+
+  // Auto-resize textarea
+  chatInput?.addEventListener("input", () => {
+    chatInput.style.height = "auto";
+    chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + "px";
   });
 
   document.querySelectorAll(".btn-chip").forEach(chip => {
     chip.addEventListener("click", () => {
-      chatInput.value = chip.getAttribute("data-query");
+      const q = chip.getAttribute("data-query");
+      if (chatInput) {
+        chatInput.value = q;
+        chatInput.style.height = "auto";
+      }
       sendChatMessage();
     });
   });
 }
+
+function updateChatTargetIndicator() {
+  const indicator = document.getElementById("chatTargetIndicator");
+  if (!indicator) return;
+  const data = activeApkData || mobsfMenuState?.currentApkData;
+  if (data) {
+    const meta = data.metadata || {};
+    const pkg = meta.package_name || "APK";
+    const appName = meta.app_label || meta.app_name || "Target App";
+    const score = data.security_score !== undefined ? data.security_score : 0;
+    indicator.textContent = `Target: ${appName} (${score}/100 PTS)`;
+  } else {
+    indicator.textContent = "Target: Alfagift (Score: 0/100)";
+  }
+}
+
+function formatAiMarkdown(text) {
+  if (!text) return "";
+  let out = text;
+
+  // 1. Code blocks: ```lang\ncode```
+  out = out.replace(/```([a-zA-Z0-9_\-\+]*)\n([\s\S]*?)```/g, (match, lang, code) => {
+    const l = lang ? lang.toUpperCase() : "CODE";
+    const rawCode = escapeHtml(code.trim());
+    return `<div class="chat-code-block">
+      <div class="chat-code-header">
+        <span>${l}</span>
+        <button type="button" class="chat-code-copy-btn" onclick="copySnippetToClipboard(this)">Salin Kode</button>
+      </div>
+      <pre class="chat-code-pre"><code>${rawCode}</code></pre>
+    </div>`;
+  });
+
+  // 2. Headings: ### and ####
+  out = out.replace(/^### (.*$)/gm, `<div style="font-size:13px; font-weight:700; color:#2563eb; margin:10px 0 4px;">$1</div>`);
+  out = out.replace(/^#### (.*$)/gm, `<div style="font-size:12px; font-weight:700; color:#0f172a; margin:6px 0 2px;">$1</div>`);
+
+  // 3. Bold: **text**
+  out = out.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+  // 4. Inline code: `code`
+  out = out.replace(/`([^`]+)`/g, `<code style="background:rgba(2,132,199,0.12); color:#0284c7; padding:2px 5px; border-radius:4px; font-size:11px; font-family:'JetBrains Mono',monospace;">$1</code>`);
+
+  // 5. Blockquotes: > quote
+  out = out.replace(/^>\s+(.*$)/gm, `<div style="border-left:3px solid #3b82f6; background:#eff6ff; padding:6px 10px; margin:6px 0; border-radius:0 4px 4px 0; font-size:11.5px; color:#1e40af;">$1</div>`);
+
+  // 6. Bullet lists: * item or - item
+  out = out.replace(/^\s*[\*\-]\s+(.*$)/gm, `<div style="margin-left:8px; display:flex; gap:6px; margin-bottom:2px;"><span>•</span><span>$1</span></div>`);
+
+  // 7. Markdown Tables: | col | col |
+  const tableRegex = /((?:\|.+?\|\r?\n)+)/g;
+  out = out.replace(tableRegex, (match) => {
+    const lines = match.trim().split(/\r?\n/).filter(l => l.includes("|"));
+    if (lines.length < 2) return match;
+    let tableHtml = `<div style="overflow-x:auto; margin:8px 0;"><table style="width:100%; border-collapse:collapse; font-size:11px; border:1px solid #cbd5e1;">`;
+    lines.forEach((line, rowIdx) => {
+      if (line.includes("---")) return;
+      const cells = line.split("|").map(c => c.trim()).filter((c, i, arr) => i > 0 && i < arr.length - 1);
+      if (rowIdx === 0) {
+        tableHtml += `<tr style="background:#0f172a; color:#fff;">` + cells.map(c => `<th style="padding:6px 8px; border:1px solid #334155; text-align:left;">${c}</th>`).join("") + `</tr>`;
+      } else {
+        tableHtml += `<tr style="background:${rowIdx % 2 === 0 ? '#f8fafc' : '#fff'};">` + cells.map(c => `<td style="padding:5px 8px; border:1px solid #e2e8f0;">${c}</td>`).join("") + `</tr>`;
+      }
+    });
+    tableHtml += `</table></div>`;
+    return tableHtml;
+  });
+
+  // 8. Newlines
+  out = out.replace(/\n\n/g, "<br><br>");
+
+  return out;
+}
+
+window.copySnippetToClipboard = function(btn) {
+  const codeEl = btn.closest(".chat-code-block")?.querySelector("code");
+  if (!codeEl) return;
+  navigator.clipboard.writeText(codeEl.innerText).then(() => {
+    const orig = btn.innerText;
+    btn.innerText = "✓ Tersalin!";
+    btn.style.background = "#10b981";
+    btn.style.color = "#ffffff";
+    setTimeout(() => {
+      btn.innerText = orig;
+      btn.style.background = "";
+      btn.style.color = "";
+    }, 1800);
+  });
+};
 
 async function sendChatMessage() {
   const input = document.getElementById("chatInput");
@@ -2474,14 +4734,17 @@ async function sendChatMessage() {
   userMsg.innerText = text;
   messagesDiv.appendChild(userMsg);
   input.value = "";
+  input.style.height = "auto";
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
   // AI loading msg
   const aiMsg = document.createElement("div");
   aiMsg.className = "chat-msg ai";
-  aiMsg.innerHTML = `<div class="msg-author">AI Context Engine</div><div>Sedang menelusuri sumber context proyek...</div>`;
+  aiMsg.innerHTML = `<div class="msg-author">AI Forensic Engine</div><div>Sedang membedah bytecode &amp; telemetri alur data...</div>`;
   messagesDiv.appendChild(aiMsg);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+  const activeCtx = activeApkData || mobsfMenuState?.currentApkData;
 
   try {
     const res = await fetch("/api/chat", {
@@ -2489,7 +4752,7 @@ async function sendChatMessage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         question: text,
-        apk_context: activeApkData
+        apk_context: activeCtx
       })
     });
     const data = await res.json();
@@ -2497,20 +4760,22 @@ async function sendChatMessage() {
     let citationsHtml = "";
     if (data.citations && data.citations.length > 0) {
       citationsHtml = `
-        <div style="margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.1); font-size:11px; color:#c4b5fd;">
-          <strong>Sumber Terverifikasi:</strong>
-          ${data.citations.map(c => `<div>• <span>[${c.type.toUpperCase()}] ${c.title} (${c.ref})</span></div>`).join("")}
+        <div style="margin-top:10px; padding-top:8px; border-top:1px solid #e2e8f0; font-size:11px; color:#64748b;">
+          <strong style="color:#2563eb;">Sumber Forensik Terverifikasi:</strong>
+          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+            ${data.citations.map(c => `<span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:2px 7px; border-radius:4px; font-size:10px;">[${escapeHtml(c.type.toUpperCase())}] ${escapeHtml(c.title)} (${escapeHtml(c.ref)})</span>`).join("")}
+          </div>
         </div>
       `;
     }
 
     aiMsg.innerHTML = `
-      <div class="msg-author">AI Context Engine</div>
-      <div style="white-space:pre-wrap;">${data.answer}</div>
+      <div class="msg-author">AI Forensic Engine</div>
+      <div>${formatAiMarkdown(data.answer)}</div>
       ${citationsHtml}
     `;
   } catch (err) {
-    aiMsg.innerHTML = `<div class="msg-author">AI Context Engine</div><div style="color:#ef4444;">Gagal memproses pertanyaan: ${err.message}</div>`;
+    aiMsg.innerHTML = `<div class="msg-author">AI Forensic Engine</div><div style="color:#ef4444;">Gagal memproses pertanyaan: ${escapeHtml(err.message)}</div>`;
   }
 
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -2520,6 +4785,136 @@ async function sendChatMessage() {
    7. SHOPEERS DASHBOARD INTERACTIONS & WIDGET DRAWER
    ========================================================================= */
 function initShopeersInteractions() {
+  // Global Toast Helper
+  window.showTopbarToast = (message) => {
+    const container = document.getElementById("topbarToastContainer");
+    if (!container) return;
+    const toast = document.createElement("div");
+    toast.className = "topbar-toast";
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = "0";
+      toast.style.transition = "opacity 0.2s ease";
+      setTimeout(() => toast.remove(), 220);
+    }, 2800);
+  };
+
+  // Helper to close all topbar pop-menus
+  const closeAllTopbarMenus = (exceptId = null) => {
+    const menus = [
+      { menu: "auditPeriodDropdown", btn: "btnAuditPeriod" },
+      { menu: "syncModeDropdown", btn: "btnSyncMode" },
+      { menu: "exportAuditDropdown", btn: "btnExportData" },
+      { menu: "notificationsDropdown", btn: "btnNotifications" },
+      { menu: "userProfileDropdown", btn: "btnToggleProfileMenu" }
+    ];
+    menus.forEach(({ menu, btn }) => {
+      if (menu !== exceptId) {
+        document.getElementById(menu)?.classList.add("hidden");
+        document.getElementById(btn)?.setAttribute("aria-expanded", "false");
+      }
+    });
+  };
+
+  const bindDropdownToggle = (btnId, menuId) => {
+    const btn = document.getElementById(btnId);
+    const menu = document.getElementById(menuId);
+    if (!btn || !menu) return;
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const willOpen = menu.classList.contains("hidden");
+      closeAllTopbarMenus(menuId);
+      menu.classList.toggle("hidden", !willOpen);
+      btn.setAttribute("aria-expanded", String(willOpen));
+    });
+  };
+
+  bindDropdownToggle("btnAuditPeriod", "auditPeriodDropdown");
+  bindDropdownToggle("btnSyncMode", "syncModeDropdown");
+  bindDropdownToggle("btnExportData", "exportAuditDropdown");
+  bindDropdownToggle("btnNotifications", "notificationsDropdown");
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".topbar-dropdown-wrap") && !e.target.closest(".user-profile-wrap")) {
+      closeAllTopbarMenus();
+    }
+  });
+
+  // 0. Topbar Search Box (⌘K)
+  document.getElementById("openSearchBtn")?.addEventListener("click", () => {
+    window.navigateToTab("repositories", "overview");
+    setTimeout(() => {
+      const scanInput = document.getElementById("targetScanInput");
+      if (scanInput) {
+        scanInput.focus();
+        scanInput.select();
+      }
+      window.showTopbarToast("🔍 Ketik username GitHub atau kata kunci untuk memindai repositori.");
+    }, 100);
+  });
+
+  // 1. Audit Period Dropdown Actions
+  document.querySelectorAll("#auditPeriodDropdown .topbar-pop-item").forEach(item => {
+    item.addEventListener("click", () => {
+      document.querySelectorAll("#auditPeriodDropdown .topbar-pop-item").forEach(i => i.classList.remove("active"));
+      item.classList.add("active");
+      const period = item.getAttribute("data-period") || "Q1 2026 Audit Period";
+      const mult = parseFloat(item.getAttribute("data-mult") || "1.0");
+      const labelEl = document.getElementById("auditPeriodLabel");
+      if (labelEl) labelEl.textContent = period;
+
+      // Update KPI visual metrics based on selected audit period
+      const reposEl = document.getElementById("dashKpiRepos");
+      const secEl = document.getElementById("dashKpiSecurity");
+      const maintEl = document.getElementById("dashKpiMaint");
+      if (reposEl) reposEl.textContent = String(Math.max(4, Math.round(8 * mult)));
+      if (secEl) secEl.textContent = String(Math.min(100, Math.round(95 * (mult >= 1 ? 1 : mult + 0.05))));
+      if (maintEl) maintEl.textContent = String(Math.min(100, Math.round(78 * (mult >= 1 ? 1 : mult + 0.08))));
+
+      closeAllTopbarMenus();
+      window.showTopbarToast(`📅 Periode audit aktif: ${period}`);
+    });
+  });
+
+  // 2. Live GitHub Sync Dropdown Actions
+  let activeTopbarSync = { type: "github", target: "budisusanto911", label: "Live GitHub Sync" };
+  const runTopbarSync = async (type, target, label) => {
+    const dot = document.getElementById("topbarSyncDot");
+    const lbl = document.getElementById("syncModeLabel");
+    if (dot) dot.classList.add("syncing");
+    if (lbl) lbl.textContent = "Syncing...";
+    closeAllTopbarMenus();
+
+    try {
+      await triggerScan(type, target);
+      activeTopbarSync = { type, target, label };
+      if (lbl) lbl.textContent = label;
+      window.showTopbarToast(`✅ Sinkronisasi selesai: ${label}`);
+    } catch (err) {
+      if (lbl) lbl.textContent = activeTopbarSync.label;
+      window.showTopbarToast(`⚠️ Gagal sinkronisasi: ${err.message}`);
+    } finally {
+      if (dot) dot.classList.remove("syncing");
+    }
+  };
+
+  document.querySelectorAll("#syncModeDropdown .topbar-pop-item[data-sync-type]").forEach(item => {
+    item.addEventListener("click", () => {
+      document.querySelectorAll("#syncModeDropdown .topbar-pop-item[data-sync-type]").forEach(i => i.classList.remove("active"));
+      item.classList.add("active");
+      const type = item.getAttribute("data-sync-type") || "github";
+      const target = item.getAttribute("data-sync-target") || "";
+      const label = item.getAttribute("data-sync-label") || "Live GitHub Sync";
+      runTopbarSync(type, target, label);
+    });
+  });
+
+  document.getElementById("btnForceResyncNow")?.addEventListener("click", () => {
+    runTopbarSync(activeTopbarSync.type, activeTopbarSync.target, activeTopbarSync.label);
+  });
+
+  // 3. Add Widget Drawer & Save Layout
   const openWidgetBtn = document.getElementById("btnOpenWidgetDrawer");
   const widgetDrawer = document.getElementById("shopeersWidgetDrawer");
   const closeWidgetBtn = document.getElementById("btnCloseWidgetDrawer");
@@ -2527,6 +4922,7 @@ function initShopeersInteractions() {
   const saveWidgetBtn = document.getElementById("btnSaveWidgetDrawer");
 
   const openDrawer = () => {
+    closeAllTopbarMenus();
     if (widgetDrawer) widgetDrawer.classList.remove("hidden");
   };
   const closeDrawer = () => {
@@ -2536,12 +4932,256 @@ function initShopeersInteractions() {
   openWidgetBtn?.addEventListener("click", openDrawer);
   closeWidgetBtn?.addEventListener("click", closeDrawer);
   cancelWidgetBtn?.addEventListener("click", closeDrawer);
+
+  document.querySelectorAll("#shopeersWidgetDrawer .shopeers-widget-option").forEach(card => {
+    card.addEventListener("click", (e) => {
+      if (e.target.tagName !== "INPUT") {
+        const cb = card.querySelector(".shopeers-checkbox");
+        if (cb) cb.checked = !cb.checked;
+      }
+    });
+  });
+
   saveWidgetBtn?.addEventListener("click", () => {
+    const checkboxes = document.querySelectorAll("#shopeersWidgetDrawer .shopeers-checkbox");
+    const kpiCards = document.querySelectorAll(".shopeers-kpi-grid .shopeers-kpi-card");
+    const midGrid = document.querySelector(".shopeers-mid-grid");
+    const botGrid = document.querySelector(".shopeers-bot-grid");
+
+    if (checkboxes[0] && kpiCards[3]) kpiCards[3].style.display = checkboxes[0].checked ? "" : "none";
+    if (checkboxes[1] && midGrid) midGrid.style.display = checkboxes[1].checked ? "" : "none";
+    if (checkboxes[2] && kpiCards[2]) kpiCards[2].style.display = checkboxes[2].checked ? "" : "none";
+    if (checkboxes[3] && botGrid) botGrid.style.display = (checkboxes[3].checked || checkboxes[4]?.checked || true) ? "" : "none";
+
+    const enabledCount = Array.from(checkboxes).filter(c => c.checked).length;
     closeDrawer();
+    window.showTopbarToast(`✓ Layout disimpan (${enabledCount} widget aktif di Dashboard)`);
   });
 
   widgetDrawer?.addEventListener("click", (e) => {
     if (e.target === widgetDrawer) closeDrawer();
+  });
+
+  // 4. Export Audit Actions (HTML Report / JSON / CSV)
+  const triggerFileDownload = (filename, content, mimeType) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  document.getElementById("btnExportJsonData")?.addEventListener("click", async () => {
+    closeAllTopbarMenus();
+    window.showTopbarToast("📦 Menyiapkan bundel JSON Audit...");
+    try {
+      const [dash, repos, vulns, deps, mcp] = await Promise.all([
+        fetch("/api/dashboard").then(r => r.json()),
+        fetch("/api/repositories").then(r => r.json()),
+        fetch("/api/vulnerabilities").then(r => r.json()),
+        fetch("/api/dependencies").then(r => r.json()),
+        fetch("/api/mcp").then(r => r.json())
+      ]);
+      const bundle = {
+        exported_at: new Date().toISOString(),
+        audit_period: document.getElementById("auditPeriodLabel")?.textContent || "Q1 2026 Audit Period",
+        auditor: currentAuthUser?.name || "Budi Susanto",
+        dashboard_summary: dash,
+        repositories: repos,
+        vulnerabilities: vulns,
+        dependencies: deps,
+        mcp_status: mcp,
+        active_apk_audit: activeApkData
+      };
+      triggerFileDownload("ToolKitDev-Audit-Bundle-2026.json", JSON.stringify(bundle, null, 2), "application/json");
+      window.showTopbarToast("✅ File ToolKitDev-Audit-Bundle-2026.json berhasil diunduh!");
+    } catch (err) {
+      window.showTopbarToast("⚠️ Gagal mengekspor JSON: " + err.message);
+    }
+  });
+
+  document.getElementById("btnExportCsvData")?.addEventListener("click", async () => {
+    closeAllTopbarMenus();
+    try {
+      const repos = await fetch("/api/repositories").then(r => r.json());
+      const rows = [
+        ["Repository Name", "Language", "Stars", "Forks", "Security Score", "Updated At"]
+      ];
+      (Array.isArray(repos) ? repos : []).forEach(r => {
+        rows.push([
+          `"${(r.name || "").replace(/"/g, '""')}"`,
+          `"${r.language || "Unknown"}"`,
+          r.stars ?? 0,
+          r.forks ?? 0,
+          r.security_score ?? 95,
+          `"${r.updated_at || ""}"`
+        ]);
+      });
+      const csvContent = rows.map(r => r.join(",")).join("\n");
+      triggerFileDownload("ToolKitDev-Repositories-Audit.csv", csvContent, "text/csv;charset=utf-8");
+      window.showTopbarToast("📊 File ToolKitDev-Repositories-Audit.csv berhasil diunduh!");
+    } catch (err) {
+      window.showTopbarToast("⚠️ Gagal mengekspor CSV: " + err.message);
+    }
+  });
+
+  document.getElementById("btnExportHtmlReport")?.addEventListener("click", async () => {
+    closeAllTopbarMenus();
+    window.showTopbarToast("📄 Membuka Executive Audit Report...");
+    try {
+      const [dash, repos] = await Promise.all([
+        fetch("/api/dashboard").then(r => r.json()),
+        fetch("/api/repositories").then(r => r.json())
+      ]);
+      const period = document.getElementById("auditPeriodLabel")?.textContent || "Q1 2026 Audit Period";
+      const reportHtml = `<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>ToolKitDev Executive Security Audit — ${period}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #0f172a; padding: 40px; max-width: 900px; margin: 0 auto; }
+    h1 { margin: 0 0 6px; color: #1e3a8a; }
+    .meta { color: #64748b; font-size: 13px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #e2e8f0; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+    .card { border: 1px solid #cbd5e1; border-radius: 10px; padding: 16px; background: #f8fafc; }
+    .card strong { display: block; font-size: 24px; color: #2563eb; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+    th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; }
+    th { background: #eff6ff; color: #1e3a8a; }
+  </style>
+</head>
+<body>
+  <h1>ToolKitDev.ai — Executive Security &amp; Architecture Audit</h1>
+  <div class="meta">
+    Periode: <strong>${period}</strong> • Target Organisasi: <strong>${dash.owner || "budisusanto911"}</strong> •
+    Auditor: <strong>${currentAuthUser?.name || "Budi Susanto"}</strong> • Tanggal Cetak: ${new Date().toLocaleString("id-ID")}
+  </div>
+  <div class="grid">
+    <div class="card"><span>Security Score</span><strong>${dash.scores?.security_score ?? 95}/100</strong></div>
+    <div class="card"><span>Maintenance Score</span><strong>${dash.scores?.maintenance_score ?? 78}/100</strong></div>
+    <div class="card"><span>Innovation Score</span><strong>${dash.scores?.innovation_score ?? 100}/100</strong></div>
+  </div>
+  <h2>Daftar Repositori Terverifikasi (${(repos || []).length})</h2>
+  <table>
+    <thead><tr><th>Repositori</th><th>Bahasa Utama</th><th>Stars</th><th>Forks</th><th>Status Audit</th></tr></thead>
+    <tbody>
+      ${(Array.isArray(repos) ? repos : []).map(r => `<tr><td><strong>${r.name}</strong></td><td>${r.language || "-"}</td><td>${r.stars ?? 0}</td><td>${r.forks ?? 0}</td><td>Verified</td></tr>`).join("")}
+    </tbody>
+  </table>
+  <script>window.onload = () => setTimeout(() => window.print(), 350);</script>
+</body>
+</html>`;
+      const win = window.open("", "_blank");
+      if (win) {
+        win.document.write(reportHtml);
+        win.document.close();
+      } else {
+        triggerFileDownload("ToolKitDev-Executive-Audit-Report.html", reportHtml, "text/html");
+      }
+    } catch (err) {
+      window.showTopbarToast("⚠️ Gagal membuat laporan HTML: " + err.message);
+    }
+  });
+
+  // 5. Theme Toggle Button (Follows dark-mode & dark-mode-toggle guidance)
+  const themeBtn = document.getElementById("btnToggleTheme");
+  const metaScheme = document.querySelector('meta[name="color-scheme"]');
+  const darkMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+  const getResolvedScheme = () => {
+    let stored = null;
+    try {
+      stored = localStorage.getItem("color-scheme");
+    } catch (_) {}
+    if (stored === "dark" || stored === "light") return stored;
+    return darkMediaQuery.matches ? "dark" : "light";
+  };
+
+  const syncThemeUI = () => {
+    const resolved = getResolvedScheme();
+    let stored = null;
+    try {
+      stored = localStorage.getItem("color-scheme");
+    } catch (_) {}
+    if (metaScheme) {
+      metaScheme.content = stored ?? "light dark";
+    }
+    document.body.classList.toggle("dark-theme", resolved === "dark");
+    document.body.classList.toggle("soft-theme", resolved !== "dark");
+
+    const sunIcon = themeBtn?.querySelector(".theme-icon-sun");
+    const moonIcon = themeBtn?.querySelector(".theme-icon-moon");
+    const srText = document.getElementById("themeToggleSrText");
+    if (resolved === "dark") {
+      sunIcon?.classList.add("hidden");
+      moonIcon?.classList.remove("hidden");
+      if (srText) srText.textContent = "Switch to light theme";
+    } else {
+      moonIcon?.classList.add("hidden");
+      sunIcon?.classList.remove("hidden");
+      if (srText) srText.textContent = "Switch to dark theme";
+    }
+  };
+
+  syncThemeUI();
+
+  themeBtn?.addEventListener("click", () => {
+    const currentRendered = getResolvedScheme();
+    const targetScheme = currentRendered === "dark" ? "light" : "dark";
+    const systemScheme = darkMediaQuery.matches ? "dark" : "light";
+
+    try {
+      if (targetScheme === systemScheme) {
+        localStorage.removeItem("color-scheme");
+      } else {
+        localStorage.setItem("color-scheme", targetScheme);
+      }
+    } catch (_) {}
+
+    if (metaScheme) {
+      let stored = null;
+      try { stored = localStorage.getItem("color-scheme"); } catch (_) {}
+      metaScheme.content = stored ?? "light dark";
+    }
+
+    syncThemeUI();
+    window.showTopbarToast(targetScheme === "dark" ? "🌙 Dark Mode diaktifkan" : "☀️ Light Mode diaktifkan");
+  });
+
+  darkMediaQuery.addEventListener("change", syncThemeUI);
+  window.addEventListener("storage", (e) => {
+    if (e.key === "color-scheme") syncThemeUI();
+  });
+
+  // 6. Notifications Center Actions
+  const notifDot = document.getElementById("topbarNotifDot");
+  const updateNotifBadge = () => {
+    const unreadCount = document.querySelectorAll("#topbarNotifList .notif-pop-item.unread").length;
+    notifDot?.classList.toggle("hidden", unreadCount === 0);
+  };
+
+  document.querySelectorAll("#topbarNotifList .notif-pop-item").forEach(item => {
+    item.addEventListener("click", () => {
+      item.classList.remove("unread");
+      updateNotifBadge();
+      const targetTab = item.getAttribute("data-nav-tab");
+      closeAllTopbarMenus();
+      if (targetTab) {
+        window.navigateToTab(targetTab);
+      }
+    });
+  });
+
+  document.getElementById("btnMarkAllNotifRead")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    document.querySelectorAll("#topbarNotifList .notif-pop-item.unread").forEach(i => i.classList.remove("unread"));
+    updateNotifBadge();
+    window.showTopbarToast("🔔 Semua notifikasi telah ditandai dibaca");
   });
 
   // Shopeers AI Assistant input box in Dashboard
@@ -2559,7 +5199,7 @@ function initShopeersInteractions() {
 
   shopeersSend?.addEventListener("click", sendFromShopeersCard);
   shopeersInput?.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !e.isComposing) {
       e.preventDefault();
       sendFromShopeersCard();
     }

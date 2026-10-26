@@ -3,8 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <script>
+    try {
+      document.querySelector('meta[name="color-scheme"]').content = localStorage.getItem("color-scheme") ?? "light dark";
+    } catch (_) {}
+  </script>
   <title>ToolKitDev.ai — AI-Powered Context & Security Analysis</title>
-  <link rel="stylesheet" href="/style.css?v=4.0">
+  <link rel="stylesheet" href="/style.css?v=5.4">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -303,33 +309,133 @@
         </div>
 
         <div class="topbar-actions">
-          <div class="topbar-pill-btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-            <span>Q1 2026 Audit Period</span>
+          <!-- 1. Audit Period Selector -->
+          <div class="topbar-dropdown-wrap" id="auditPeriodMenuWrap">
+            <button type="button" class="topbar-pill-btn" id="btnAuditPeriod" aria-expanded="false" aria-controls="auditPeriodDropdown">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <span id="auditPeriodLabel">Q1 2026 Audit Period</span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="topbar-pop-menu hidden" id="auditPeriodDropdown">
+              <div class="topbar-pop-title">Pilih Periode Audit</div>
+              <button type="button" class="topbar-pop-item active" data-period="Q1 2026 Audit Period" data-mult="1.0">
+                <span>📅 Q1 2026 Audit Period (Aktif)</span>
+                <span class="pop-tag">Live</span>
+              </button>
+              <button type="button" class="topbar-pop-item" data-period="Q4 2025 Audit Period" data-mult="0.88">
+                <span>📅 Q4 2025 Audit Period</span>
+                <span class="pop-tag">Arsip</span>
+              </button>
+              <button type="button" class="topbar-pop-item" data-period="Q3 2025 Audit Period" data-mult="0.75">
+                <span>📅 Q3 2025 Audit Period</span>
+                <span class="pop-tag">Arsip</span>
+              </button>
+              <button type="button" class="topbar-pop-item" data-period="FY 2025–2026 Rolling" data-mult="1.25">
+                <span>📊 FY 2025–2026 Rolling Audit</span>
+                <span class="pop-tag">Tahunan</span>
+              </button>
+            </div>
           </div>
 
-          <div class="topbar-pill-btn">
-            <span>Live GitHub Sync</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          <!-- 2. Live Sync Source Selector -->
+          <div class="topbar-dropdown-wrap" id="syncModeMenuWrap">
+            <button type="button" class="topbar-pill-btn" id="btnSyncMode" aria-expanded="false" aria-controls="syncModeDropdown">
+              <span class="sync-status-dot" id="topbarSyncDot"></span>
+              <span id="syncModeLabel">Live GitHub Sync</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="topbar-pop-menu hidden" id="syncModeDropdown">
+              <div class="topbar-pop-title">Sumber Sinkronisasi Data</div>
+              <button type="button" class="topbar-pop-item active" data-sync-type="github" data-sync-target="budisusanto911" data-sync-label="Live GitHub Sync">
+                <span>🐙 GitHub Live (budisusanto911)</span>
+                <span class="pop-tag green">Online</span>
+              </button>
+              <button type="button" class="topbar-pop-item" data-sync-type="local" data-sync-target="StudioProjects" data-sync-label="Local Workspace Sync">
+                <span>💻 Local Workspace (StudioProjects)</span>
+                <span class="pop-tag">Lokal</span>
+              </button>
+              <button type="button" class="topbar-pop-item" data-sync-type="mock" data-sync-target="" data-sync-label="Enterprise Demo Sync">
+                <span>🧪 Enterprise Demo Dataset</span>
+                <span class="pop-tag">Simulasi</span>
+              </button>
+              <hr class="profile-dropdown-sep">
+              <button type="button" class="topbar-pop-item" id="btnForceResyncNow">
+                <span>🔄 Sinkronisasi Ulang Sekarang</span>
+              </button>
+            </div>
           </div>
 
-          <button class="topbar-pill-btn" id="btnOpenWidgetDrawer">
+          <!-- 3. Add Widget Button -->
+          <button type="button" class="topbar-pill-btn" id="btnOpenWidgetDrawer">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             <span>Add widget</span>
           </button>
 
-          <button class="topbar-pill-btn primary" id="btnExportData">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            <span>Export Audit</span>
-          </button>
-
-          <div class="topbar-icon-circle" title="Toggle Theme">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          <!-- 4. Export Audit Button & Menu -->
+          <div class="topbar-dropdown-wrap" id="exportAuditMenuWrap">
+            <button type="button" class="topbar-pill-btn primary" id="btnExportData" aria-expanded="false" aria-controls="exportAuditDropdown">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span>Export Audit</span>
+            </button>
+            <div class="topbar-pop-menu hidden" id="exportAuditDropdown">
+              <div class="topbar-pop-title">Format Ekspor Laporan Audit</div>
+              <button type="button" class="topbar-pop-item" id="btnExportHtmlReport">
+                <span>📄 Executive Audit Report (HTML / Print PDF)</span>
+              </button>
+              <button type="button" class="topbar-pop-item" id="btnExportJsonData">
+                <span>📦 Full Security &amp; SBOM Bundle (.JSON)</span>
+              </button>
+              <button type="button" class="topbar-pop-item" id="btnExportCsvData">
+                <span>📊 Tabel Repositori &amp; Kerentanan (.CSV)</span>
+              </button>
+            </div>
           </div>
 
-          <div class="topbar-icon-circle" title="Notifications">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-            <span class="notif-badge-dot"></span>
+          <!-- 5. Theme Toggle Button (Light / Dark) -->
+          <button type="button" class="topbar-icon-circle" id="btnToggleTheme" title="Ganti Tema (Light / Dark Mode)">
+            <svg class="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            <svg class="theme-icon-moon hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            <span class="visually-hidden" id="themeToggleSrText">Switch color scheme</span>
+          </button>
+
+          <!-- 6. Notifications Center Button & Dropdown -->
+          <div class="topbar-dropdown-wrap" id="notificationsMenuWrap">
+            <button type="button" class="topbar-icon-circle" id="btnNotifications" aria-expanded="false" aria-controls="notificationsDropdown" title="Notifikasi Keamanan & Sistem">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+              <span class="notif-badge-dot" id="topbarNotifDot"></span>
+            </button>
+            <div class="topbar-pop-menu notif-pop-menu hidden" id="notificationsDropdown">
+              <div class="notif-pop-header">
+                <strong>Notifikasi Audit &amp; Keamanan</strong>
+                <button type="button" class="notif-mark-read-btn" id="btnMarkAllNotifRead">Tandai dibaca</button>
+              </div>
+              <div class="notif-pop-list" id="topbarNotifList">
+                <button type="button" class="notif-pop-item unread" data-nav-tab="apk-inspector">
+                  <span class="notif-dot danger"></span>
+                  <div>
+                    <strong>APK Debuggable &amp; Cleartext Flag</strong>
+                    <span>sample-debug.apk memiliki 3 temuan keamanan aktif. Klik untuk bedah APK.</span>
+                    <small>Baru saja • Mobile APK Inspector</small>
+                  </div>
+                </button>
+                <button type="button" class="notif-pop-item unread" data-nav-tab="mcp-hub">
+                  <span class="notif-dot info"></span>
+                  <div>
+                    <strong>GitHub MCP Live Sync Aktif</strong>
+                    <span>8 repositori publik &amp; 142 dependensi SBOM berhasil disinkronkan.</span>
+                    <small>5 menit lalu • Multi-MCP Hub</small>
+                  </div>
+                </button>
+                <button type="button" class="notif-pop-item" data-nav-tab="security-compliance">
+                  <span class="notif-dot success"></span>
+                  <div>
+                    <strong>Verifikasi Database OSV.dev Selesai</strong>
+                    <span>Pemindaian kerentanan real-time untuk ekosistem Gradle/Maven &amp; Pub selesai.</span>
+                    <small>12 menit lalu • Security &amp; Compliance</small>
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="user-profile-wrap" id="userProfileMenuWrap">
@@ -1288,6 +1394,283 @@
               </div>
             </div>
 
+            <!-- MobSF Exported Components 4-Card Banner -->
+            <div class="card mobsf-exported-banner-card">
+              <div class="mobsf-exported-grid">
+                <!-- Exported Activities (Teal) -->
+                <div class="mobsf-stat-box mobsf-box-teal">
+                  <div class="mobsf-stat-inner">
+                    <div class="mobsf-stat-count" id="mobsfExportedActivitiesCount">0</div>
+                    <div class="mobsf-stat-label">EXPORTED ACTIVITIES</div>
+                  </div>
+                  <div class="mobsf-stat-watermark" aria-hidden="true">
+                    <svg width="56" height="56" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>
+                  </div>
+                  <button type="button" class="mobsf-stat-footer" data-exported-type="exported_activities" data-exported-title="Exported Activities">
+                    <span>View All</span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 15l-5-5h3V8h4v4h3z"/></svg>
+                  </button>
+                </div>
+
+                <!-- Exported Services (Green) -->
+                <div class="mobsf-stat-box mobsf-box-green">
+                  <div class="mobsf-stat-inner">
+                    <div class="mobsf-stat-count" id="mobsfExportedServicesCount">0</div>
+                    <div class="mobsf-stat-label">EXPORTED SERVICES</div>
+                  </div>
+                  <div class="mobsf-stat-watermark" aria-hidden="true">
+                    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  </div>
+                  <button type="button" class="mobsf-stat-footer" data-exported-type="exported_services" data-exported-title="Exported Services">
+                    <span>View All</span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 15l-5-5h3V8h4v4h3z"/></svg>
+                  </button>
+                </div>
+
+                <!-- Exported Receivers (Yellow) -->
+                <div class="mobsf-stat-box mobsf-box-yellow">
+                  <div class="mobsf-stat-inner">
+                    <div class="mobsf-stat-count" id="mobsfExportedReceiversCount">0</div>
+                    <div class="mobsf-stat-label">EXPORTED RECEIVERS</div>
+                  </div>
+                  <div class="mobsf-stat-watermark" aria-hidden="true">
+                    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"></path><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"></path><circle cx="12" cy="12" r="2"></circle><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"></path><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"></path></svg>
+                  </div>
+                  <button type="button" class="mobsf-stat-footer" data-exported-type="exported_receivers" data-exported-title="Exported Broadcast Receivers">
+                    <span>View All</span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 15l-5-5h3V8h4v4h3z"/></svg>
+                  </button>
+                </div>
+
+                <!-- Exported Providers (Red) -->
+                <div class="mobsf-stat-box mobsf-box-red">
+                  <div class="mobsf-stat-inner">
+                    <div class="mobsf-stat-count" id="mobsfExportedProvidersCount">0</div>
+                    <div class="mobsf-stat-label">EXPORTED PROVIDERS</div>
+                  </div>
+                  <div class="mobsf-stat-watermark" aria-hidden="true">
+                    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+                  </div>
+                  <button type="button" class="mobsf-stat-footer" data-exported-type="exported_providers" data-exported-title="Exported Content Providers">
+                    <span>View All</span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 15l-5-5h3V8h4v4h3z"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- MobSF SCAN OPTIONS & DECOMPILED CODE Row -->
+            <div class="mobsf-options-decompiled-row">
+              <!-- SCAN OPTIONS Card -->
+              <div class="card mobsf-action-card">
+                <div class="mobsf-section-heading">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                  <h4>SCAN OPTIONS</h4>
+                </div>
+                <div class="mobsf-btn-row">
+                  <button type="button" class="mobsf-btn mobsf-btn-teal" id="btnMobsfRescan">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                    <span>Rescan</span>
+                  </button>
+                  <button type="button" class="mobsf-btn mobsf-btn-blue" id="btnMobsfSuppressions">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                    <span>Manage Suppressions</span>
+                  </button>
+                </div>
+                <div class="mobsf-btn-row">
+                  <button type="button" class="mobsf-btn mobsf-btn-green" id="btnMobsfDynamicAnalysis">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm-2 14.5v-9l6 4.5z"/></svg>
+                    <span>Start Dynamic Analysis</span>
+                  </button>
+                  <button type="button" class="mobsf-btn mobsf-btn-yellow" id="btnMobsfScanLogs">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                    <span>Scan Logs</span>
+                  </button>
+                </div>
+                <div class="mobsf-btn-row" style="margin-top:6px;">
+                  <button type="button" class="mobsf-btn mobsf-btn-purple" id="btnExportExecutivePdf" style="width:100%; justify-content:center; background:#4f46e5; border-color:#4338ca; color:#fff; font-weight:600; box-shadow:0 2px 4px rgba(79,70,229,0.25);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    <span>📄 Export Executive Audit PDF</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- DECOMPILED CODE Card -->
+              <div class="card mobsf-action-card">
+                <div class="mobsf-section-heading">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-3.5 14.5L7 13l3.5-3.5 1.06 1.06L9.12 13l2.44 2.44-1.06 1.06zm3 0l-1.06-1.06L14.88 13l-2.44-2.44 1.06-1.06L17 13l-3.5 3.5zM13 9V3.5L18.5 9H13z"/></svg>
+                  <h4>DECOMPILED CODE</h4>
+                </div>
+                <div class="mobsf-btn-row">
+                  <button type="button" class="mobsf-btn mobsf-btn-blue" id="btnMobsfViewManifest">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <span>View AndroidManifest.xml</span>
+                  </button>
+                  <button type="button" class="mobsf-btn mobsf-btn-teal" id="btnMobsfViewSource">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                    <span>View Source</span>
+                  </button>
+                  <button type="button" class="mobsf-btn mobsf-btn-teal" id="btnMobsfViewSmali">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                    <span>View Smali</span>
+                  </button>
+                </div>
+                <div class="mobsf-btn-row">
+                  <button type="button" class="mobsf-btn mobsf-btn-yellow" id="btnMobsfDownloadJava">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>Download Java Code</span>
+                  </button>
+                  <button type="button" class="mobsf-btn mobsf-btn-yellow" id="btnMobsfDownloadSmali">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>Download Smali Code</span>
+                  </button>
+                  <button type="button" class="mobsf-btn mobsf-btn-yellow" id="btnMobsfDownloadApk">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>Download APK</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- MobSF SIGNER CERTIFICATE Card -->
+            <div class="card mobsf-signer-card" id="mobsfSignerCard">
+              <div class="mobsf-section-heading">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                <h4>SIGNER CERTIFICATE</h4>
+              </div>
+              <pre class="mobsf-signer-pre" id="apkSignerCertificateText">Binary is signed</pre>
+            </div>
+
+            <!-- Frida Injection & Data-Flow Vulnerability Telemetry Card -->
+            <div class="card frida-telemetry-card" id="fridaTelemetryCard">
+              <div class="frida-telemetry-header">
+                <div>
+                  <div class="mobsf-section-heading" style="margin-bottom:4px;">
+                    <span class="frida-pulse-dot" aria-hidden="true"></span>
+                    <h4>FRIDA INJECTION &amp; DATA-FLOW TELEMETRY (SERVICES &amp; PERPINDAHAN DATA)</h4>
+                  </div>
+                  <p class="frida-telemetry-subtitle">
+                    Hasil pembedahan instruksi bytecode DEX &amp; simulasi hook Frida untuk memperlihatkan daftar <strong>Service</strong>, <strong>perpindahan data (IPC, SharedPreferences, File, Crypto, Reflection)</strong>, serta celah keamanan pada APK yang diunggah.
+                  </p>
+                </div>
+                <div class="frida-telemetry-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <button type="button" class="mobsf-btn mobsf-btn-blue" id="btnFridaHardeningGuide">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    <span>🛡️ Solusi Amankan Endpoint &amp; Anti-Frida</span>
+                  </button>
+                  <button type="button" class="mobsf-btn mobsf-btn-green" id="btnRunLiveFridaStream">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    <span>Inject Frida &amp; Tangkap Data</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- KPI Summary Strip -->
+              <div class="frida-kpi-strip" id="fridaKpiStrip"></div>
+
+              <!-- Tabs for Endpoints, Data Flows, Services Inventory, and Live Frida Terminal -->
+              <div class="frida-tabs-bar" role="tablist" aria-label="Frida Data-Flow Tabs">
+                <button type="button" class="frida-tab-btn active" data-frida-tab="endpoints" role="tab" aria-selected="true">
+                  🌐 Endpoint API &amp; Route Service
+                </button>
+                <button type="button" class="frida-tab-btn" data-frida-tab="flows" role="tab" aria-selected="false">
+                  📡 Peta Perpindahan Data (Data-Flow Sinks)
+                </button>
+                <button type="button" class="frida-tab-btn" data-frida-tab="services" role="tab" aria-selected="false">
+                  ⚙️ Daftar Service &amp; Celah IPC
+                </button>
+                <button type="button" class="frida-tab-btn" data-frida-tab="stream" role="tab" aria-selected="false">
+                  💻 Live Frida Hook Stream
+                </button>
+              </div>
+
+              <!-- Tab Panels -->
+              <div class="frida-tab-panel" id="fridaTabEndpoints">
+                <div class="android-api-controls" style="margin-bottom:8px;">
+                  <div style="font-size:12px; color:#64748b; font-weight:600;">Menampilkan 5 endpoint per halaman</div>
+                  <div class="android-api-search-wrap">
+                    <label for="fridaEndpointsSearch" class="android-api-search-label">Search:</label>
+                    <input type="search" id="fridaEndpointsSearch" class="android-api-search-input" placeholder="Cari URL, route, DTO, atau payload..." autocomplete="off" />
+                  </div>
+                </div>
+                <div tabindex="0" role="region" aria-label="Discovered API Endpoints and Service Routes" class="table-wrapper android-api-table-wrap">
+                  <table class="android-api-table frida-flow-table">
+                    <thead>
+                      <tr>
+                        <th scope="col" style="width:18%;">Method &amp; Kategori</th>
+                        <th scope="col" style="width:24%;">URL Server / REST API Route</th>
+                        <th scope="col" style="width:36%;">Intercepted Request &amp; Response Payload</th>
+                        <th scope="col" style="width:22%;">Analisis Celah &amp; Detail</th>
+                      </tr>
+                    </thead>
+                    <tbody id="fridaEndpointsTableBody"></tbody>
+                  </table>
+                </div>
+                <div class="android-api-footer">
+                  <div class="android-api-table-info" id="fridaEndpointsInfo">Showing 0 to 0 of 0 entries</div>
+                  <div class="android-api-pagination" id="fridaEndpointsPagination"></div>
+                </div>
+              </div>
+
+              <div class="frida-tab-panel hidden" id="fridaTabFlows">
+                <div class="android-api-controls" style="margin-bottom:8px;">
+                  <div style="font-size:12px; color:#64748b; font-weight:600;">Menampilkan 6 alur data per halaman</div>
+                  <div class="android-api-search-wrap">
+                    <label for="fridaFlowsSearch" class="android-api-search-label">Search:</label>
+                    <input type="search" id="fridaFlowsSearch" class="android-api-search-input" placeholder="Cari class, sink API, atau konstanta..." autocomplete="off" />
+                  </div>
+                </div>
+                <div tabindex="0" role="region" aria-label="Intercepted Data Flows" class="table-wrapper android-api-table-wrap">
+                  <table class="android-api-table frida-flow-table">
+                    <thead>
+                      <tr>
+                        <th scope="col" style="width:18%;">Kategori Alur Data</th>
+                        <th scope="col" style="width:26%;">Class &amp; Method Asal &rarr; Sink API</th>
+                        <th scope="col" style="width:26%;">Data / Konstanta yang Dipindahkan</th>
+                        <th scope="col" style="width:30%;">Kelemahan &amp; Risiko Intersepsi Frida</th>
+                      </tr>
+                    </thead>
+                    <tbody id="fridaFlowsTableBody"></tbody>
+                  </table>
+                </div>
+                <div class="android-api-footer">
+                  <div class="android-api-table-info" id="fridaFlowsInfo">Showing 0 to 0 of 0 entries</div>
+                  <div class="android-api-pagination" id="fridaFlowsPagination"></div>
+                </div>
+              </div>
+
+              <div class="frida-tab-panel hidden" id="fridaTabServices">
+                <div class="android-api-controls" style="margin-bottom:8px;">
+                  <div style="font-size:12px; color:#64748b; font-weight:600;">Menampilkan 6 service per halaman</div>
+                  <div class="android-api-search-wrap">
+                    <label for="fridaServicesSearch" class="android-api-search-label">Search:</label>
+                    <input type="search" id="fridaServicesSearch" class="android-api-search-input" placeholder="Cari nama service, kategori, atau celah..." autocomplete="off" />
+                  </div>
+                </div>
+                <div tabindex="0" role="region" aria-label="Android Services Inventory" class="table-wrapper android-api-table-wrap">
+                  <table class="android-api-table frida-flow-table">
+                    <thead>
+                      <tr>
+                        <th scope="col" style="width:28%;">Nama Service &amp; Kategori</th>
+                        <th scope="col" style="width:16%;">Status &amp; Permission</th>
+                        <th scope="col" style="width:26%;">Jenis Data yang Melewati Service</th>
+                        <th scope="col" style="width:30%;">Analisis Kelemahan &amp; Eksploitasi</th>
+                      </tr>
+                    </thead>
+                    <tbody id="fridaServicesTableBody"></tbody>
+                  </table>
+                </div>
+                <div class="android-api-footer">
+                  <div class="android-api-table-info" id="fridaServicesInfo">Showing 0 to 0 of 0 entries</div>
+                  <div class="android-api-pagination" id="fridaServicesPagination"></div>
+                </div>
+              </div>
+
+              <div class="frida-tab-panel hidden" id="fridaTabStream">
+                <div class="frida-terminal-box" id="fridaLiveTerminal" role="log" aria-live="polite"></div>
+              </div>
+            </div>
+
             <!-- APK Highlights Grid -->
             <div class="apk-grid-2">
               <!-- Security Flags Matrix -->
@@ -1364,6 +1747,186 @@
                   </thead>
                   <tbody></tbody>
                 </table>
+              </div>
+            </div>
+
+            <!-- MobSF-style CODE ANALYSIS Table -->
+            <div class="card android-api-card code-analysis-card" id="apkCodeAnalysisCard">
+              <div class="android-api-header">
+                <span class="android-api-bot-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="16 18 22 12 16 6"></polyline>
+                    <polyline points="8 6 2 12 8 18"></polyline>
+                    <line x1="14" y1="4" x2="10" y2="20"></line>
+                  </svg>
+                </span>
+                <h4 class="android-api-title">CODE ANALYSIS</h4>
+              </div>
+
+              <!-- 5-Column Severity Counter Strip -->
+              <div class="code-analysis-summary-bar" id="codeAnalysisSummaryBar">
+                <div class="ca-stat-col">
+                  <div class="ca-stat-label ca-high">HIGH</div>
+                  <div class="ca-stat-val" id="caCountHigh">0</div>
+                </div>
+                <div class="ca-stat-col">
+                  <div class="ca-stat-label ca-warning">WARNING</div>
+                  <div class="ca-stat-val" id="caCountWarning">0</div>
+                </div>
+                <div class="ca-stat-col">
+                  <div class="ca-stat-label ca-info">INFO</div>
+                  <div class="ca-stat-val" id="caCountInfo">0</div>
+                </div>
+                <div class="ca-stat-col">
+                  <div class="ca-stat-label ca-secure">SECURE</div>
+                  <div class="ca-stat-val" id="caCountSecure">0</div>
+                </div>
+                <div class="ca-stat-col">
+                  <div class="ca-stat-label ca-suppressed">SUPPRESSED</div>
+                  <div class="ca-stat-val" id="caCountSuppressed">0</div>
+                </div>
+              </div>
+
+              <div class="android-api-controls">
+                <div class="android-api-dt-buttons" role="group" aria-label="Export Code Analysis data">
+                  <button type="button" class="dt-btn" id="btnCaExportCopy" title="Copy to clipboard">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  </button>
+                  <button type="button" class="dt-btn" id="btnCaExportCsv" title="Export CSV">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
+                  </button>
+                  <button type="button" class="dt-btn" id="btnCaExportExcel" title="Export Excel / TSV">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M9 13l6 6M15 13l-6 6"></path></svg>
+                  </button>
+                  <button type="button" class="dt-btn" id="btnCaExportJson" title="Export JSON">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M10 12a1 1 0 0 0-1 1v1a1 1 0 0 1-1 1 1 1 0 0 1 1 1v1a1 1 0 0 0 1 1M14 18a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1 1 1 0 0 1-1-1v-1a1 1 0 0 0-1-1"></path></svg>
+                  </button>
+                  <button type="button" class="dt-btn" id="btnCaExportPrint" title="Print Code Analysis Table">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                  </button>
+                </div>
+
+                <div class="android-api-search-wrap">
+                  <label for="codeAnalysisSearchInput" class="android-api-search-label">Search:</label>
+                  <input type="search" id="codeAnalysisSearchInput" class="android-api-search-input" placeholder="" autocomplete="off">
+                </div>
+              </div>
+
+              <div tabindex="0" role="region" aria-labelledby="code-analysis-table-caption" class="table-wrapper android-api-table-wrap">
+                <table class="android-api-table code-analysis-table" id="apkCodeAnalysisTable">
+                  <caption id="code-analysis-table-caption" class="visually-hidden">Static Code Analysis Findings</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col" class="sortable-col sort-asc" data-ca-sort="no" style="width:58px;">
+                        <div class="th-sort-inner">
+                          <span>NO</span>
+                          <span class="sort-icons" aria-hidden="true">▲▼</span>
+                        </div>
+                      </th>
+                      <th scope="col" class="sortable-col" data-ca-sort="issue" style="width:30%;">
+                        <div class="th-sort-inner">
+                          <span>ISSUE</span>
+                          <span class="sort-icons" aria-hidden="true">▲▼</span>
+                        </div>
+                      </th>
+                      <th scope="col" class="sortable-col" data-ca-sort="severity" style="width:10%;">
+                        <div class="th-sort-inner">
+                          <span>SEVERITY</span>
+                          <span class="sort-icons" aria-hidden="true">▲▼</span>
+                        </div>
+                      </th>
+                      <th scope="col" class="sortable-col" data-ca-sort="standards" style="width:26%;">
+                        <div class="th-sort-inner">
+                          <span>STANDARDS</span>
+                          <span class="sort-icons" aria-hidden="true">▲▼</span>
+                        </div>
+                      </th>
+                      <th scope="col" class="sortable-col" data-ca-sort="files" style="width:21%;">
+                        <div class="th-sort-inner">
+                          <span>FILES</span>
+                          <span class="sort-icons" aria-hidden="true">▲▼</span>
+                        </div>
+                      </th>
+                      <th scope="col" style="width:85px;">
+                        <div class="th-sort-inner">
+                          <span>OPTIONS</span>
+                          <span class="sort-icons" aria-hidden="true">▲▼</span>
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody id="apkCodeAnalysisTableBody"></tbody>
+                </table>
+              </div>
+
+              <div class="android-api-footer">
+                <div class="android-api-table-info" id="codeAnalysisTableInfo">Showing 0 to 0 of 0 entries</div>
+                <div class="android-api-pagination" id="codeAnalysisPagination"></div>
+              </div>
+            </div>
+
+            <!-- MobSF-style ANDROID API Bytecode Analysis Table -->
+            <div class="card android-api-card" id="apkAndroidApiCard">
+              <div class="android-api-header">
+                <span class="android-api-bot-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24a11.463 11.463 0 0 0-8.94 0L5.65 5.67c-.19-.29-.58-.38-.87-.2-.28.18-.37.54-.22.83L6.4 9.48A10.78 10.78 0 0 0 1 18h22a10.78 10.78 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/>
+                  </svg>
+                </span>
+                <h4 class="android-api-title">ANDROID API</h4>
+              </div>
+
+              <div class="android-api-controls">
+                <div class="android-api-dt-buttons" role="group" aria-label="Export Android API data">
+                  <button type="button" class="dt-btn" id="btnApiExportCopy" title="Copy to clipboard">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  </button>
+                  <button type="button" class="dt-btn" id="btnApiExportCsv" title="Export CSV">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
+                  </button>
+                  <button type="button" class="dt-btn" id="btnApiExportExcel" title="Export Excel / TSV">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M9 13l6 6M15 13l-6 6"></path></svg>
+                  </button>
+                  <button type="button" class="dt-btn" id="btnApiExportJson" title="Export JSON">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M10 12a1 1 0 0 0-1 1v1a1 1 0 0 1-1 1 1 1 0 0 1 1 1v1a1 1 0 0 0 1 1M14 18a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1 1 1 0 0 1-1-1v-1a1 1 0 0 0-1-1"></path></svg>
+                  </button>
+                  <button type="button" class="dt-btn" id="btnApiExportPrint" title="Print Android API Table">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                  </button>
+                </div>
+
+                <div class="android-api-search-wrap">
+                  <label for="androidApiSearchInput" class="android-api-search-label">Search:</label>
+                  <input type="search" id="androidApiSearchInput" class="android-api-search-input" placeholder="" autocomplete="off">
+                </div>
+              </div>
+
+              <div tabindex="0" role="region" aria-labelledby="android-api-table-caption" class="table-wrapper android-api-table-wrap">
+                <table class="android-api-table" id="apkAndroidApiTable">
+                  <caption id="android-api-table-caption" class="visually-hidden">Android API Usage Analysis</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col" class="sortable-col sort-asc" data-sort="api" id="thSortAndroidApi">
+                        <div class="th-sort-inner">
+                          <span>API</span>
+                          <span class="sort-icons" aria-hidden="true">▲▼</span>
+                        </div>
+                      </th>
+                      <th scope="col" class="sortable-col" data-sort="files" id="thSortAndroidFiles">
+                        <div class="th-sort-inner">
+                          <span>FILES</span>
+                          <span class="sort-icons" aria-hidden="true">▲▼</span>
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody id="apkAndroidApiTableBody"></tbody>
+                </table>
+              </div>
+
+              <div class="android-api-footer">
+                <div class="android-api-table-info" id="androidApiTableInfo">Showing 0 to 0 of 0 entries</div>
+                <div class="android-api-pagination" id="androidApiPagination"></div>
               </div>
             </div>
           </div>
@@ -1490,38 +2053,48 @@
       </div>
     </main>
 
-    <!-- Floating AI Context Chatbot Bubble & Drawer -->
-    <button class="floating-chat-bubble" id="toggleChatDrawer" title="Tanya AI Konteks Project">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+    <!-- Floating AI Context & Forensic Chatbot Bubble & Drawer -->
+    <button class="floating-chat-bubble" id="toggleChatDrawer" title="Tanya AI Forensik APK & Konteks">
+      <span class="chat-bubble-pulse" aria-hidden="true"></span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+      <span class="chat-bubble-label">Tanya AI</span>
     </button>
 
     <div class="ai-chat-drawer hidden" id="aiChatDrawer">
       <div class="chat-header">
         <div class="chat-title">
           <span class="ai-dot"></span>
-          <strong>ToolKitDev AI Context Assistant</strong>
+          <div>
+            <strong>ToolKitDev AI Forensic Assistant</strong>
+            <div class="chat-target-indicator" id="chatTargetIndicator">Target: Alfagift (Score: 0/100)</div>
+          </div>
         </div>
-        <button class="btn-close" id="closeChatBtn">×</button>
+        <button class="btn-close" id="closeChatBtn" aria-label="Tutup Chat">×</button>
       </div>
 
       <div class="chat-messages" id="chatMessages">
         <div class="chat-msg ai">
-          <div class="msg-author">AI Context Engine</div>
+          <div class="msg-author">AI Forensic Engine</div>
           <div class="msg-text">
-            Halo! Saya AI yang memahami konteks seluruh project kamu (Kode, Git history, PRD Google Docs, Desain Figma, dan APK binary). Ada yang ingin kamu tanyakan atau audit?
+            Halo! Saya asisten intelijen keamanan mobile <strong>ToolKitDev</strong>. Saya telah membedah seluruh bytecode, alur perpindahan data Frida, dan matriks kepatuhan APK target. Anda dapat meminta analisis mendalam, skrip bypass Frida, skenario eksploitasi ADB, atau kode perbaikan.
           </div>
         </div>
       </div>
 
-      <div class="chat-suggestions">
-        <button class="btn-chip" data-query="Apa temuan security terpenting pada project ini?">Security Highlights</button>
-        <button class="btn-chip" data-query="Kapan fitur PDF Watermark dibuat dan kenapa?">Riwayat Fitur Watermark</button>
-        <button class="btn-chip" data-query="Bagaimana cara memperbaiki celah APK debuggable?">Fix APK Debuggable</button>
+      <div class="chat-suggestions" id="chatSuggestionsBar">
+        <button class="btn-chip" data-query="Buatkan skrip Frida untuk bypass SSL Pinning dan hook MethodChannel">💉 Skrip Frida Hook</button>
+        <button class="btn-chip" data-query="Di mana token autentikasi disimpan dan bagaimana cara amankannya?">🔑 Lokasi Token &amp; Auth</button>
+        <button class="btn-chip" data-query="Bagaimana cara exploit MoEDebuggerActivity menggunakan ADB?">⚡ PoC MoEDebugger</button>
+        <button class="btn-chip" data-query="Kenapa hash MD5 dan cipher Blowfish dianggap berbahaya?">🔐 Analisis Kriptografi</button>
+        <button class="btn-chip" data-query="Tampilkan status kepatuhan OWASP MASVS &amp; PCI-DSS">📋 Matriks OWASP</button>
+        <button class="btn-chip" data-query="Domain apa saja yang mengizinkan cleartext traffic HTTP?">🌐 Cleartext Traffic</button>
       </div>
 
       <div class="chat-input-bar">
-        <input type="text" id="chatInput" placeholder="Tanya AI berdasarkan sumber project...">
-        <button class="btn btn-primary" id="btnSendChat">Kirim</button>
+        <textarea id="chatInput" rows="1" placeholder="Tanya analisis forensik APK, skrip Frida, atau kode fix..." aria-label="Input Pertanyaan Chatbot"></textarea>
+        <button class="btn btn-primary" id="btnSendChat" aria-label="Kirim Pertanyaan">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
       </div>
     </div>
 
@@ -1720,7 +2293,98 @@
     </div>
   </div>
 
-  <script src="/app.js?v=4.0"></script>
+  <!-- Native Modal Dialog for MobSF Inspector Actions (View Manifest, Source, Smali, Logs, Suppressions, Dynamic Analysis, Exported Components) -->
+  <dialog id="mobsfInspectorDialog" closedby="any" aria-labelledby="mobsfDialogTitle" class="mobsf-native-dialog">
+    <div class="mobsf-dialog-header">
+      <div class="mobsf-dialog-title-wrap">
+        <span class="mobsf-dialog-badge" id="mobsfDialogBadge">APK INSPECTOR</span>
+        <h3 id="mobsfDialogTitle">Decompiled Viewer</h3>
+      </div>
+      <form method="dialog" style="margin:0;">
+        <button type="submit" class="mobsf-dialog-close-btn" aria-label="Close dialog">&times;</button>
+      </form>
+    </div>
+    <div class="mobsf-dialog-body" id="mobsfDialogBody"></div>
+    <div class="mobsf-dialog-footer">
+      <button type="button" class="btn btn-outline" id="btnMobsfDialogCopy">Copy Content</button>
+      <form method="dialog" style="margin:0;">
+        <button type="submit" class="btn btn-primary">Tutup</button>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Native Modal Dialog for Executive PDF Report Options -->
+  <dialog id="exportPdfDialog" aria-labelledby="exportPdfTitle" class="mobsf-native-dialog" style="width:min(640px, 94vw);">
+    <div class="mobsf-dialog-header">
+      <div class="mobsf-dialog-title-wrap">
+        <span class="mobsf-dialog-badge" style="background:#4f46e5; color:#fff;">OWASP &amp; COMPLIANCE REPORT</span>
+        <h3 id="exportPdfTitle">📄 Generate Executive Security Audit Report</h3>
+      </div>
+      <form method="dialog" style="margin:0;">
+        <button type="submit" class="mobsf-dialog-close-btn" aria-label="Close dialog">&times;</button>
+      </form>
+    </div>
+    <div class="mobsf-dialog-body" style="padding:20px 24px;">
+      <p style="font-size:12.5px; color:#64748b; margin-bottom:16px; line-height:1.5;">
+        Hasilkan laporan audit keamanan resmi berstandar <strong>OWASP MASVS v2.0</strong>, <strong>PCI-DSS v4.0</strong>, dan <strong>OJK / UU PDP</strong>. Lengkap dengan bukti telemetri dinamis Frida dan solusi remediasi multi-bahasa (Kotlin / Java / Dart).
+      </p>
+
+      <div class="mcp-form-group" style="margin-bottom:12px;">
+        <label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">Nama Lead Auditor / Penilai:</label>
+        <input type="text" id="pdfAuditorInput" class="mcp-form-input" value="Budi Susanto, CISA, CISSP" style="width:100%; padding:8px 12px; border-radius:6px; border:1px solid #cbd5e1; font-size:13px;">
+      </div>
+
+      <div class="mcp-form-group" style="margin-bottom:12px;">
+        <label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">Nama Organisasi / Klien Target:</label>
+        <input type="text" id="pdfOrgInput" class="mcp-form-input" value="PT Sumber Alfaria Trijaya Tbk" style="width:100%; padding:8px 12px; border-radius:6px; border:1px solid #cbd5e1; font-size:13px;">
+      </div>
+
+      <div class="mcp-form-group" style="margin-bottom:16px;">
+        <label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">Ruang Lingkup / Audit Scope:</label>
+        <input type="text" id="pdfScopeInput" class="mcp-form-input" value="Comprehensive SAST, DAST Frida Telemetry &amp; Regulatory Compliance" style="width:100%; padding:8px 12px; border-radius:6px; border:1px solid #cbd5e1; font-size:13px;">
+      </div>
+
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px 14px; margin-bottom:8px;">
+        <div style="font-size:11.5px; font-weight:700; color:#334155; margin-bottom:8px; text-transform:uppercase;">Cakupan Kontrol Dokumen:</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px;">
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="checkbox" id="chkOwaspMasvs" checked disabled>
+            <span>Matriks OWASP MASVS v2.0</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="checkbox" id="chkPciDss" checked disabled>
+            <span>Standar PCI-DSS v4.0 Mobile</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="checkbox" id="chkFridaEvidence" checked>
+            <span>Bukti Forensik Intersepsi Frida</span>
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="checkbox" id="chkRemediationCode" checked>
+            <span>Solusi &amp; Kode Remediasi</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="mobsf-dialog-footer" style="display:flex; justify-content:space-between; align-items:center; padding:12px 24px;">
+      <form method="dialog" style="margin:0;">
+        <button type="submit" class="btn btn-outline">Batal</button>
+      </form>
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn btn-secondary" id="btnActionOpenReportHtml" style="display:inline-flex; align-items:center; gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+          <span>Tampilan Cetak (Print View)</span>
+        </button>
+        <button type="button" class="btn btn-primary" id="btnActionDownloadBinaryPdf" style="display:inline-flex; align-items:center; gap:6px; background:#4f46e5; border-color:#4338ca;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span>Unduh PDF Resmi (.pdf)</span>
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="topbarToastContainer" class="topbar-toast-container" aria-live="polite"></div>
+  <script src="/app.js?v=5.4"></script>
 </body>
 </html>
 

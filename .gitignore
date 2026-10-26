@@ -10,3 +10,4 @@ uploads/*
 # Local auth & session state
 users_auth.json
 mcp_auth.json
+

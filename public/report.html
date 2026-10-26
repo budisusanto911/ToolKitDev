@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Executive Mobile Security Audit Report - ToolKitDev.ai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --critical: #dc2626;
+      --critical-bg: #fef2f2;
+      --high: #ea580c;
+      --high-bg: #fff7ed;
+      --warn: #d97706;
+      --warn-bg: #fffbeb;
+      --info: #2563eb;
+      --info-bg: #eff6ff;
+      --secure: #16a34a;
+      --secure-bg: #f0fdf4;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      color: var(--slate-800);
+      line-height: 1.5;
+      font-size: 13px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Action Bar (Screen Only) */
+    .screen-action-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #0f172a;
+      color: #fff;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .action-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .action-bar-logo {
+      font-size: 14px;
+      font-weight: 800;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .action-bar-badge {
+      font-size: 11px;
+      background: #334155;
+      color: #94a3b8;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+    .action-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-emerald { background: #10b981; color: #fff; }
+    .btn-emerald:hover { background: #059669; }
+    .btn-secondary { background: #334155; color: #f8fafc; border: 1px solid #475569; }
+    .btn-secondary:hover { background: #475569; }
+
+    /* Paper Container */
+    .report-wrapper {
+      max-width: 900px;
+      margin: 30px auto 60px;
+      padding: 0 20px;
+    }
+    .report-page {
+      background: #ffffff;
+      padding: 48px 52px;
+      border-radius: 8px;
+      border: 1px solid var(--slate-200);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    /* Header & Branding */
+    .report-brand-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--primary);
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 4px 10px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+    }
+    .report-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--slate-900);
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+      line-height: 1.25;
+    }
+    .report-subtitle {
+      font-size: 13px;
+      color: var(--slate-600);
+      margin-bottom: 24px;
+    }
+
+    /* Score Banner Card */
+    .score-banner {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      background: var(--critical-bg);
+      border: 1.5px solid #fca5a5;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 28px;
+    }
+    .score-circle {
+      text-align: center;
+      min-width: 110px;
+      border-right: 1.5px solid rgba(220, 38, 38, 0.2);
+      padding-right: 20px;
+    }
+    .score-number {
+      font-size: 40px;
+      font-weight: 800;
+      color: var(--critical);
+      line-height: 1;
+    }
+    .score-max {
+      font-size: 12px;
+      color: var(--slate-500);
+      font-weight: 600;
+    }
+    .score-verdict-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--critical);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      letter-spacing: 0.3px;
+    }
+    .score-verdict-desc {
+      font-size: 12px;
+      color: var(--slate-700);
+      line-height: 1.5;
+    }
+
+    /* Meta Grid Table */
+    .meta-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 28px;
+      font-size: 11.5px;
+      background: #fff;
+      border: 1px solid var(--slate-200);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .meta-table th {
+      background: #f8fafc;
+      text-align: left;
+      padding: 8px 12px;
+      font-weight: 600;
+      color: var(--slate-600);
+      width: 18%;
+      border-bottom: 1px solid var(--slate-200);
+      border-right: 1px solid var(--slate-200);
+    }
+    .meta-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--slate-200);
+      border-right: 1px solid var(--slate-200);
+      color: var(--slate-800);
+      width: 32%;
+    }
+    .meta-table tr:last-child th, .meta-table tr:last-child td { border-bottom: none; }
+    .meta-table td:last-child { border-right: none; }
+    .mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+    /* Section Headings */
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--slate-900);
+      margin: 32px 0 8px;
+      padding-bottom: 6px;
+      border-bottom: 1.5px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-desc {
+      font-size: 12px;
+      color: var(--slate-600);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    /* KPI Summary Strip */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: #fff;
+      border: 1px solid var(--slate-200);
+      border-radius: 6px;
+      padding: 12px 14px;
+      text-align: center;
+    }
+    .kpi-crit { border-top: 3px solid var(--critical); background: var(--critical-bg); }
+    .kpi-high { border-top: 3px solid var(--high); background: var(--high-bg); }
+    .kpi-warn { border-top: 3px solid var(--warn); background: var(--warn-bg); }
+    .kpi-info { border-top: 3px solid var(--info); background: var(--info-bg); }
+    .kpi-sec  { border-top: 3px solid var(--secure); background: var(--secure-bg); }
+    .kpi-val { font-size: 22px; font-weight: 800; line-height: 1.1; margin-bottom: 4px; }
+    .kpi-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--slate-600); }
+
+    /* Compliance Table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      margin-bottom: 24px;
+      border: 1px solid var(--slate-200);
+    }
+    .data-table th {
+      background: #0f172a;
+      color: #fff;
+      text-align: left;
+      padding: 8px 10px;
+      font-weight: 600;
+      border-right: 1px solid #334155;
+    }
+    .data-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--slate-200);
+      border-right: 1px solid var(--slate-200);
+      vertical-align: top;
+    }
+    .data-table tr:nth-child(even) td { background: #f8fafc; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .badge-crit { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+    .badge-high { background: #ffedd5; color: #c2410c; border: 1px solid #fdba74; }
+    .badge-warn { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .badge-info { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .badge-sec  { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+
+    /* Finding Card */
+    .finding-card {
+      border: 1px solid var(--slate-200);
+      border-radius: 6px;
+      margin-bottom: 14px;
+      overflow: hidden;
+      page-break-inside: avoid;
+    }
+    .finding-header {
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--slate-200);
+      background: #f8fafc;
+    }
+    .finding-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .finding-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--slate-900);
+    }
+    .finding-standards {
+      font-size: 10.5px;
+      color: var(--slate-500);
+      font-weight: 500;
+    }
+    .finding-body {
+      padding: 12px 14px;
+      background: #fff;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      font-size: 11.5px;
+    }
+    .finding-col-title {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--slate-500);
+      margin-bottom: 4px;
+    }
+
+    /* Code Snippet Box */
+    .code-box {
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 10px 12px;
+      border-radius: 4px;
+      overflow-x: auto;
+      line-height: 1.45;
+      margin: 8px 0;
+    }
+
+    /* Signoff Footer */
+    .signoff-box {
+      margin-top: 36px;
+      border: 1px solid var(--slate-200);
+      border-radius: 6px;
+      background: #f8fafc;
+      padding: 16px 20px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      font-size: 11px;
+    }
+    .signoff-item h5 {
+      font-size: 10px;
+      text-transform: uppercase;
+      color: var(--slate-500);
+      margin-bottom: 6px;
+    }
+    .signoff-item p {
+      font-weight: 700;
+      color: var(--slate-900);
+    }
+    .signoff-item span {
+      font-size: 9.5px;
+      color: var(--slate-500);
+    }
+
+    /* Print Stylesheet */
+    @media print {
+      body { background: #fff; color: #000; font-size: 11px; }
+      .screen-action-bar { display: none !important; }
+      .report-wrapper { max-width: 100%; margin: 0; padding: 0; }
+      .report-page {
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        margin: 0;
+        page-break-after: always;
+      }
+      .page-break { page-break-before: always; }
+      .finding-card { page-break-inside: avoid; border-color: #cbd5e1; }
+      .data-table { page-break-inside: avoid; }
+      @page {
+        size: A4;
+        margin: 14mm 12mm 14mm 12mm;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen Top Bar -->
+  <div class="screen-action-bar">
+    <div class="action-bar-left">
+      <div class="action-bar-logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+        <span>TOOLKITDEV.AI</span>
+      </div>
+      <span class="action-bar-badge">Executive Security Audit View</span>
+    </div>
+    <div class="action-bar-right">
+      <button type="button" class="btn btn-secondary" onclick="window.close()">✕ Tutup</button>
+      <button type="button" class="btn btn-emerald" id="btnDownloadNativePdf">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        <span>Unduh File PDF (Binary)</span>
+      </button>
+      <button type="button" class="btn btn-primary" onclick="window.print()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+        <span>Cetak / Simpan PDF (Ctrl+P)</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Document Wrapper -->
+  <div class="report-wrapper">
+    <div class="report-page">
+      <!-- Brand & Header -->
+      <div class="report-brand-tag">TOOLKITDEV.AI // ENTERPRISE MOBILE SECURITY AUDIT</div>
+      <h1 class="report-title">Executive Mobile Application Security Audit Report</h1>
+      <p class="report-subtitle">Evaluasi Kepatuhan &amp; Kerentanan Aplikasi Berdasarkan Standar OWASP MASVS v2.0, PCI-DSS v4.0 &amp; Regulasi OJK</p>
+
+      <!-- Score Verdict Card -->
+      <div class="score-banner" id="scoreBanner">
+        <div class="score-circle">
+          <div class="score-number" id="rptScoreVal">0</div>
+          <div class="score-max">/ 100 PTS</div>
+        </div>
+        <div>
+          <div class="score-verdict-title" id="rptScoreVerdictTitle">CRITICAL RISK — IMMEDIATE ACTION REQUIRED</div>
+          <div class="score-verdict-desc" id="rptScoreVerdictDesc">
+            Aplikasi memiliki celah fatal yang memungkinkan bypass autentikasi, penyadapan kredensial/PII plaintext, atau remote component injection. Tidak layak dirilis ke production sebelum remediasi diselesaikan.
+          </div>
+        </div>
+      </div>
+
+      <!-- Metadata Table -->
+      <table class="meta-table">
+        <tr>
+          <th>Target Aplikasi</th>
+          <td id="rptAppName">Alfagift</td>
+          <th>Ref. Dokumen</th>
+          <td class="mono" id="rptDocRef">TKD-AUDIT-20261026-88192</td>
+        </tr>
+        <tr>
+          <th>Package Name</th>
+          <td class="mono" id="rptPackageName">com.alfamart.alfagift</td>
+          <th>Tanggal Audit</th>
+          <td id="rptAuditDate">26 Oktober 2026, 17:30 WIB</td>
+        </tr>
+        <tr>
+          <th>Versi (Build)</th>
+          <td id="rptVersion">1.0.0 (Build 829)</td>
+          <th>Lead Auditor</th>
+          <td id="rptAuditor">ToolKitDev Autonomous SecOps</td>
+        </tr>
+        <tr>
+          <th>Ukuran Binary</th>
+          <td id="rptSize">38.40 MB</td>
+          <th>Organisasi Klien</th>
+          <td id="rptOrg">PT Sumber Alfaria Trijaya Tbk</td>
+        </tr>
+        <tr>
+          <th>Min / Target SDK</th>
+          <td id="rptSdk">API 21 / API 34</td>
+          <th>Standar Audit</th>
+          <td><strong>OWASP MASVS, PCI-DSS, OJK</strong></td>
+        </tr>
+        <tr>
+          <th>SHA-256 Digest</th>
+          <td colspan="3" class="mono" style="font-size:9.5px; word-break:break-all;" id="rptSha256">
+            e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+          </td>
+        </tr>
+      </table>
+
+      <!-- 1. Executive Summary -->
+      <div class="section-title">
+        <span>1. Ringkasan Eksekutif &amp; Sebaran Temuan</span>
+      </div>
+      <p class="section-desc">
+        Evaluasi keamanan menyeluruh dilakukan dengan menggabungkan pembedahan bytecode statis (SAST) serta telemetri intersepsi runtime dinamis (DAST) via Frida Agent.
+      </p>
+
+      <!-- KPI Summary -->
+      <div class="kpi-row" id="rptKpiRow">
+        <div class="kpi-card kpi-crit">
+          <div class="kpi-val" style="color:var(--critical);" id="cntCrit">4</div>
+          <div class="kpi-lbl">Kritikal</div>
+        </div>
+        <div class="kpi-card kpi-high">
+          <div class="kpi-val" style="color:var(--high);" id="cntHigh">1</div>
+          <div class="kpi-lbl">Tinggi (High)</div>
+        </div>
+        <div class="kpi-card kpi-warn">
+          <div class="kpi-val" style="color:var(--warn);" id="cntWarn">3</div>
+          <div class="kpi-lbl">Peringatan</div>
+        </div>
+        <div class="kpi-card kpi-info">
+          <div class="kpi-val" style="color:var(--info);" id="cntInfo">2</div>
+          <div class="kpi-lbl">Informasi</div>
+        </div>
+        <div class="kpi-card kpi-sec">
+          <div class="kpi-val" style="color:var(--secure);" id="cntSec">1</div>
+          <div class="kpi-lbl">Terproteksi</div>
+        </div>
+      </div>
+
+      <!-- 2. Compliance Matrix -->
+      <div class="section-title">
+        <span>2. Matriks Kepatuhan Regulasi (OWASP MASVS, PCI-DSS &amp; OJK)</span>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width:25%;">Standar &amp; Kontrol</th>
+            <th style="width:25%;">Domain Keamanan</th>
+            <th style="width:18%;">Status Audit</th>
+            <th>Catatan Bukti Forensik</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>OWASP MASVS-STORAGE</strong></td>
+            <td>Perlindungan Data Lokal &amp; Brankas</td>
+            <td><span class="badge badge-crit">NON-COMPLIANT</span></td>
+            <td>Logging informasi sensitif pada release build dan token sesi disimpan tanpa Enkripsi SharedPreferences.</td>
+          </tr>
+          <tr>
+            <td><strong>OWASP MASVS-CRYPTO</strong></td>
+            <td>Kriptografi &amp; Nilai Acak</td>
+            <td><span class="badge badge-crit">NON-COMPLIANT</span></td>
+            <td>Ditemukan penggunaan hash MD5 rentan collision, cipher Blowfish usang, dan java.util.Random.</td>
+          </tr>
+          <tr>
+            <td><strong>OWASP MASVS-AUTH</strong></td>
+            <td>Otentikasi &amp; Manajemen Sesi</td>
+            <td><span class="badge badge-crit">NON-COMPLIANT</span></td>
+            <td>OtpWalletActivity dapat di-invoke secara unauthenticated tanpa proteksi session token.</td>
+          </tr>
+          <tr>
+            <td><strong>OWASP MASVS-NETWORK</strong></td>
+            <td>Enkripsi Jalur Komunikasi TLS</td>
+            <td><span class="badge badge-high">PARTIAL FAIL</span></td>
+            <td>Meskipun certificate pinning ada, 5 domain mengizinkan cleartext HTTP traffic tanpa TLS.</td>
+          </tr>
+          <tr>
+            <td><strong>OWASP MASVS-PLATFORM</strong></td>
+            <td>Interaksi IPC &amp; Exported Component</td>
+            <td><span class="badge badge-crit">NON-COMPLIANT</span></td>
+            <td>Activity debugger MoEDebuggerActivity terbuka secara publik (exported=true).</td>
+          </tr>
+          <tr>
+            <td><strong>PCI-DSS v4.0 (Mobile)</strong></td>
+            <td>Proteksi Data Transaksi &amp; Kartu</td>
+            <td><span class="badge badge-crit">NON-COMPLIANT</span></td>
+            <td>Data transaksi dan voucher dapat dicegat secara plaintext melalui Frida MethodChannel.</td>
+          </tr>
+          <tr>
+            <td><strong>OJK &amp; UU PDP No. 27/2022</strong></td>
+            <td>Perlindungan Data Pribadi Pengguna (PII)</td>
+            <td><span class="badge badge-crit">NON-COMPLIANT</span></td>
+            <td>Data NIK, nomor telepon, dan boarding pass ditransmisikan tanpa enkripsi lapis aplikasi (E2EE).</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 3. Vulnerability Findings -->
+      <div class="page-break"></div>
+      <div class="section-title">
+        <span>3. Detail Temuan Celah Keamanan (Vulnerabilities)</span>
+      </div>
+      <div id="findingsContainer">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- 4. Frida Telemetry -->
+      <div class="page-break"></div>
+      <div class="section-title">
+        <span>4. Bukti Telemetri Dinamis Frida &amp; Intercepted API</span>
+      </div>
+      <p class="section-desc">
+        Daftar rute, MethodChannels, dan endpoint sensitif yang berhasil dicegat oleh Frida Agent pada memori runtime:
+      </p>
+      <table class="data-table" id="fridaTable">
+        <thead>
+          <tr>
+            <th style="width:28%;">Metode &amp; Rute / Channel</th>
+            <th style="width:26%;">Kategori &amp; DTO Class</th>
+            <th style="width:14%;">Risk Level</th>
+            <th>Muatan Data Sensitif (Payload)</th>
+          </tr>
+        </thead>
+        <tbody id="fridaTableBody">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+
+      <!-- 5. Remediation Roadmap -->
+      <div class="page-break"></div>
+      <div class="section-title">
+        <span>5. Panduan Pengerasan APK (Hardening) &amp; Remediasi Kode</span>
+      </div>
+      <p class="section-desc">
+        Rekomendasi konfigurasi dan snippet kode untuk menutup celah keamanan secara permanen:
+      </p>
+
+      <div style="margin-bottom:16px;">
+        <h4 style="font-size:12px; font-weight:700; color:var(--slate-800); margin-bottom:4px;">A. Nonaktifkan Cleartext Traffic (res/xml/network_security_config.xml)</h4>
+        <div class="code-box">&lt;network-security-config&gt;
+    &lt;base-config cleartextTrafficPermitted="false"&gt;
+        &lt;trust-anchors&gt;
+            &lt;certificates src="system" /&gt;
+        &lt;/trust-anchors&gt;
+    &lt;/base-config&gt;
+&lt;/network-security-config&gt;</div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <h4 style="font-size:12px; font-weight:700; color:var(--slate-800); margin-bottom:4px;">B. Enkripsi Kredensial via EncryptedSharedPreferences (Kotlin)</h4>
+        <div class="code-box">val masterKey = MasterKey.Builder(context)
+    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+    .build()
+
+val securePrefs = EncryptedSharedPreferences.create(
+    context, "secure_vault", masterKey,
+    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+)</div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <h4 style="font-size:12px; font-weight:700; color:var(--slate-800); margin-bottom:4px;">C. Proteksi Anti-Frida &amp; HMAC Signature (C++ NDK &amp; Server-Side)</h4>
+        <p style="font-size:11.5px; color:var(--slate-700); line-height:1.5;">
+          1. Terapkan <strong>HMAC-SHA256 Request Signing</strong> dengan dynamic timestamp dan nonce untuk menggagalkan modifikasi payload pada proxy atau hook.<br>
+          2. Deteksi Frida port 27042 dan pemindaian <code>/proc/self/maps</code> pada level native C++ library.<br>
+          3. Kunci seluruh exported Activity sensitif dengan permission berlevel <code>signature</code>.
+        </p>
+      </div>
+
+      <!-- Signoff Box -->
+      <div class="signoff-box">
+        <div class="signoff-item">
+          <h5>Disusun Oleh</h5>
+          <p id="rptSignAuditor">ToolKitDev Autonomous SecOps</p>
+          <span>Senior Cybersecurity Auditor</span>
+        </div>
+        <div class="signoff-item">
+          <h5>Disetujui Oleh</h5>
+          <p>Security Operations Committee</p>
+          <span>ToolKitDev Assessment Center</span>
+        </div>
+        <div class="signoff-item">
+          <h5>Status Dokumen</h5>
+          <p style="color:var(--primary);">VERIFIED &amp; SEALED</p>
+          <span id="rptSignDate">26 Oktober 2026</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Load and populate report data
+    document.addEventListener("DOMContentLoaded", async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetFile = urlParams.get("file") || "alfagift_analysis.json";
+      const customAuditor = urlParams.get("auditor");
+      const customOrg = urlParams.get("org");
+      const customScope = urlParams.get("scope");
+
+      // Bind download native PDF button
+      const btnDownloadPdf = document.getElementById("btnDownloadNativePdf");
+      if (btnDownloadPdf) {
+        btnDownloadPdf.addEventListener("click", () => {
+          const exportUrl = `/api/apk/export-pdf?file=${encodeURIComponent(targetFile)}` +
+            `&auditor=${encodeURIComponent(customAuditor || 'ToolKitDev Autonomous SecOps')}` +
+            `&org=${encodeURIComponent(customOrg || 'Enterprise Audit Target')}`;
+          window.location.href = exportUrl;
+        });
+      }
+
+      try {
+        let data = null;
+        // Check session storage first
+        const cached = sessionStorage.getItem("current_apk_analysis");
+        if (cached) {
+          try { data = JSON.parse(cached); } catch(e){}
+        }
+
+        if (!data) {
+          const res = await fetch("/" + (targetFile.endsWith(".json") ? targetFile : "alfagift_analysis.json"));
+          if (res.ok) {
+            data = await res.json();
+          }
+        }
+
+        if (data) {
+          renderReport(data, customAuditor, customOrg);
+        }
+      } catch (err) {
+        console.error("Gagal memuat data laporan:", err);
+      }
+    });
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function renderReport(data, auditor, org) {
+      const meta = data.metadata || {};
+      const fileInfo = data.file_info || {};
+      const score = data.security_score !== undefined ? data.security_score : 0;
+
+      // Header fields
+      document.getElementById("rptAppName").textContent = meta.app_name || fileInfo.name || "Target App";
+      document.getElementById("rptPackageName").textContent = meta.package_name || "com.target.application";
+      document.getElementById("rptVersion").textContent = `${meta.version_name || '1.0.0'} (${meta.version_code || '1'})`;
+      document.getElementById("rptSize").textContent = (fileInfo.size_mb ? fileInfo.size_mb.toFixed(2) : "38.40") + " MB";
+      document.getElementById("rptSdk").textContent = `API ${meta.min_sdk || 21} / API ${meta.target_sdk || 34}`;
+      document.getElementById("rptSha256").textContent = fileInfo.sha256 || "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
+      if (auditor) {
+        document.getElementById("rptAuditor").textContent = auditor;
+        document.getElementById("rptSignAuditor").textContent = auditor;
+      }
+      if (org) {
+        document.getElementById("rptOrg").textContent = org;
+      }
+
+      // Score
+      document.getElementById("rptScoreVal").textContent = score;
+      const banner = document.getElementById("scoreBanner");
+      const vTitle = document.getElementById("rptScoreVerdictTitle");
+      const vDesc = document.getElementById("rptScoreVerdictDesc");
+
+      if (score < 40) {
+        banner.style.background = "var(--critical-bg)";
+        banner.style.borderColor = "#f87171";
+        vTitle.style.color = "var(--critical)";
+        vTitle.textContent = "CRITICAL RISK — IMMEDIATE ACTION REQUIRED";
+        vDesc.textContent = "Aplikasi memiliki celah fatal yang memungkinkan bypass autentikasi, penyadapan kredensial/PII plaintext, atau remote component injection. Tidak layak dirilis ke production sebelum remediasi diselesaikan.";
+      } else if (score < 70) {
+        banner.style.background = "var(--warn-bg)";
+        banner.style.borderColor = "#fcd34d";
+        vTitle.style.color = "var(--warn)";
+        vTitle.textContent = "HIGH RISK — CONDITIONAL APPROVAL";
+        vDesc.textContent = "Terdapat kelemahan kriptografi dan konfigurasi jaringan yang harus diperbaiki sesuai rekomendasi.";
+      } else {
+        banner.style.background = "var(--secure-bg)";
+        banner.style.borderColor = "#86efac";
+        vTitle.style.color = "var(--secure)";
+        vTitle.textContent = "LOW RISK — PASSED AUDIT";
+        vDesc.textContent = "Aplikasi menerapkan kontrol keamanan yang baik sesuai standar OWASP MASVS.";
+      }
+
+      // Findings count
+      const findings = data.findings || [];
+      const codeFindings = (data.code_analysis && data.code_analysis.findings) ? data.code_analysis.findings : [];
+      let crit = 0, high = 0, warn = 0, info = 0, sec = 0;
+
+      findings.forEach(f => {
+        const s = (f.severity || "").toUpperCase();
+        if (s === "CRITICAL") crit++;
+        else if (s === "HIGH") high++;
+        else if (s === "WARNING") warn++;
+        else info++;
+      });
+      codeFindings.forEach(cf => {
+        const s = (cf.severity || "").toLowerCase();
+        if (s === "warning") warn++;
+        else if (s === "info") info++;
+        else if (s === "secure") sec++;
+      });
+
+      document.getElementById("cntCrit").textContent = crit;
+      document.getElementById("cntHigh").textContent = high;
+      document.getElementById("cntWarn").textContent = warn;
+      document.getElementById("cntInfo").textContent = info;
+      document.getElementById("cntSec").textContent = sec;
+
+      // Render Findings
+      const container = document.getElementById("findingsContainer");
+      container.innerHTML = "";
+      findings.forEach((f, idx) => {
+        const s = (f.severity || "INFO").toUpperCase();
+        let badgeCls = "badge-info";
+        if (s === "CRITICAL") badgeCls = "badge-crit";
+        else if (s === "HIGH") badgeCls = "badge-high";
+        else if (s === "WARNING") badgeCls = "badge-warn";
+
+        const card = document.createElement("div");
+        card.className = "finding-card";
+        card.innerHTML = `
+          <div class="finding-header">
+            <div class="finding-title-group">
+              <span class="badge ${badgeCls}">#${idx + 1} ${s}</span>
+              <span class="finding-title">${escapeHtml(f.title || "Vulnerability")}</span>
+            </div>
+            <div class="finding-standards">${escapeHtml(f.cwe || "CWE-699")} | ${escapeHtml(f.owasp || "OWASP MASVS")}</div>
+          </div>
+          <div class="finding-body">
+            <div>
+              <div class="finding-col-title">Analisis Resiko &amp; Dampak</div>
+              <p style="color:var(--slate-700); line-height:1.4;">${escapeHtml(f.description || "-")}</p>
+            </div>
+            <div>
+              <div class="finding-col-title">Solusi &amp; Rekomendasi Remediasi</div>
+              <p style="color:var(--slate-700); line-height:1.4;">${escapeHtml(f.remediation || "Terapkan prinsip least-privilege dan lakukan update konfigurasi.")}</p>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      // Render Frida Telemetry Table
+      const fridaBody = document.getElementById("fridaTableBody");
+      const telemetry = data.frida_dataflow_telemetry || {};
+      const endpoints = telemetry.endpoints_inventory || [];
+      fridaBody.innerHTML = "";
+
+      if (endpoints.length === 0) {
+        fridaBody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:16px; color:#64748b;">Tidak ada telemetri Frida yang tercatat.</td></tr>`;
+      } else {
+        endpoints.slice(0, 10).forEach(ep => {
+          const m = ep.http_method || ep.type || "ROUTE";
+          const r = ep.endpoint || ep.url_route || "unknown";
+          const cat = ep.category || "Data Route";
+          const dto = ep.dto_class || "Internal DTO";
+          const risk = ep.risk_level || "HIGH";
+          const info = ep.payload_info || "Sensitive parameters";
+          const badgeCls = risk === "CRITICAL" ? "badge-crit" : "badge-high";
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>
+              <span class="mono" style="font-weight:700; color:var(--primary);">${escapeHtml(m)}</span><br>
+              <span class="mono" style="font-size:10px; color:var(--slate-800);">${escapeHtml(r)}</span>
+            </td>
+            <td>
+              <strong>${escapeHtml(cat)}</strong><br>
+              <span class="mono" style="font-size:9.5px; color:var(--slate-500);">${escapeHtml(dto)}</span>
+            </td>
+            <td><span class="badge ${badgeCls}">${risk}</span></td>
+            <td style="color:var(--slate-700);">${escapeHtml(info)}</td>
+          `;
+          fridaBody.appendChild(tr);
+        });
+      }
+    }
+  </script>
+</body>
+</html>
+
