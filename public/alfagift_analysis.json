@@ -1,0 +1,2050 @@
+{
+  "file_info": {
+    "file_name": "app (6).aab",
+    "file_size": 163541022,
+    "file_size_formatted": "155.96 MB",
+    "path": "/home/gli-budi-agf/StudioProjects/ToolKitDev/uploads/app (6).aab",
+    "format": "AAB"
+  },
+  "metadata": {
+    "package_name": "com.alfamart.alfagift",
+    "version_code": "4550044",
+    "version_name": "4.55.0",
+    "compile_sdk": "unknown",
+    "min_sdk": "24",
+    "target_sdk": "35",
+    "app_label": "Alfagift",
+    "permissions": [
+      "android.permission.ACCESS_ADSERVICES_AD_ID",
+      "android.permission.ACCESS_ADSERVICES_ATTRIBUTION",
+      "android.permission.ACCESS_ADSERVICES_CUSTOM_AUDIENCE",
+      "android.permission.ACCESS_ADSERVICES_TOPICS",
+      "android.permission.ACCESS_COARSE_LOCATION",
+      "android.permission.ACCESS_FINE_LOCATION",
+      "android.permission.ACCESS_NETWORK_STATE",
+      "android.permission.ACCESS_WIFI_STATE",
+      "android.permission.BIND_JOB_SERVICE",
+      "android.permission.BLUETOOTH",
+      "android.permission.BLUETOOTH_ADMIN",
+      "android.permission.BLUETOOTH_CONNECT",
+      "android.permission.CALL_PHONE",
+      "android.permission.CAMERA",
+      "android.permission.CHANGE_NETWORK_STATE",
+      "android.permission.DOWNLOAD_WITHOUT_NOTIFICATION",
+      "android.permission.DUMP",
+      "android.permission.FOREGROUND_SERVICE",
+      "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+      "android.permission.INTERNET",
+      "android.permission.MODIFY_AUDIO_SETTINGS",
+      "android.permission.POST_NOTIFICATIONS",
+      "android.permission.POST_PROMOTED_NOTIFICATIONS",
+      "android.permission.READ_BASIC_PHONE_STATE",
+      "android.permission.READ_CONTACTS",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.READ_MEDIA_AUDIO",
+      "android.permission.READ_MEDIA_IMAGES",
+      "android.permission.READ_MEDIA_VIDEO",
+      "android.permission.READ_PHONE_STATE",
+      "android.permission.RECEIVE_BOOT_COMPLETED",
+      "android.permission.RECORD_AUDIO",
+      "android.permission.SYSTEM_ALERT_WINDOW",
+      "android.permission.USE_BIOMETRIC",
+      "android.permission.USE_FINGERPRINT",
+      "android.permission.USE_FULL_SCREEN_INTENT",
+      "android.permission.VIBRATE",
+      "android.permission.WAKE_LOCK",
+      "android.permission.WRITE_EXTERNAL_STORAGE"
+    ]
+  },
+  "manifest_security": {
+    "debuggable": false,
+    "allow_backup": false,
+    "uses_cleartext_traffic": false,
+    "exported_activities": [
+      {
+        "name": "com.alfamart.alfagift.screen.scanner.ScannerTabActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.main.presentation.MainActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.splash.SplashActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "targetActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.home.presentation.section.banner.presentation.seeall.BannerSeeAllActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.categorylist.presentation.CategoryListActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.inappchat.channel.ChannelListActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.inappchat.chat.ChatRoomActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.shoppingassistant.ShoppingAssistantActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.contactus.NewContactUsActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.wallet.otp.OtpWalletActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.wallet.aladin.AladinWebViewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.home.v4.section.notification.NotificationActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.wallet.linked.LinkedWalletActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.gopay.presentation.GoPayDashboardActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.gopay.presentation.input.GoPayInputNumberActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.gopay.presentation.history.GoPayTransactionHistoryActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.gopay.presentation.webview.GoPayLinkageWebViewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.gopay.presentation.topup.GoPayTopUpActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.moengage.cards.ui.CardActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.privatemarketplace.PrivateMarketPlaceActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.address.chooser.AddressChooserActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.moe.pushlibrary.activities.MoEActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "parentActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.login.LoginActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.preregister.v2.PreregisterActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.urlchooser.UrlChooserActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.tnc.TncEsimActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.otp.OtpActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.scanandgo.cart.handler.CartHandlerActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.barcode.ScanBarcodeActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.scanandgo.ScanAndGoActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.scanner.ScannerActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.pulsapaketdata.EServiceActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.main.LandingPageEserviceActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.flashsale.main.LandingPageFlashSaleActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.menu.mainpage.LandingPageSearchEserviceActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.giftcard.catalog.GiftCardActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.giftcard.form.FormGiftCardActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.giftcard.mygiftcard.MyGiftCardActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.home.v4.section.subscription.detail.DetailSubscriptionActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.home.v4.section.subscription.listsubcription.ListSubscriptionActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.vouchers.subscription.MyVoucherSubscriptionListActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.ppob.pln.PpobElectricActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.ppob.pdam.PdamActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.ppob.pbb.PBBActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.ppob.pdam.province.ProvinceActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.ppob.pdam.region.RegionActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.ppob.bpjs.BpjsActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.ppob.bpjs.item.month.MonthChoiceActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.giftcard.detail.DetailMyGiftCardActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.giftcard.preview.PreviewGiftCardActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.login.password.forgot.ForgotPasswordActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.banner.v7.allbanner.ListBannerActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.register.RegisterActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.login.password.create.CreatePasswordActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.success.SuccessPageActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.membership.pin.successForceUpdate.SuccessForceUpdateActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.interest.v2.InterestActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.membership.detail.MembershipDetailActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.membership.point.history.MembershipPointHistoryActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.referral.v2.ReferralActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.offer.detail.v2.OfferDetailActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.offer.redeem.success.v2.RedeemSuccessActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.product.detail.ProductDetailActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.promo.freeproduct.claimable.PromoClaimableActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.promo.pwp.view.PwpActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.promo.conditional.view.PromoConditionalActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.promo.freeproduct.potential.PromoPotentialActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.product.subcategory.v2.SubCategoryActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.alfastamp.v2.main.AlfaStampActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.alfastamp.v2.input.InputNumberActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.alfastamp.v2.history.AlfaStampHistoryActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.alfastamp.v2.add.AddAlfaStampActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.alfastamp.v2.transfer.AlfaStampTransferActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.alfastamp.v2.redemption.RedemptionStampActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.alfastamp.bonus.BonusStampActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.alfastamp.bonus.detail.BonusStampDetailActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.basket.recommendation.view.BasketRecoActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.oos.OutOfStockActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.order.history.detail.online.view.photo.OrderPhotoActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.order.history.detail.online.view.trackshipment.TrackShipmentActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.order.summary.groceries.extrapaymentmethod.ExtraPaymentMethodActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.product.popup.PopupProductActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.timeslot.v2.TimeSlotActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.order.summary.groceries.OrderSummaryActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.order.summary.groceries.view.GroceriesOrderSummaryActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.order.summary.virtual.OrderSummaryActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.address.form.AddressFormActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.address.map.AddressMapActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.payment.PaymentActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.tnc.TncPolicyActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.affiliate.AffiliateActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.shoppingmission.ShoppingMissionActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.omnichannel.OmniChannelActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.micrositeclient.MicrositeActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.wallet.indodana.IndodanaPaymentWebViewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.wallet.dana.webview.DanaWebviewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.base.webview.WebViewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.base.webview.BaseWebviewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.base.webview.BaseExternalWebviewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.base.webview.exclusive.ExclusiveWebViewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.order.history.detail.online.view.refund.TncRefundActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.dimii.web.DimiiWebActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.dimii.bottomsheet.DimiiResponseActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.about.AboutAppActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.more.password.EditPasswordActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.faq.FaqActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.more.contact.ContactUsActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.gogreen.ReceiptActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.order.history.request.RequestEReceiptActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.voucher.warning.VoucherWarningActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.promopage.PromoPageActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.order.history.ereceipt.EReceiptActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.order.history.detail.online.view.refund.OrderRefundActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.order.history.detail.online.view.refund.reason.ReasonActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.promo.catalog.PromoCatalogActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.promo.catalog.previewimage.PreviewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.store.search.SearchStoreActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.alfastar.AlfastarActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.brand.BrandActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.staticpage.StaticPageActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.order.history.detail.online.view.DetailOrderNewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.qrcode.QRCodeActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.membership.pin.password.CheckPasswordActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.membership.pin.create.PinMemberActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.membership.pin.image.AddPinPaymentActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.journeyapps.barcodescanner.CaptureActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.officialstore.followed.StoreFollowedActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.officialstore.list.OfficialStoreListActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.officialstore.landing.OfficialStoreLandingActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.promo.catalog.slider.CatalogSliderActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.account.menu.sub.AccountSubMenuActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.account.deletion.tnc.AccountDeletionTncActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.account.deletion.reason.AccountDeletionReasonActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.account.deletion.confirmation.AccountDeletionConfirmationActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.more.rateReviewList.RateReviewListActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.more.addRateReview.AddRateReviewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.more.seeRateReview.SeeRateReviewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.dimii.connect.DimiiConnectActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.dimii.suspended.DimiiSuspendedActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.dimii.member.DimiiMemberActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.order.how_to.HowToOrderActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.store.search.v2.SearchStoreActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.address.list.AddressListActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.store.favorite.FavoriteStoreActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.store.find.FindStoreActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.address.autocomplete.AddressAutocompleteActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.pulsapaketdata.insert.InsertNumberActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.product.terms.ProductTermsActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.basket.BasketActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.product.search.v4.ProductSearchActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.wallet.ovo.binding.OvoBindingActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.wallet.input.InputNumberActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.wallet.ovo.webview.OvoWebviewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.wallet.WalletsActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.wishlist.main.WishlistActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.wishlist.collection.shoppinglist.WishlistShoppingListActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.wishlist.collection.allproduct.WishlistAllProductActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.order.summary.groceries.voucher.v2.VoucherUseActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.tnc.general.TncGeneralActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.order.summary.groceries.voucher.input.VoucherUseInputActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.wallet.shopee.ShopeeWebviewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.product.terms.vouchers.ProductTermsVouchersActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.gamification.main.GamificationActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.account.deletion.webview.AccountDeletionWebViewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.gamification.webview.GamificationWebViewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.livestreaming.list.LiveStreamingListActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.livestreaming.room.LiveStreamingActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.livestreaming.voucher.LiveVoucherActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.flashsale.FlashSaleActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.redeem.main.RedemptionMainActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.eservice.esim.EsimMainActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.vouchers.myvoucher.MyVoucherActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.redeem.bannercampaign.RedemptionCampaignActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.vouchers.detail.VoucherDetailActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.redeem.detail.RewardDetailActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.order.summary.redemption.address.list.RedemptionAddressListActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.order.summary.redemption.address.form.RedemptionAddressFormActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.order.summary.redemption.RewardOrderSummaryActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.livestreaming.voucher.redeem.RedeemPointSuccessActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.unknown.UnknownDestinationActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.setting.notification.NotificationSettingActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.setting.notification.NotificationSettingSheetActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "AppTheme.BottomSheetActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.soundwave.presentation.screen.landing.SoundWaveActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.soundwave.presentation.screen.disclosure.SoundWaveDisclosureActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.chat.room.ChatRoomActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.chat.list.ChatListActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.product.attach.AttachProductActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.chat.location.AttachShareLocationActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.profile.screens.myprofile.MyProfileActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.profile.screens.myprofile.edit.EditProfileActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.profile.screens.email.edit.EditEmailActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.auth.pages.postregister.PostRegisterWebViewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.auth.pages.activation.ActivationActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.auth.pages.interest.InterestActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.auth.pages.login.LoginActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.auth.pages.onboarding.OnboardingActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.auth.pages.otp.OtpValidationActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.auth.pages.password.create.CreateNewPasswordActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.auth.pages.password.forgot.ForgotPasswordActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.auth.pages.password.success.ResetPasswordSuccessActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.auth.pages.permission.PermissionActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.auth.pages.register.form.RegisterFormActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.auth.pages.register.success.RegisterSuccessActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.alfastar.screen.main.presentation.AlfastarMainActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.alfastar.screen.howtoget.presentation.AlfastarHowToGetActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.alfastar.screen.campaign.reward.detail.presentation.AlfastarRewardDetailActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.alfastar.screen.redeem.presentation.AlfastarRedeemSuccessActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.alfastar.screen.campaign.presentation.AlfastarCampaignDetailActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.alfastar.screen.history.presentation.AlfastarHistoryActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.alfastar.screen.showmore.presentation.AlfastarShowMoreActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.alfastar.screen.search.presentation.AlfastarSearchActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.alfastar.screen.webview.AlfastarFullScreenWebviewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.alfastar.screen.tnc.AlfastarTncActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.fsmp.presentation.upload.UploadPrescriptionActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.fsmp.presentation.review.ReviewPrescriptionActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.features.fsmp.presentation.tnc.FsmpTncActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.common.ui.webview.AlfaWebViewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.realtime.chat_ui.pages.channellist.ChannelListActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.realtime.chat_ui.pages.chatroom.ChannelScreenActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.realtime_call.ui.presentation.host.CallHostActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.realtime_call.ui.presentation.ui.component.call.incoming.IncomingCallActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "Dzendesk.messaging.android.internal.messagingscreen.MessagingActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "Izendesk.messaging.android.internal.conversationscreen.ImageViewerActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.google.android.libraries.places.widget.AutocompleteActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.karumi.dexter.DexterActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.moengage.inapp.internal.activity.MoEInAppActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.moengage.inbox.ui.view.InboxActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.moengage.pushbase.internal.activity.PermissionActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.moengage.sdk.debugger.MoEDebuggerActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.facebook.FacebookActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.facebook.CustomTabMainActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.facebook.CustomTabActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.google.android.gms.common.api.GoogleApiActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "androidx.compose.ui.tooling.PreviewActivity",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.google.android.play.core.common.PlayCoreDialogWrapperActivity",
+        "permission_protected": false,
+        "permission": null
+      }
+    ],
+    "exported_services": [
+      {
+        "name": "AppTheme.EService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.services.fcm.MyFcmMessagingService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "foregroundService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.services.pip.FloatingViewService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.services.fcm.NotificationHandlerService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.alfagift.screen.soundwave.SoundWaveForegroundService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "shortService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.realtime_call.ui.presentation.services.CallForegroundService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.moengage.richnotification.internal.MoERichPushIntentService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "androidx.camera.core.impl.MetadataHolderService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "Gandroidx.camera.core.impl.MetadataHolderService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.google.firebase.components.ComponentDiscoveryService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.google.mlkit.common.internal.MlKitComponentDiscoveryService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.google.android.gms.measurement.AppMeasurementService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.google.android.gms.measurement.AppMeasurementJobService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.google.firebase.messaging.FirebaseMessagingService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "androidx.work.impl.background.systemalarm.SystemAlarmService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "androidx.work.impl.background.systemjob.SystemJobService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "androidx.work.impl.foreground.SystemForegroundService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "androidx.room.MultiInstanceInvalidationService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.google.firebase.sessions.SessionLifecycleService",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService",
+        "permission_protected": false,
+        "permission": null
+      }
+    ],
+    "exported_receivers": [
+      {
+        "name": "com.alfamart.alfagift.receiver.AppUpdateReceiver",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.alfamart.realtime_call.ui.presentation.ui.component.call.incoming.receiver.CallActionReceiver",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.moengage.richnotification.internal.MoERichPushReceiver",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.moengage.pushbase.internal.MoEPushReceiver",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.google.android.gms.measurement.AppMeasurementReceiver",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.google.firebase.iid.FirebaseInstanceIdReceiver",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "BroadcastReceiver",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "androidx.work.impl.background.systemalarm.RescheduleReceiver",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "Gandroidx.work.impl.background.systemalarm.ConstraintProxyUpdateReceiver",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "androidx.work.impl.diagnostics.DiagnosticsReceiver",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.facebook.CurrentAccessTokenExpirationBroadcastReceiver",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "CurrentAuthenticationTokenChangedBroadcastReceiver",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "androidx.profileinstaller.ProfileInstallReceiver",
+        "permission_protected": false,
+        "permission": null
+      },
+      {
+        "name": "com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver",
+        "permission_protected": false,
+        "permission": null
+      }
+    ],
+    "exported_providers": [],
+    "total_components": 284,
+    "total_exported": 260
+  },
+  "permissions": {
+    "total_count": 39,
+    "dangerous_count": 14,
+    "normal_count": 25,
+    "dangerous_list": [
+      {
+        "name": "android.permission.ACCESS_COARSE_LOCATION",
+        "description": "Access approximate network location",
+        "risk": "HIGH"
+      },
+      {
+        "name": "android.permission.ACCESS_FINE_LOCATION",
+        "description": "Access precise GPS location",
+        "risk": "HIGH"
+      },
+      {
+        "name": "android.permission.BLUETOOTH_CONNECT",
+        "description": "Connect to paired Bluetooth devices",
+        "risk": "HIGH"
+      },
+      {
+        "name": "android.permission.CALL_PHONE",
+        "description": "Initiate phone calls without user confirmation",
+        "risk": "HIGH"
+      },
+      {
+        "name": "android.permission.CAMERA",
+        "description": "Access camera device",
+        "risk": "HIGH"
+      },
+      {
+        "name": "android.permission.POST_NOTIFICATIONS",
+        "description": "Display push notifications",
+        "risk": "HIGH"
+      },
+      {
+        "name": "android.permission.READ_CONTACTS",
+        "description": "Access user's contacts list",
+        "risk": "HIGH"
+      },
+      {
+        "name": "android.permission.READ_EXTERNAL_STORAGE",
+        "description": "Read files on external storage",
+        "risk": "HIGH"
+      },
+      {
+        "name": "android.permission.READ_MEDIA_AUDIO",
+        "description": "Access audio files",
+        "risk": "HIGH"
+      },
+      {
+        "name": "android.permission.READ_MEDIA_IMAGES",
+        "description": "Access photos and images",
+        "risk": "HIGH"
+      },
+      {
+        "name": "android.permission.READ_MEDIA_VIDEO",
+        "description": "Access video files",
+        "risk": "HIGH"
+      },
+      {
+        "name": "android.permission.READ_PHONE_STATE",
+        "description": "Read phone status, IMEI, and network state",
+        "risk": "HIGH"
+      },
+      {
+        "name": "android.permission.RECORD_AUDIO",
+        "description": "Record audio through microphone",
+        "risk": "HIGH"
+      },
+      {
+        "name": "android.permission.WRITE_EXTERNAL_STORAGE",
+        "description": "Write files to external storage",
+        "risk": "HIGH"
+      }
+    ],
+    "normal_list": [
+      {
+        "name": "android.permission.ACCESS_ADSERVICES_AD_ID",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.ACCESS_ADSERVICES_ATTRIBUTION",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.ACCESS_ADSERVICES_CUSTOM_AUDIENCE",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.ACCESS_ADSERVICES_TOPICS",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.ACCESS_NETWORK_STATE",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.ACCESS_WIFI_STATE",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.BIND_JOB_SERVICE",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.BLUETOOTH",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.BLUETOOTH_ADMIN",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.CHANGE_NETWORK_STATE",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.DOWNLOAD_WITHOUT_NOTIFICATION",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.DUMP",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.FOREGROUND_SERVICE",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.INTERNET",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.MODIFY_AUDIO_SETTINGS",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.POST_PROMOTED_NOTIFICATIONS",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.READ_BASIC_PHONE_STATE",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.RECEIVE_BOOT_COMPLETED",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.SYSTEM_ALERT_WINDOW",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.USE_BIOMETRIC",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.USE_FINGERPRINT",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.USE_FULL_SCREEN_INTENT",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.VIBRATE",
+        "risk": "LOW"
+      },
+      {
+        "name": "android.permission.WAKE_LOCK",
+        "risk": "LOW"
+      }
+    ]
+  },
+  "size_breakdown": {
+    "dex_size": 91048356,
+    "dex_files_count": 8,
+    "native_libs_size": 68852196,
+    "native_libs_by_arch": {
+      "arm64-v8a": 17840496,
+      "armeabi-v7a": 11126132,
+      "x86": 19717192,
+      "x86_64": 20168376
+    },
+    "resources_size": 74675730,
+    "assets_size": 1729566,
+    "other_size": 448179055,
+    "total_uncompressed": 684484903,
+    "dex_size_fmt": "86.83 MB",
+    "native_libs_size_fmt": "65.66 MB",
+    "resources_size_fmt": "71.22 MB",
+    "assets_size_fmt": "1.65 MB",
+    "other_size_fmt": "427.42 MB",
+    "total_uncompressed_fmt": "652.78 MB"
+  },
+  "secrets_found": [
+    {
+      "type": "Google API Key / Firebase",
+      "masked_value": "AIza*******************************EI80",
+      "file_source": "base/dex/classes6.dex",
+      "severity": "CRITICAL"
+    },
+    {
+      "type": "Google API Key / Firebase",
+      "masked_value": "AIza*******************************nCvQ",
+      "file_source": "base/dex/classes6.dex",
+      "severity": "CRITICAL"
+    },
+    {
+      "type": "Private Key Header",
+      "masked_value": "****",
+      "file_source": "base/dex/classes7.dex",
+      "severity": "CRITICAL"
+    }
+  ],
+  "signature": {
+    "is_signed": true,
+    "is_debug_signed": false,
+    "issuer": "CN=Amelia Alexandra, OU=Mobile Development, O=XanCompany, L=Surabaya, ST=Jawa Timur, C=ID",
+    "subject": "CN=Amelia Alexandra, OU=Mobile Development, O=XanCompany, L=Surabaya, ST=Jawa Timur, C=ID",
+    "fingerprint_sha256": "F1:93:EB:B7:14:45:69:A3:96:C3:8B:9F:DA:99:10:07:ED:C9:28:BF:C1:A7:C1:C7:E0:53:5F:FE:81:44:9D:B1"
+  },
+  "crypto_audit": {
+    "has_weak_crypto": true,
+    "has_blowfish": true,
+    "has_insecure_ecb": false,
+    "has_deprecated_ciphers": false,
+    "has_static_keys": false,
+    "algorithms": [
+      "Blowfish"
+    ],
+    "evidence": [
+      "Cipher.getInstance('Blowfish') or Blowfish SecretKeySpec found in bytecode"
+    ]
+  },
+  "network_security_audit": {
+    "has_config": true,
+    "cleartext_domains": [
+      "stgaws.alfacart.com",
+      "s1stgaws.alfacart.com",
+      "stgpapa.alfadigital.id",
+      "maps.google.com",
+      "microsite-sandbox.web.narindo.id"
+    ],
+    "trusts_user_certs": false,
+    "has_pin_set": false,
+    "config_file": "base/res/xml/network_security_config.xml"
+  },
+  "sensitive_components": {
+    "debug_activities": [
+      "com.moengage.sdk.debugger.MoEDebuggerActivity"
+    ],
+    "sensitive_activities": [
+      "com.alfamart.alfagift.screen.eservice.shoppingassistant.ShoppingAssistantActivity",
+      "com.alfamart.alfagift.screen.wallet.otp.OtpWalletActivity",
+      "com.alfamart.alfagift.screen.wallet.aladin.AladinWebViewActivity",
+      "com.alfamart.alfagift.screen.wallet.linked.LinkedWalletActivity",
+      "com.alfamart.alfagift.screen.gopay.presentation.GoPayDashboardActivity",
+      "com.alfamart.alfagift.screen.gopay.presentation.input.GoPayInputNumberActivity",
+      "com.alfamart.alfagift.screen.gopay.presentation.history.GoPayTransactionHistoryActivity",
+      "com.alfamart.alfagift.screen.gopay.presentation.webview.GoPayLinkageWebViewActivity",
+      "com.alfamart.alfagift.screen.gopay.presentation.topup.GoPayTopUpActivity",
+      "com.alfamart.alfagift.screen.otp.OtpActivity",
+      "com.alfamart.alfagift.screen.login.password.forgot.ForgotPasswordActivity",
+      "com.alfamart.alfagift.screen.membership.pin.successForceUpdate.SuccessForceUpdateActivity",
+      "com.alfamart.alfagift.screen.alfastamp.v2.transfer.AlfaStampTransferActivity",
+      "com.alfamart.alfagift.screen.order.summary.groceries.extrapaymentmethod.ExtraPaymentMethodActivity",
+      "com.alfamart.alfagift.screen.payment.PaymentActivity",
+      "com.alfamart.alfagift.screen.shoppingmission.ShoppingMissionActivity",
+      "com.alfamart.alfagift.screen.wallet.indodana.IndodanaPaymentWebViewActivity",
+      "com.alfamart.alfagift.screen.wallet.dana.webview.DanaWebviewActivity",
+      "com.alfamart.alfagift.screen.membership.pin.password.CheckPasswordActivity",
+      "com.alfamart.alfagift.screen.membership.pin.create.PinMemberActivity",
+      "com.alfamart.alfagift.screen.membership.pin.image.AddPinPaymentActivity",
+      "com.alfamart.alfagift.screen.wallet.ovo.binding.OvoBindingActivity",
+      "com.alfamart.alfagift.screen.wallet.input.InputNumberActivity",
+      "com.alfamart.alfagift.screen.wallet.ovo.webview.OvoWebviewActivity",
+      "com.alfamart.alfagift.screen.wallet.WalletsActivity",
+      "com.alfamart.alfagift.screen.wishlist.collection.shoppinglist.WishlistShoppingListActivity",
+      "com.alfamart.alfagift.screen.wallet.shopee.ShopeeWebviewActivity",
+      "com.alfamart.alfagift.features.auth.pages.postregister.PostRegisterWebViewActivity",
+      "com.alfamart.alfagift.features.auth.pages.activation.ActivationActivity",
+      "com.alfamart.alfagift.features.auth.pages.interest.InterestActivity",
+      "com.alfamart.alfagift.features.auth.pages.login.LoginActivity",
+      "com.alfamart.alfagift.features.auth.pages.onboarding.OnboardingActivity",
+      "com.alfamart.alfagift.features.auth.pages.otp.OtpValidationActivity",
+      "com.alfamart.alfagift.features.auth.pages.password.create.CreateNewPasswordActivity",
+      "com.alfamart.alfagift.features.auth.pages.password.forgot.ForgotPasswordActivity",
+      "com.alfamart.alfagift.features.auth.pages.password.success.ResetPasswordSuccessActivity",
+      "com.alfamart.alfagift.features.auth.pages.permission.PermissionActivity",
+      "com.alfamart.alfagift.features.auth.pages.register.form.RegisterFormActivity",
+      "com.alfamart.alfagift.features.auth.pages.register.success.RegisterSuccessActivity"
+    ],
+    "all_unprotected": [
+      "com.alfamart.alfagift.screen.scanner.ScannerTabActivity",
+      "com.alfamart.alfagift.main.presentation.MainActivity",
+      "com.alfamart.alfagift.screen.splash.SplashActivity",
+      "targetActivity",
+      "com.alfamart.alfagift.features.home.presentation.section.banner.presentation.seeall.BannerSeeAllActivity",
+      "com.alfamart.alfagift.features.categorylist.presentation.CategoryListActivity",
+      "com.alfamart.alfagift.screen.inappchat.channel.ChannelListActivity",
+      "com.alfamart.alfagift.screen.inappchat.chat.ChatRoomActivity",
+      "com.alfamart.alfagift.screen.eservice.shoppingassistant.ShoppingAssistantActivity",
+      "com.alfamart.alfagift.screen.contactus.NewContactUsActivity",
+      "com.alfamart.alfagift.screen.wallet.otp.OtpWalletActivity",
+      "com.alfamart.alfagift.screen.wallet.aladin.AladinWebViewActivity",
+      "com.alfamart.alfagift.screen.home.v4.section.notification.NotificationActivity",
+      "com.alfamart.alfagift.screen.wallet.linked.LinkedWalletActivity",
+      "com.alfamart.alfagift.screen.gopay.presentation.GoPayDashboardActivity",
+      "com.alfamart.alfagift.screen.gopay.presentation.input.GoPayInputNumberActivity",
+      "com.alfamart.alfagift.screen.gopay.presentation.history.GoPayTransactionHistoryActivity",
+      "com.alfamart.alfagift.screen.gopay.presentation.webview.GoPayLinkageWebViewActivity",
+      "com.alfamart.alfagift.screen.gopay.presentation.topup.GoPayTopUpActivity",
+      "com.moengage.cards.ui.CardActivity",
+      "com.alfamart.alfagift.screen.privatemarketplace.PrivateMarketPlaceActivity",
+      "com.alfamart.alfagift.screen.address.chooser.AddressChooserActivity",
+      "com.moe.pushlibrary.activities.MoEActivity",
+      "parentActivity",
+      "com.alfamart.alfagift.screen.login.LoginActivity",
+      "com.alfamart.alfagift.screen.preregister.v2.PreregisterActivity",
+      "com.alfamart.alfagift.screen.urlchooser.UrlChooserActivity",
+      "com.alfamart.alfagift.screen.eservice.tnc.TncEsimActivity",
+      "com.alfamart.alfagift.screen.otp.OtpActivity",
+      "com.alfamart.alfagift.screen.scanandgo.cart.handler.CartHandlerActivity",
+      "com.alfamart.alfagift.screen.barcode.ScanBarcodeActivity",
+      "com.alfamart.alfagift.screen.scanandgo.ScanAndGoActivity",
+      "com.alfamart.alfagift.screen.scanner.ScannerActivity",
+      "com.alfamart.alfagift.screen.eservice.pulsapaketdata.EServiceActivity",
+      "com.alfamart.alfagift.screen.eservice.main.LandingPageEserviceActivity",
+      "com.alfamart.alfagift.screen.eservice.flashsale.main.LandingPageFlashSaleActivity",
+      "com.alfamart.alfagift.screen.eservice.menu.mainpage.LandingPageSearchEserviceActivity",
+      "com.alfamart.alfagift.screen.eservice.giftcard.catalog.GiftCardActivity",
+      "com.alfamart.alfagift.screen.eservice.giftcard.form.FormGiftCardActivity",
+      "com.alfamart.alfagift.screen.eservice.giftcard.mygiftcard.MyGiftCardActivity",
+      "com.alfamart.alfagift.screen.home.v4.section.subscription.detail.DetailSubscriptionActivity",
+      "com.alfamart.alfagift.screen.home.v4.section.subscription.listsubcription.ListSubscriptionActivity",
+      "com.alfamart.alfagift.screen.vouchers.subscription.MyVoucherSubscriptionListActivity",
+      "com.alfamart.alfagift.screen.eservice.ppob.pln.PpobElectricActivity",
+      "com.alfamart.alfagift.screen.eservice.ppob.pdam.PdamActivity",
+      "com.alfamart.alfagift.screen.eservice.ppob.pbb.PBBActivity",
+      "com.alfamart.alfagift.screen.eservice.ppob.pdam.province.ProvinceActivity",
+      "com.alfamart.alfagift.screen.eservice.ppob.pdam.region.RegionActivity",
+      "com.alfamart.alfagift.screen.eservice.ppob.bpjs.BpjsActivity",
+      "com.alfamart.alfagift.screen.eservice.ppob.bpjs.item.month.MonthChoiceActivity",
+      "com.alfamart.alfagift.screen.eservice.giftcard.detail.DetailMyGiftCardActivity",
+      "com.alfamart.alfagift.screen.eservice.giftcard.preview.PreviewGiftCardActivity",
+      "com.alfamart.alfagift.screen.login.password.forgot.ForgotPasswordActivity",
+      "com.alfamart.alfagift.screen.banner.v7.allbanner.ListBannerActivity",
+      "com.alfamart.alfagift.screen.register.RegisterActivity",
+      "com.alfamart.alfagift.screen.login.password.create.CreatePasswordActivity",
+      "com.alfamart.alfagift.screen.success.SuccessPageActivity",
+      "com.alfamart.alfagift.screen.membership.pin.successForceUpdate.SuccessForceUpdateActivity",
+      "com.alfamart.alfagift.screen.interest.v2.InterestActivity",
+      "com.alfamart.alfagift.screen.membership.detail.MembershipDetailActivity",
+      "com.alfamart.alfagift.screen.membership.point.history.MembershipPointHistoryActivity",
+      "com.alfamart.alfagift.screen.referral.v2.ReferralActivity",
+      "com.alfamart.alfagift.screen.offer.detail.v2.OfferDetailActivity",
+      "com.alfamart.alfagift.screen.offer.redeem.success.v2.RedeemSuccessActivity",
+      "com.alfamart.alfagift.screen.product.detail.ProductDetailActivity",
+      "com.alfamart.alfagift.screen.promo.freeproduct.claimable.PromoClaimableActivity",
+      "com.alfamart.alfagift.screen.promo.pwp.view.PwpActivity",
+      "com.alfamart.alfagift.screen.promo.conditional.view.PromoConditionalActivity",
+      "com.alfamart.alfagift.screen.promo.freeproduct.potential.PromoPotentialActivity",
+      "com.alfamart.alfagift.screen.product.subcategory.v2.SubCategoryActivity",
+      "com.alfamart.alfagift.screen.alfastamp.v2.main.AlfaStampActivity",
+      "com.alfamart.alfagift.screen.alfastamp.v2.input.InputNumberActivity",
+      "com.alfamart.alfagift.screen.alfastamp.v2.history.AlfaStampHistoryActivity",
+      "com.alfamart.alfagift.screen.alfastamp.v2.add.AddAlfaStampActivity",
+      "com.alfamart.alfagift.screen.alfastamp.v2.transfer.AlfaStampTransferActivity",
+      "com.alfamart.alfagift.screen.alfastamp.v2.redemption.RedemptionStampActivity",
+      "com.alfamart.alfagift.screen.alfastamp.bonus.BonusStampActivity",
+      "com.alfamart.alfagift.screen.alfastamp.bonus.detail.BonusStampDetailActivity",
+      "com.alfamart.alfagift.screen.basket.recommendation.view.BasketRecoActivity",
+      "com.alfamart.alfagift.screen.oos.OutOfStockActivity",
+      "com.alfamart.alfagift.screen.order.history.detail.online.view.photo.OrderPhotoActivity",
+      "com.alfamart.alfagift.screen.order.history.detail.online.view.trackshipment.TrackShipmentActivity",
+      "com.alfamart.alfagift.screen.order.summary.groceries.extrapaymentmethod.ExtraPaymentMethodActivity",
+      "com.alfamart.alfagift.screen.product.popup.PopupProductActivity",
+      "com.alfamart.alfagift.screen.timeslot.v2.TimeSlotActivity",
+      "com.alfamart.alfagift.screen.order.summary.groceries.OrderSummaryActivity",
+      "com.alfamart.alfagift.screen.order.summary.groceries.view.GroceriesOrderSummaryActivity",
+      "com.alfamart.alfagift.screen.order.summary.virtual.OrderSummaryActivity",
+      "com.alfamart.alfagift.screen.address.form.AddressFormActivity",
+      "com.alfamart.alfagift.screen.address.map.AddressMapActivity",
+      "com.alfamart.alfagift.screen.payment.PaymentActivity",
+      "com.alfamart.alfagift.screen.tnc.TncPolicyActivity",
+      "com.alfamart.alfagift.screen.affiliate.AffiliateActivity",
+      "com.alfamart.alfagift.screen.shoppingmission.ShoppingMissionActivity",
+      "com.alfamart.alfagift.screen.eservice.omnichannel.OmniChannelActivity",
+      "com.alfamart.alfagift.screen.eservice.micrositeclient.MicrositeActivity",
+      "com.alfamart.alfagift.screen.wallet.indodana.IndodanaPaymentWebViewActivity",
+      "com.alfamart.alfagift.screen.wallet.dana.webview.DanaWebviewActivity",
+      "com.alfamart.alfagift.base.webview.WebViewActivity",
+      "com.alfamart.alfagift.base.webview.BaseWebviewActivity",
+      "com.alfamart.alfagift.base.webview.BaseExternalWebviewActivity",
+      "com.alfamart.alfagift.base.webview.exclusive.ExclusiveWebViewActivity",
+      "com.alfamart.alfagift.screen.order.history.detail.online.view.refund.TncRefundActivity",
+      "com.alfamart.alfagift.screen.dimii.web.DimiiWebActivity",
+      "com.alfamart.alfagift.screen.dimii.bottomsheet.DimiiResponseActivity",
+      "com.alfamart.alfagift.screen.about.AboutAppActivity",
+      "com.alfamart.alfagift.screen.more.password.EditPasswordActivity",
+      "com.alfamart.alfagift.screen.faq.FaqActivity",
+      "com.alfamart.alfagift.screen.more.contact.ContactUsActivity",
+      "com.alfamart.alfagift.screen.gogreen.ReceiptActivity",
+      "com.alfamart.alfagift.screen.order.history.request.RequestEReceiptActivity",
+      "com.alfamart.alfagift.screen.voucher.warning.VoucherWarningActivity",
+      "com.alfamart.alfagift.screen.promopage.PromoPageActivity",
+      "com.alfamart.alfagift.screen.order.history.ereceipt.EReceiptActivity",
+      "com.alfamart.alfagift.screen.order.history.detail.online.view.refund.OrderRefundActivity",
+      "com.alfamart.alfagift.screen.order.history.detail.online.view.refund.reason.ReasonActivity",
+      "com.alfamart.alfagift.screen.promo.catalog.PromoCatalogActivity",
+      "com.alfamart.alfagift.screen.promo.catalog.previewimage.PreviewActivity",
+      "com.alfamart.alfagift.screen.store.search.SearchStoreActivity",
+      "com.alfamart.alfagift.screen.alfastar.AlfastarActivity",
+      "com.alfamart.alfagift.screen.brand.BrandActivity",
+      "com.alfamart.alfagift.screen.staticpage.StaticPageActivity",
+      "com.alfamart.alfagift.screen.order.history.detail.online.view.DetailOrderNewActivity",
+      "com.alfamart.alfagift.screen.qrcode.QRCodeActivity",
+      "com.alfamart.alfagift.screen.membership.pin.password.CheckPasswordActivity",
+      "com.alfamart.alfagift.screen.membership.pin.create.PinMemberActivity",
+      "com.alfamart.alfagift.screen.membership.pin.image.AddPinPaymentActivity",
+      "com.journeyapps.barcodescanner.CaptureActivity",
+      "com.alfamart.alfagift.screen.officialstore.followed.StoreFollowedActivity",
+      "com.alfamart.alfagift.screen.officialstore.list.OfficialStoreListActivity",
+      "com.alfamart.alfagift.screen.officialstore.landing.OfficialStoreLandingActivity",
+      "com.alfamart.alfagift.screen.promo.catalog.slider.CatalogSliderActivity",
+      "com.alfamart.alfagift.screen.account.menu.sub.AccountSubMenuActivity",
+      "com.alfamart.alfagift.screen.account.deletion.tnc.AccountDeletionTncActivity",
+      "com.alfamart.alfagift.screen.account.deletion.reason.AccountDeletionReasonActivity",
+      "com.alfamart.alfagift.screen.account.deletion.confirmation.AccountDeletionConfirmationActivity",
+      "com.alfamart.alfagift.screen.more.rateReviewList.RateReviewListActivity",
+      "com.alfamart.alfagift.screen.more.addRateReview.AddRateReviewActivity",
+      "com.alfamart.alfagift.screen.more.seeRateReview.SeeRateReviewActivity",
+      "com.alfamart.alfagift.screen.dimii.connect.DimiiConnectActivity",
+      "com.alfamart.alfagift.screen.dimii.suspended.DimiiSuspendedActivity",
+      "com.alfamart.alfagift.screen.dimii.member.DimiiMemberActivity",
+      "com.alfamart.alfagift.screen.order.how_to.HowToOrderActivity",
+      "com.alfamart.alfagift.screen.store.search.v2.SearchStoreActivity",
+      "com.alfamart.alfagift.screen.address.list.AddressListActivity",
+      "com.alfamart.alfagift.screen.store.favorite.FavoriteStoreActivity",
+      "com.alfamart.alfagift.screen.store.find.FindStoreActivity",
+      "com.alfamart.alfagift.screen.address.autocomplete.AddressAutocompleteActivity",
+      "com.alfamart.alfagift.screen.eservice.pulsapaketdata.insert.InsertNumberActivity",
+      "com.alfamart.alfagift.screen.product.terms.ProductTermsActivity",
+      "com.alfamart.alfagift.screen.basket.BasketActivity",
+      "com.alfamart.alfagift.screen.product.search.v4.ProductSearchActivity",
+      "com.alfamart.alfagift.screen.wallet.ovo.binding.OvoBindingActivity",
+      "com.alfamart.alfagift.screen.wallet.input.InputNumberActivity",
+      "com.alfamart.alfagift.screen.wallet.ovo.webview.OvoWebviewActivity",
+      "com.alfamart.alfagift.screen.wallet.WalletsActivity",
+      "com.alfamart.alfagift.screen.wishlist.main.WishlistActivity",
+      "com.alfamart.alfagift.screen.wishlist.collection.shoppinglist.WishlistShoppingListActivity",
+      "com.alfamart.alfagift.screen.wishlist.collection.allproduct.WishlistAllProductActivity",
+      "com.alfamart.alfagift.screen.order.summary.groceries.voucher.v2.VoucherUseActivity",
+      "com.alfamart.alfagift.screen.tnc.general.TncGeneralActivity",
+      "com.alfamart.alfagift.screen.order.summary.groceries.voucher.input.VoucherUseInputActivity",
+      "com.alfamart.alfagift.screen.wallet.shopee.ShopeeWebviewActivity",
+      "com.alfamart.alfagift.screen.product.terms.vouchers.ProductTermsVouchersActivity",
+      "com.alfamart.alfagift.screen.gamification.main.GamificationActivity",
+      "com.alfamart.alfagift.screen.account.deletion.webview.AccountDeletionWebViewActivity",
+      "com.alfamart.alfagift.screen.gamification.webview.GamificationWebViewActivity",
+      "com.alfamart.alfagift.screen.livestreaming.list.LiveStreamingListActivity",
+      "com.alfamart.alfagift.screen.livestreaming.room.LiveStreamingActivity",
+      "com.alfamart.alfagift.screen.livestreaming.voucher.LiveVoucherActivity",
+      "com.alfamart.alfagift.screen.flashsale.FlashSaleActivity",
+      "com.alfamart.alfagift.screen.redeem.main.RedemptionMainActivity",
+      "com.alfamart.alfagift.screen.eservice.esim.EsimMainActivity",
+      "com.alfamart.alfagift.screen.vouchers.myvoucher.MyVoucherActivity",
+      "com.alfamart.alfagift.screen.redeem.bannercampaign.RedemptionCampaignActivity",
+      "com.alfamart.alfagift.screen.vouchers.detail.VoucherDetailActivity",
+      "com.alfamart.alfagift.screen.redeem.detail.RewardDetailActivity",
+      "com.alfamart.alfagift.screen.order.summary.redemption.address.list.RedemptionAddressListActivity",
+      "com.alfamart.alfagift.screen.order.summary.redemption.address.form.RedemptionAddressFormActivity",
+      "com.alfamart.alfagift.screen.order.summary.redemption.RewardOrderSummaryActivity",
+      "com.alfamart.alfagift.screen.livestreaming.voucher.redeem.RedeemPointSuccessActivity",
+      "com.alfamart.alfagift.screen.unknown.UnknownDestinationActivity",
+      "com.alfamart.alfagift.screen.setting.notification.NotificationSettingActivity",
+      "com.alfamart.alfagift.screen.setting.notification.NotificationSettingSheetActivity",
+      "AppTheme.BottomSheetActivity",
+      "com.alfamart.alfagift.screen.soundwave.presentation.screen.landing.SoundWaveActivity",
+      "com.alfamart.alfagift.screen.soundwave.presentation.screen.disclosure.SoundWaveDisclosureActivity",
+      "com.alfamart.alfagift.screen.chat.room.ChatRoomActivity",
+      "com.alfamart.alfagift.screen.chat.list.ChatListActivity",
+      "com.alfamart.alfagift.screen.product.attach.AttachProductActivity",
+      "com.alfamart.alfagift.screen.chat.location.AttachShareLocationActivity",
+      "com.alfamart.alfagift.features.profile.screens.myprofile.MyProfileActivity",
+      "com.alfamart.alfagift.features.profile.screens.myprofile.edit.EditProfileActivity",
+      "com.alfamart.alfagift.features.profile.screens.email.edit.EditEmailActivity",
+      "com.alfamart.alfagift.features.auth.pages.postregister.PostRegisterWebViewActivity",
+      "com.alfamart.alfagift.features.auth.pages.activation.ActivationActivity",
+      "com.alfamart.alfagift.features.auth.pages.interest.InterestActivity",
+      "com.alfamart.alfagift.features.auth.pages.login.LoginActivity",
+      "com.alfamart.alfagift.features.auth.pages.onboarding.OnboardingActivity",
+      "com.alfamart.alfagift.features.auth.pages.otp.OtpValidationActivity",
+      "com.alfamart.alfagift.features.auth.pages.password.create.CreateNewPasswordActivity",
+      "com.alfamart.alfagift.features.auth.pages.password.forgot.ForgotPasswordActivity",
+      "com.alfamart.alfagift.features.auth.pages.password.success.ResetPasswordSuccessActivity",
+      "com.alfamart.alfagift.features.auth.pages.permission.PermissionActivity",
+      "com.alfamart.alfagift.features.auth.pages.register.form.RegisterFormActivity",
+      "com.alfamart.alfagift.features.auth.pages.register.success.RegisterSuccessActivity",
+      "com.alfamart.alfagift.features.alfastar.screen.main.presentation.AlfastarMainActivity",
+      "com.alfamart.alfagift.features.alfastar.screen.howtoget.presentation.AlfastarHowToGetActivity",
+      "com.alfamart.alfagift.features.alfastar.screen.campaign.reward.detail.presentation.AlfastarRewardDetailActivity",
+      "com.alfamart.alfagift.features.alfastar.screen.redeem.presentation.AlfastarRedeemSuccessActivity",
+      "com.alfamart.alfagift.features.alfastar.screen.campaign.presentation.AlfastarCampaignDetailActivity",
+      "com.alfamart.alfagift.features.alfastar.screen.history.presentation.AlfastarHistoryActivity",
+      "com.alfamart.alfagift.features.alfastar.screen.showmore.presentation.AlfastarShowMoreActivity",
+      "com.alfamart.alfagift.features.alfastar.screen.search.presentation.AlfastarSearchActivity",
+      "com.alfamart.alfagift.features.alfastar.screen.webview.AlfastarFullScreenWebviewActivity",
+      "com.alfamart.alfagift.features.alfastar.screen.tnc.AlfastarTncActivity",
+      "com.alfamart.alfagift.features.fsmp.presentation.upload.UploadPrescriptionActivity",
+      "com.alfamart.alfagift.features.fsmp.presentation.review.ReviewPrescriptionActivity",
+      "com.alfamart.alfagift.features.fsmp.presentation.tnc.FsmpTncActivity",
+      "com.alfamart.alfagift.common.ui.webview.AlfaWebViewActivity",
+      "com.alfamart.realtime.chat_ui.pages.channellist.ChannelListActivity",
+      "com.alfamart.realtime.chat_ui.pages.chatroom.ChannelScreenActivity",
+      "com.alfamart.realtime_call.ui.presentation.host.CallHostActivity",
+      "com.alfamart.realtime_call.ui.presentation.ui.component.call.incoming.IncomingCallActivity",
+      "Dzendesk.messaging.android.internal.messagingscreen.MessagingActivity",
+      "Izendesk.messaging.android.internal.conversationscreen.ImageViewerActivity",
+      "com.google.android.libraries.places.widget.AutocompleteActivity",
+      "com.karumi.dexter.DexterActivity",
+      "com.moengage.inapp.internal.activity.MoEInAppActivity",
+      "com.moengage.inbox.ui.view.InboxActivity",
+      "com.moengage.pushbase.internal.activity.PermissionActivity",
+      "com.moengage.sdk.debugger.MoEDebuggerActivity",
+      "com.facebook.FacebookActivity",
+      "com.facebook.CustomTabMainActivity",
+      "com.facebook.CustomTabActivity",
+      "com.google.android.gms.common.api.GoogleApiActivity",
+      "androidx.compose.ui.tooling.PreviewActivity",
+      "com.google.android.play.core.common.PlayCoreDialogWrapperActivity"
+    ]
+  },
+  "biometric_audit": {
+    "biometric_implemented": true,
+    "crypto_object_used": true,
+    "is_weak": false,
+    "description": "Secure or not implemented"
+  },
+  "anti_tamper_audit": {
+    "root_detection": true,
+    "frida_detection": true,
+    "emulator_detection": true,
+    "overall_protected": true
+  },
+  "endpoint_audit": {
+    "actuator_endpoints": [],
+    "staging_hosts": [],
+    "idor_patterns": []
+  },
+  "security_score": 0,
+  "findings": [
+    {
+      "severity": "HIGH",
+      "title": "Cleartext Traffic Allowed for 5 Staging/Target Domains",
+      "deduction": 15,
+      "description": "Network Security Config permits insecure HTTP traffic to: stgaws.alfacart.com, s1stgaws.alfacart.com, stgpapa.alfadigital.id, maps.google.com, microsite-sandbox.web.narindo.id. MITM attackers on the same network can intercept sensitive credentials and tokens."
+    },
+    {
+      "severity": "CRITICAL",
+      "title": "Exported Third-Party Debug Activity (com.moengage.sdk.debugger.MoEDebuggerActivity)",
+      "deduction": 20,
+      "description": "Found exported debug activities left in production binary: com.moengage.sdk.debugger.MoEDebuggerActivity. Activities like MoEngage MoEDebuggerActivity or Flipper/Chucker leak internal diagnostic logs and allow unauthorized intent dispatching."
+    },
+    {
+      "severity": "CRITICAL",
+      "title": "Unauthenticated Access to Sensitive Activities (com.alfamart.alfagift.screen.eservice.shoppingassistant.ShoppingAssistantActivity, com.alfamart.alfagift.screen.wallet.otp.OtpWalletActivity)",
+      "deduction": 20,
+      "description": "Sensitive payment/wallet/auth activities are exported without permission protection: com.alfamart.alfagift.screen.eservice.shoppingassistant.ShoppingAssistantActivity, com.alfamart.alfagift.screen.wallet.otp.OtpWalletActivity, com.alfamart.alfagift.screen.wallet.aladin.AladinWebViewActivity, com.alfamart.alfagift.screen.wallet.linked.LinkedWalletActivity. Malicious third-party apps can trigger these screens directly to bypass login or KYC verification."
+    },
+    {
+      "severity": "CRITICAL",
+      "title": "Weak Cryptography: Insecure Cipher (Blowfish)",
+      "deduction": 20,
+      "description": "Detected legacy or insecure cryptographic implementations: Blowfish. Electronic Codebook (ECB) mode preserves plaintext patterns, and Blowfish/DES are considered broken for modern high-assurance mobile applications."
+    },
+    {
+      "severity": "CRITICAL",
+      "title": "3 Hardcoded Secrets / Tokens Detected",
+      "deduction": 25,
+      "description": "Detected potential Google/Firebase API keys, AWS credentials, or authentication tokens hardcoded in application binary or asset bundles."
+    },
+    {
+      "severity": "LOW",
+      "title": "High Number of Dangerous Permissions (14)",
+      "deduction": 15,
+      "description": "Requesting numerous high-privilege Android runtime permissions increases attack surface and may trigger Google Play reviews."
+    }
+  ],
+  "qa_metrics": {
+    "google_play_target_sdk_compliant": true,
+    "target_sdk_evaluation": "Modern / Compliant",
+    "dex_multi_dex_active": true,
+    "has_native_binaries": true,
+    "architecture_support": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86",
+      "x86_64"
+    ]
+  }
+}

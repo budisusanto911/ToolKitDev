@@ -1,0 +1,1726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ToolKitDev.ai — AI-Powered Context & Security Analysis</title>
+  <link rel="stylesheet" href="/style.css?v=4.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="soft-theme">
+  <!-- Full-Screen Enterprise Login Gate -->
+  <div id="authLoginGate" class="auth-gate-overlay" role="dialog" aria-modal="true" aria-labelledby="authGateHeading">
+    <div class="auth-gate-container">
+      <!-- Left Showcase Column -->
+      <div class="auth-showcase-panel">
+        <div class="auth-showcase-top">
+          <div class="auth-brand-badge">
+            <div class="auth-brand-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+              </svg>
+            </div>
+            <div>
+              <strong>ToolKitDev.ai</strong>
+              <span>Enterprise Context &amp; Security Platform</span>
+            </div>
+          </div>
+
+          <h1 class="auth-showcase-title">Holistic Codebase Intelligence &amp; Mobile Security Audit</h1>
+          <p class="auth-showcase-desc">
+            Platform AI yang menyatukan analisis <strong>Repository Correlation Graph</strong>, dekonstruksi binary <strong>APK/AAB Inspector</strong>, dan sinkronisasi langsung <strong>Multi-MCP</strong> (GitHub, ADR Docs, Google Docs PRD, Figma).
+          </p>
+
+          <div class="auth-feature-pills">
+            <div class="auth-feature-item">
+              <span class="auth-feat-dot blue"></span>
+              <div>
+                <strong>Force-Directed Correlation Graph</strong>
+                <span>Visualisasi relasi repositori, dependensi SBOM, &amp; CVE OSV.dev</span>
+              </div>
+            </div>
+            <div class="auth-feature-item">
+              <span class="auth-feat-dot green"></span>
+              <div>
+                <strong>Mobile Artifact Teardown (APK &amp; AAB)</strong>
+                <span>Audit AndroidManifest, izin berbahaya, &amp; deteksi hardcoded secret</span>
+              </div>
+            </div>
+            <div class="auth-feature-item">
+              <span class="auth-feat-dot purple"></span>
+              <div>
+                <strong>Multi-MCP Grounded Context Q&amp;A</strong>
+                <span>Telusuri alasan arsitektur lintas PR, dokumen PRD, dan token desain</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="auth-showcase-footer">
+          <div class="auth-compliance-badges">
+            <span class="auth-comp-tag">🔒 SOC2 Type II Ready</span>
+            <span class="auth-comp-tag">🛡️ ISO 27001 Aligned</span>
+            <span class="auth-comp-tag">⚡ OAuth 2.0 &amp; PBKDF2-SHA256</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Authentication Form Card -->
+      <div class="auth-form-panel">
+        <div class="auth-form-header">
+          <div class="auth-mode-tabs" role="tablist" aria-label="Authentication Mode">
+            <button type="button" role="tab" aria-selected="true" class="auth-tab-btn active" id="tabBtnSignIn">Sign In (Masuk)</button>
+            <button type="button" role="tab" aria-selected="false" class="auth-tab-btn" id="tabBtnSignUp">Create Account (Daftar)</button>
+          </div>
+          <h2 id="authGateHeading" class="auth-form-title">Selamat Datang Kembali</h2>
+          <p id="authGateSubtitle" class="auth-form-subtitle">Masuk ke ruang kerja ToolKitDev untuk mengakses dashboard audit dan analisis repositori.</p>
+        </div>
+
+        <!-- 1-Click Demo Banner (Top Priority Convenience) -->
+        <div class="auth-demo-box">
+          <div class="auth-demo-info">
+            <span class="auth-demo-badge">AKUN DEMO</span>
+            <div>
+              <strong>Budi Susanto — Lead Architect</strong>
+              <span>budi.susanto@alfagift.id • Password: <code>Admin123!</code></span>
+            </div>
+          </div>
+          <button type="button" id="btnAuthDemoQuick" class="auth-demo-btn">
+            ⚡ Masuk Instan (1-Klik)
+          </button>
+        </div>
+
+        <!-- Live Feedback / Error Region -->
+        <div id="authFeedbackBanner" class="auth-feedback-banner" role="status" aria-live="polite"></div>
+
+        <!-- Sign-In Form (Follows autofill-sign-in-form & forms best practices) -->
+        <form id="signInForm" action="/api/auth/login" method="POST" class="auth-form" novalidate>
+          <div class="auth-field-group">
+            <label for="signin-email" class="auth-label">Alamat Email atau Username</label>
+            <input
+              type="email"
+              id="signin-email"
+              name="email"
+              class="auth-input"
+              placeholder="budi.susanto@alfagift.id"
+              autocomplete="username"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
+              enterkeyhint="next"
+              aria-describedby="signin-email-hint"
+              required
+            >
+            <span id="signin-email-hint" class="auth-field-hint">Gunakan email terdaftar atau akun demo di atas.</span>
+          </div>
+
+          <div class="auth-field-group">
+            <div class="auth-label-row">
+              <label for="current-password" class="auth-label">Password</label>
+              <button type="button" id="btnForgotPassword" class="auth-link-btn">Lupa password?</button>
+            </div>
+            <div class="auth-password-wrapper">
+              <input
+                type="password"
+                id="current-password"
+                name="password"
+                class="auth-input"
+                placeholder="Masukkan password Anda"
+                autocomplete="current-password"
+                enterkeyhint="done"
+                required
+              >
+              <button
+                type="button"
+                id="toggleSignInPassword"
+                class="auth-pw-toggle"
+                aria-pressed="false"
+                aria-label="Show password"
+                aria-describedby="signin-toggle-warning"
+              >
+                Lihat
+              </button>
+              <span id="signin-toggle-warning" class="visually-hidden">Warning: this will display your password on the screen.</span>
+            </div>
+          </div>
+
+          <button type="submit" id="btnSubmitSignIn" class="auth-submit-btn">Sign In</button>
+        </form>
+
+        <!-- Sign-Up Form (Follows autofill-sign-up-form & forms best practices) -->
+        <form id="signUpForm" action="/api/auth/register" method="POST" class="auth-form hidden" novalidate>
+          <div class="auth-field-group">
+            <label for="signup-name" class="auth-label">Nama Lengkap</label>
+            <input
+              type="text"
+              id="signup-name"
+              name="name"
+              class="auth-input"
+              placeholder="Contoh: Budi Susanto"
+              autocomplete="name"
+              enterkeyhint="next"
+              required
+            >
+          </div>
+
+          <div class="auth-field-group">
+            <label for="signup-email" class="auth-label">Alamat Email Kerja</label>
+            <input
+              type="email"
+              id="signup-email"
+              name="email"
+              class="auth-input"
+              placeholder="nama@perusahaan.com"
+              autocomplete="username"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
+              enterkeyhint="next"
+              required
+            >
+          </div>
+
+          <div class="auth-field-group">
+            <label for="new-password" class="auth-label">Buat Password Baru</label>
+            <div class="auth-password-wrapper">
+              <input
+                type="password"
+                id="new-password"
+                name="new-password"
+                class="auth-input"
+                placeholder="Minimal 8 karakter"
+                autocomplete="new-password"
+                minlength="8"
+                aria-describedby="signup-password-constraints"
+                enterkeyhint="done"
+                required
+              >
+              <button
+                type="button"
+                id="toggleSignUpPassword"
+                class="auth-pw-toggle"
+                aria-pressed="false"
+                aria-label="Show password"
+                aria-describedby="signup-toggle-warning"
+              >
+                Lihat
+              </button>
+              <span id="signup-toggle-warning" class="visually-hidden">Warning: this will display your password on the screen.</span>
+            </div>
+            <div id="signup-password-constraints" class="auth-field-hint">Minimal 8 karakter. Anda dapat menggunakan saran password kuat dari browser.</div>
+          </div>
+
+          <button type="submit" id="btnSubmitSignUp" class="auth-submit-btn">Create Account</button>
+        </form>
+
+        <div class="auth-divider">
+          <span>atau masuk dengan konektor OAuth MCP</span>
+        </div>
+
+        <div class="auth-oauth-grid">
+          <button type="button" id="btnAuthOAuthGithub" class="auth-oauth-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            <span>GitHub OAuth</span>
+          </button>
+          <button type="button" id="btnAuthOAuthGoogle" class="auth-oauth-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke="#2563eb"></circle><path d="M12 8v8M8 12h8" stroke="#10b981"></path></svg>
+            <span>Google Workspace</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-layout">
+    <!-- Left Sidebar (Shopeers Design) -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo" style="background:#2563eb; color:#fff; border-radius:10px; width:34px; height:34px; display:flex; align-items:center; justify-content:center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h2>ToolKitDev</h2>
+          <span>Codebase &amp; Security</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-tab="dashboard">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect></svg>
+          Dashboard
+        </a>
+
+        <a href="#" class="nav-item" data-tab="repositories">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          Repository Correlation Graph
+        </a>
+        <a href="#" class="nav-item" data-tab="apk-inspector">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+          APK Inspector
+        </a>
+        <a href="#" class="nav-item" data-tab="mcp-hub">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          MCP &amp; Context
+        </a>
+        <a href="#" class="nav-item" data-tab="security-compliance">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          Security &amp; Compliance
+        </a>
+        <a href="#" class="nav-item" data-tab="settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          Settings
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="pro-card">
+          <div class="pro-card-header">
+            <div class="pro-icon">✦</div>
+            <div class="pro-info">
+              <strong>Upgrade to Premium!</strong>
+            </div>
+          </div>
+          <span style="font-size:11.5px; opacity:0.85;">Upgrade your account and unlock all of the benefits.</span>
+          <button class="pro-btn">Upgrade premium</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Bar (Shopeers Styled) -->
+      <header class="topbar">
+        <div class="search-box" id="openSearchBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <span>Search repositories, CVEs, APK binaries...</span>
+          <kbd>⌘K</kbd>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="topbar-pill-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            <span>Q1 2026 Audit Period</span>
+          </div>
+
+          <div class="topbar-pill-btn">
+            <span>Live GitHub Sync</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </div>
+
+          <button class="topbar-pill-btn" id="btnOpenWidgetDrawer">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>Add widget</span>
+          </button>
+
+          <button class="topbar-pill-btn primary" id="btnExportData">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Export Audit</span>
+          </button>
+
+          <div class="topbar-icon-circle" title="Toggle Theme">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          </div>
+
+          <div class="topbar-icon-circle" title="Notifications">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            <span class="notif-badge-dot"></span>
+          </div>
+
+          <div class="user-profile-wrap" id="userProfileMenuWrap">
+            <button type="button" class="user-profile-trigger" id="btnToggleProfileMenu" aria-expanded="false" aria-controls="userProfileDropdown" title="Profil & Sesi Pengguna">
+              <img src="https://avatars.githubusercontent.com/u/583231?v=4" alt="Avatar" class="avatar-circle-sm" id="topbarUserAvatar">
+              <div class="topbar-user-meta">
+                <span class="topbar-user-name" id="topbarUserName">Budi Susanto</span>
+                <span class="topbar-user-role" id="topbarUserRole">Lead Architect</span>
+              </div>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+
+            <div class="user-profile-dropdown hidden" id="userProfileDropdown">
+              <div class="profile-dropdown-header">
+                <strong id="dropdownUserName">Budi Susanto</strong>
+                <span id="dropdownUserEmail">budi.susanto@alfagift.id</span>
+                <span class="profile-provider-badge" id="dropdownUserProvider">Verified Session</span>
+              </div>
+              <div class="profile-dropdown-actions">
+                <button type="button" class="profile-dropdown-item" id="btnProfileGoSettings">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  Pengaturan Akun &amp; Workspace
+                </button>
+                <button type="button" class="profile-dropdown-item" id="btnProfileGoMcp">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                  Konektor OAuth MCP Hub
+                </button>
+                <hr class="profile-dropdown-sep">
+                <button type="button" class="profile-dropdown-item danger" id="btnLogoutUser">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                  Sign Out (Keluar)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- App Body Scroll Area -->
+      <div class="content-body">
+        
+        <!-- View 0: Executive Command Center Dashboard -->
+        <section id="view-dashboard" class="tab-view active">
+          <div class="shopeers-dashboard-wrap">
+
+            <!-- Hidden developer bridge to keep app.js live updates working without errors -->
+            <div style="display:none;" aria-hidden="true">
+              <span id="dashWelcomeGreeting"></span>
+              <span id="dashWelcomeName"></span>
+              <span id="dashWelcomeBio"></span>
+              <span id="dashModeBadge"></span>
+              <div id="dashAvatarBox"></div>
+              <span id="dashKpiForks">2</span>
+              <span id="dashKpiInnov">100</span>
+              <span id="dashTlSync"></span>
+              <div id="dashTopReposList"></div>
+              <span id="dashGraphNodesCount"></span>
+              <span id="dashGraphTopicsCount"></span>
+              <span id="dashGraphLinksCount"></span>
+            </div>
+
+            <!-- Top 4 KPI Metric Cards (Developer & Security Intelligence) -->
+            <div class="shopeers-kpi-grid">
+              <!-- KPI 1: Active Repositories -->
+              <div class="shopeers-kpi-card" onclick="window.navigateToTab('repositories', 'overview')">
+                <div class="shopeers-kpi-top">
+                  <span class="shopeers-kpi-title">Active Repositories</span>
+                  <span class="shopeers-badge-pill info">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                    Live Sync
+                  </span>
+                </div>
+                <div class="shopeers-kpi-val" id="dashKpiRepos">8</div>
+                <div class="shopeers-kpi-sub"><span id="dashKpiStars">12</span> Stars • <span id="dashKpiForksVal">2</span> Forks</div>
+                <div class="shopeers-sparkline">
+                  <svg width="100%" height="40" viewBox="0 0 200 40" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="gradViews" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.25"/>
+                        <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.0"/>
+                      </linearGradient>
+                    </defs>
+                    <path d="M0,32 Q35,38 70,22 T140,16 T200,8 L200,40 L0,40 Z" fill="url(#gradViews)"></path>
+                    <path d="M0,32 Q35,38 70,22 T140,16 T200,8" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"></path>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- KPI 2: Security Score -->
+              <div class="shopeers-kpi-card" onclick="window.navigateToTab('repositories', 'security')">
+                <div class="shopeers-kpi-top">
+                  <span class="shopeers-kpi-title">Security Score</span>
+                  <span class="shopeers-badge-pill success">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                    +8.4%
+                  </span>
+                </div>
+                <div class="shopeers-kpi-val"><span id="dashKpiSecurity">95</span><span style="font-size:16px; color:#94a3b8; font-weight:600;">/100</span></div>
+                <div class="shopeers-kpi-sub"><span id="dashKpiVulns">0</span> Vulnerabilities (OSV.dev)</div>
+                <div class="shopeers-sparkline">
+                  <svg width="100%" height="40" viewBox="0 0 200 40" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="gradVisitors" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#10b981" stop-opacity="0.25"/>
+                        <stop offset="100%" stop-color="#10b981" stop-opacity="0.0"/>
+                      </linearGradient>
+                    </defs>
+                    <path d="M0,30 Q40,36 80,18 T150,22 T200,10 L200,40 L0,40 Z" fill="url(#gradVisitors)"></path>
+                    <path d="M0,30 Q40,36 80,18 T150,22 T200,10" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round"></path>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- KPI 3: Dependencies & SBOM -->
+              <div class="shopeers-kpi-card" onclick="window.navigateToTab('repositories', 'dependencies')">
+                <div class="shopeers-kpi-top">
+                  <span class="shopeers-kpi-title">Dependencies &amp; SBOM</span>
+                  <span class="shopeers-badge-pill info">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                    Verified
+                  </span>
+                </div>
+                <div class="shopeers-kpi-val"><span id="dashKpiMaint">78</span><span style="font-size:16px; color:#94a3b8; font-weight:600;">/100</span></div>
+                <div class="shopeers-kpi-sub">142 Packages Analyzed (Gradle/Maven)</div>
+                <div class="shopeers-sparkline">
+                  <svg width="100%" height="40" viewBox="0 0 200 40" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="gradOrders" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#6366f1" stop-opacity="0.25"/>
+                        <stop offset="100%" stop-color="#6366f1" stop-opacity="0.0"/>
+                      </linearGradient>
+                    </defs>
+                    <path d="M0,28 Q35,32 75,18 T145,20 T200,6 L200,40 L0,40 Z" fill="url(#gradOrders)"></path>
+                    <path d="M0,28 Q35,32 75,18 T145,20 T200,6" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round"></path>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- KPI 4: Mobile APK Inspector -->
+              <div class="shopeers-kpi-card" onclick="window.navigateToTab('apk-inspector', null)">
+                <div class="shopeers-kpi-top">
+                  <span class="shopeers-kpi-title">APK Inspector</span>
+                  <span class="shopeers-badge-pill danger">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    3 Flags
+                  </span>
+                </div>
+                <div class="shopeers-kpi-val">40<span style="font-size:16px; color:#94a3b8; font-weight:600;">/100</span></div>
+                <div class="shopeers-kpi-sub">io.appium.settings (SDK 35)</div>
+                <div class="shopeers-sparkline">
+                  <svg width="100%" height="40" viewBox="0 0 200 40" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="gradClicks" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.25"/>
+                        <stop offset="100%" stop-color="#f43f5e" stop-opacity="0.0"/>
+                      </linearGradient>
+                    </defs>
+                    <path d="M0,12 Q45,10 90,24 T160,20 T200,32 L200,40 L0,40 Z" fill="url(#gradClicks)"></path>
+                    <path d="M0,12 Q45,10 90,24 T160,20 T200,32" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-linecap="round"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Middle Row: Codebase Activity Curve & Commit/Security Rate -->
+            <div class="shopeers-mid-grid">
+              
+              <!-- Left Big Card: Codebase Activity & Security Health Trend -->
+              <div class="shopeers-card shopeers-profit-card">
+                <div class="shopeers-card-header">
+                  <div>
+                    <div class="shopeers-card-title">Codebase Activity &amp; Audit Velocity</div>
+                    <div style="display:flex; align-items:baseline; gap:10px; margin-top:4px;">
+                      <span style="font-size:28px; font-weight:800; color:var(--text-primary); letter-spacing:-0.5px;">98.4%</span>
+                      <span class="shopeers-badge-pill success">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                        +24.4% Quality
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <div class="shopeers-btn-group">
+                      <button class="active">Monthly</button>
+                      <button>Weekly</button>
+                    </div>
+                    <button class="shopeers-pill-btn">
+                      <span>2026</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- SVG Area Curve Chart with Jan 18 Tooltip -->
+                <div class="shopeers-chart-area">
+                  <svg width="100%" height="220" viewBox="0 0 680 220" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="profitGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.32"/>
+                        <stop offset="60%" stop-color="#93c5fd" stop-opacity="0.10"/>
+                        <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0"/>
+                      </linearGradient>
+                      <filter id="shadowPoint" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#2563eb" flood-opacity="0.3"/>
+                      </filter>
+                    </defs>
+
+                    <!-- Horizontal Grid lines -->
+                    <line x1="20" y1="40" x2="660" y2="40" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4,4"/>
+                    <line x1="20" y1="90" x2="660" y2="90" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4,4"/>
+                    <line x1="20" y1="140" x2="660" y2="140" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="4,4"/>
+                    <line x1="20" y1="190" x2="660" y2="190" stroke="#edf2f7" stroke-width="1"/>
+
+                    <!-- Vertical dashed line for Jan 18 milestone -->
+                    <line x1="210" y1="20" x2="210" y2="190" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.6"/>
+
+                    <!-- Smooth Area & Curve Path -->
+                    <path d="M 20 160 C 70 155, 120 135, 160 115 C 185 102, 200 85, 210 75 C 235 50, 270 70, 310 95 C 360 125, 400 90, 440 65 C 490 35, 530 80, 570 60 C 610 40, 640 50, 660 45 L 660 190 L 20 190 Z" fill="url(#profitGrad)"></path>
+                    <path d="M 20 160 C 70 155, 120 135, 160 115 C 185 102, 200 85, 210 75 C 235 50, 270 70, 310 95 C 360 125, 400 90, 440 65 C 490 35, 530 80, 570 60 C 610 40, 640 50, 660 45" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round"></path>
+
+                    <!-- Dot on Milestone (Jan 18) -->
+                    <circle cx="210" cy="75" r="6" fill="#2563eb" stroke="#ffffff" stroke-width="3" filter="url(#shadowPoint)"/>
+                  </svg>
+
+                  <!-- Floating Milestone Tooltip Card (Jan 18) -->
+                  <div class="shopeers-chart-tooltip" style="left: 210px; top: 12px; transform: translateX(-50%);">
+                    <div class="shopeers-tooltip-badge">Jan 18 Milestone</div>
+                    <div class="shopeers-tooltip-row">
+                      <span class="shopeers-tooltip-dot" style="background:#2563eb;"></span>
+                      <span class="shopeers-tooltip-label">Security Audit</span>
+                      <span class="shopeers-tooltip-val">95/100 Score</span>
+                    </div>
+                    <div class="shopeers-tooltip-row">
+                      <span class="shopeers-tooltip-dot" style="background:#10b981;"></span>
+                      <span class="shopeers-tooltip-label">Code Merge</span>
+                      <span class="shopeers-tooltip-val">PR #42 Watermark</span>
+                    </div>
+                  </div>
+
+                  <!-- X-Axis Month Labels -->
+                  <div class="shopeers-chart-labels">
+                    <span>Jan</span>
+                    <span>Feb</span>
+                    <span>Mar</span>
+                    <span>Apr</span>
+                    <span>May</span>
+                    <span>Jun</span>
+                    <span>Jul</span>
+                    <span>Aug</span>
+                    <span>Sep</span>
+                    <span>Oct</span>
+                    <span>Nov</span>
+                    <span>Dec</span>
+                  </div>
+                </div>
+
+                <!-- 3 Submetrics for Developer Ecosystem -->
+                <div class="shopeers-submetrics">
+                  <div class="shopeers-submetric-box">
+                    <div class="shopeers-submetric-num">8 Repos</div>
+                    <div class="shopeers-submetric-lbl">
+                      <span class="shopeers-submetric-indicator" style="background:#2563eb;"></span>
+                      Android &amp; Kotlin
+                    </div>
+                  </div>
+                  <div class="shopeers-submetric-box">
+                    <div class="shopeers-submetric-num">4 MCP Hubs</div>
+                    <div class="shopeers-submetric-lbl">
+                      <span class="shopeers-submetric-indicator" style="background:#10b981;"></span>
+                      Protocol Bridges
+                    </div>
+                  </div>
+                  <div class="shopeers-submetric-box">
+                    <div class="shopeers-submetric-num">3 Decisions</div>
+                    <div class="shopeers-submetric-lbl">
+                      <span class="shopeers-submetric-indicator" style="background:#f59e0b;"></span>
+                      Architectural ADRs
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right Stack: Most Active Scan Days & Compliance Rate -->
+              <div style="display:flex; flex-direction:column; gap:20px;">
+                
+                <!-- Card: Most Active Scan Days (Bar Chart) -->
+                <div class="shopeers-card" style="flex:1;">
+                  <div class="shopeers-card-header">
+                    <div>
+                      <div class="shopeers-card-title">Most Active Scan Days</div>
+                      <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Repository commit &amp; audit velocity</div>
+                    </div>
+                    <button class="shopeers-pill-btn">
+                      <span>Week 3</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                  </div>
+
+                  <div class="shopeers-bar-chart">
+                    <!-- Mon -->
+                    <div class="shopeers-bar-col">
+                      <div class="shopeers-bar-track">
+                        <div class="shopeers-bar-fill" style="height: 52%;"></div>
+                      </div>
+                      <span class="shopeers-bar-label">Mon</span>
+                    </div>
+
+                    <!-- Tue (Active Highlight) -->
+                    <div class="shopeers-bar-col active">
+                      <div class="shopeers-bar-callout">8,162 LoC</div>
+                      <div class="shopeers-bar-track">
+                        <div class="shopeers-bar-fill" style="height: 94%;"></div>
+                      </div>
+                      <span class="shopeers-bar-label">Tue</span>
+                    </div>
+
+                    <!-- Wed -->
+                    <div class="shopeers-bar-col">
+                      <div class="shopeers-bar-track">
+                        <div class="shopeers-bar-fill" style="height: 64%;"></div>
+                      </div>
+                      <span class="shopeers-bar-label">Wed</span>
+                    </div>
+
+                    <!-- Thu -->
+                    <div class="shopeers-bar-col">
+                      <div class="shopeers-bar-track">
+                        <div class="shopeers-bar-fill" style="height: 48%;"></div>
+                      </div>
+                      <span class="shopeers-bar-label">Thu</span>
+                    </div>
+
+                    <!-- Fri -->
+                    <div class="shopeers-bar-col">
+                      <div class="shopeers-bar-track">
+                        <div class="shopeers-bar-fill" style="height: 72%;"></div>
+                      </div>
+                      <span class="shopeers-bar-label">Fri</span>
+                    </div>
+
+                    <!-- Sat -->
+                    <div class="shopeers-bar-col">
+                      <div class="shopeers-bar-track">
+                        <div class="shopeers-bar-fill" style="height: 40%;"></div>
+                      </div>
+                      <span class="shopeers-bar-label">Sat</span>
+                    </div>
+
+                    <!-- Sun -->
+                    <div class="shopeers-bar-col">
+                      <div class="shopeers-bar-track">
+                        <div class="shopeers-bar-fill" style="height: 35%;"></div>
+                      </div>
+                      <span class="shopeers-bar-label">Sun</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Card: Compliance & SOC2 Readiness (Radial Arc Gauge) -->
+                <div class="shopeers-card" style="flex:1;">
+                  <div class="shopeers-card-header">
+                    <div>
+                      <div class="shopeers-card-title">Compliance Readiness</div>
+                      <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">SOC2, ISO27001 &amp; License policy checks</div>
+                    </div>
+                    <button class="shopeers-pill-btn">
+                      <span>Live Audit</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                  </div>
+
+                  <div class="shopeers-gauge-container">
+                    <svg width="220" height="120" viewBox="0 0 220 120">
+                      <!-- Background track -->
+                      <path d="M 25 110 A 85 85 0 0 1 195 110" fill="none" stroke="#f1f5f9" stroke-width="16" stroke-linecap="round"></path>
+                      <!-- Value arc: 92% dashed green pastel style -->
+                      <path d="M 25 110 A 85 85 0 0 1 195 110" fill="none" stroke="#10b981" stroke-width="16" stroke-linecap="round" stroke-dasharray="245 267" stroke-dashoffset="0"></path>
+                    </svg>
+                    <div class="shopeers-gauge-label">
+                      <div class="shopeers-gauge-val">92%</div>
+                      <div class="shopeers-gauge-sub">Compliance Ready</div>
+                    </div>
+                  </div>
+                  <div style="text-align:center; font-size:12.5px; color:var(--text-secondary); margin-top:6px;">
+                    <span style="font-weight:600; color:var(--accent-green);">+5.2%</span> vs prior sprint audit
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Bottom Row: Tracked Repositories & Grounded Context AI Assistant -->
+            <div class="shopeers-bottom-grid">
+              
+              <!-- Left Card: Tracked Repositories -->
+              <div class="shopeers-card">
+                <div class="shopeers-card-header">
+                  <div>
+                    <div class="shopeers-card-title">Tracked Repositories &amp; Codebases</div>
+                    <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Live health, SBOM dependencies, and vulnerabilities</div>
+                  </div>
+                  <button class="shopeers-pill-btn" onclick="window.navigateToTab('repositories', 'overview')">
+                    <span>See All</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
+                </div>
+
+                <div style="overflow-x:auto;">
+                  <table class="shopeers-table">
+                    <thead>
+                      <tr>
+                        <th>Repository</th>
+                        <th>Language</th>
+                        <th>Stars &amp; Activity</th>
+                        <th>Security Score</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- Row 1 -->
+                      <tr>
+                        <td>
+                          <div class="shopeers-prod-cell">
+                            <div style="width:40px; height:40px; border-radius:10px; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; border:1px solid #dbeafe; flex-shrink:0;">
+                              KT
+                            </div>
+                            <div>
+                              <div class="shopeers-prod-name">Localitazion-implement</div>
+                              <div class="shopeers-prod-code">Android i18n &amp; String Resources</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td><span style="font-weight:600; color:#2563eb; background:#eff6ff; padding:3px 8px; border-radius:6px; font-size:11px;">Kotlin</span></td>
+                        <td style="color:var(--text-secondary);">2 Stars • 28 Commits</td>
+                        <td>
+                          <div class="shopeers-rating">
+                            <span style="color:#059669; font-weight:700;">98</span>
+                            <span style="font-size:11px; color:#94a3b8;">/100</span>
+                          </div>
+                        </td>
+                        <td><span class="shopeers-badge-pill success">Clean (0 CVE)</span></td>
+                      </tr>
+
+                      <!-- Row 2 -->
+                      <tr>
+                        <td>
+                          <div class="shopeers-prod-cell">
+                            <div style="width:40px; height:40px; border-radius:10px; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; border:1px solid #dbeafe; flex-shrink:0;">
+                              KT
+                            </div>
+                            <div>
+                              <div class="shopeers-prod-name">pokemon_budi</div>
+                              <div class="shopeers-prod-code">Clean Architecture &amp; Coroutines</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td><span style="font-weight:600; color:#2563eb; background:#eff6ff; padding:3px 8px; border-radius:6px; font-size:11px;">Kotlin</span></td>
+                        <td style="color:var(--text-secondary);">2 Stars • Room Cache</td>
+                        <td>
+                          <div class="shopeers-rating">
+                            <span style="color:#059669; font-weight:700;">95</span>
+                            <span style="font-size:11px; color:#94a3b8;">/100</span>
+                          </div>
+                        </td>
+                        <td><span class="shopeers-badge-pill success">Clean (0 CVE)</span></td>
+                      </tr>
+
+                      <!-- Row 3 -->
+                      <tr>
+                        <td>
+                          <div class="shopeers-prod-cell">
+                            <div style="width:40px; height:40px; border-radius:10px; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; border:1px solid #dbeafe; flex-shrink:0;">
+                              KT
+                            </div>
+                            <div>
+                              <div class="shopeers-prod-name">GLIAcademy-SampleProject</div>
+                              <div class="shopeers-prod-code">Mobile Architecture &amp; Room DB</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td><span style="font-weight:600; color:#2563eb; background:#eff6ff; padding:3px 8px; border-radius:6px; font-size:11px;">Kotlin</span></td>
+                        <td style="color:var(--text-secondary);">3 Stars • Room DB</td>
+                        <td>
+                          <div class="shopeers-rating">
+                            <span style="color:#059669; font-weight:700;">92</span>
+                            <span style="font-size:11px; color:#94a3b8;">/100</span>
+                          </div>
+                        </td>
+                        <td><span class="shopeers-badge-pill success">Clean (0 CVE)</span></td>
+                      </tr>
+
+                      <!-- Row 4 -->
+                      <tr>
+                        <td>
+                          <div class="shopeers-prod-cell">
+                            <div style="width:40px; height:40px; border-radius:10px; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; border:1px solid #dbeafe; flex-shrink:0;">
+                              KT
+                            </div>
+                            <div>
+                              <div class="shopeers-prod-name">example-android-upgrade-gradle</div>
+                              <div class="shopeers-prod-code">Gradle 8.5 Build Automation</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td><span style="font-weight:600; color:#2563eb; background:#eff6ff; padding:3px 8px; border-radius:6px; font-size:11px;">Kotlin</span></td>
+                        <td style="color:var(--text-secondary);">1 Star • Gradle 8.5</td>
+                        <td>
+                          <div class="shopeers-rating">
+                            <span style="color:#059669; font-weight:700;">90</span>
+                            <span style="font-size:11px; color:#94a3b8;">/100</span>
+                          </div>
+                        </td>
+                        <td><span class="shopeers-badge-pill success">Clean (0 CVE)</span></td>
+                      </tr>
+
+                      <!-- Row 5 -->
+                      <tr>
+                        <td>
+                          <div class="shopeers-prod-cell">
+                            <div style="width:40px; height:40px; border-radius:10px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; border:1px solid #fde68a; flex-shrink:0;">
+                              JV
+                            </div>
+                            <div>
+                              <div class="shopeers-prod-name">septiwebview</div>
+                              <div class="shopeers-prod-code">Android Hybrid Webview Bridge</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td><span style="font-weight:600; color:#d97706; background:#fef3c7; padding:3px 8px; border-radius:6px; font-size:11px;">Java</span></td>
+                        <td style="color:var(--text-secondary);">1 Star • Webview Bridge</td>
+                        <td>
+                          <div class="shopeers-rating">
+                            <span style="color:#059669; font-weight:700;">88</span>
+                            <span style="font-size:11px; color:#94a3b8;">/100</span>
+                          </div>
+                        </td>
+                        <td><span class="shopeers-badge-pill success">Clean (0 CVE)</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Right Card: Grounded Context AI Assistant -->
+              <div class="shopeers-card shopeers-ai-card">
+                <div class="shopeers-card-header" style="width:100%;">
+                  <div class="shopeers-card-title">AI Context Engine</div>
+                  <span class="shopeers-badge-pill success">
+                    <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#10b981; margin-right:4px;"></span>
+                    Active
+                  </span>
+                </div>
+
+                <!-- 3D Glowing AI Orb -->
+                <div class="shopeers-ai-orb-wrap">
+                  <div class="shopeers-ai-orb"></div>
+                </div>
+
+                <div class="shopeers-ai-heading">Hi Mochamad, how can I audit your codebase today?</div>
+                <div class="shopeers-ai-desc">
+                  Ask questions grounded in your repository code, Android APK teardown, ADR architecture decisions, and Figma design specs.
+                </div>
+
+                <!-- Suggested chips for developer workflows -->
+                <div class="shopeers-ai-chips">
+                  <button class="shopeers-pill-btn" onclick="window.askAiQuick('Apa temuan security terpenting pada file APK dan codebase ini?')">
+                    🛡️ Audit APK
+                  </button>
+                  <button class="shopeers-pill-btn" onclick="window.askAiQuick('Kapan fitur PDF Watermark dibuat, oleh siapa, dan apa dokumen ADR acuannya?')">
+                    📜 Riwayat Watermark
+                  </button>
+                  <button class="shopeers-pill-btn" onclick="window.askAiQuick('Jelaskan arsitektur Clean Architecture dan Coroutines pada repo pokemon_budi.')">
+                    ⚡ Clean Architecture
+                  </button>
+                </div>
+
+                <!-- Bottom Input Pill -->
+                <div class="shopeers-ai-input-wrap">
+                  <input type="text" id="shopeersAiInput" class="shopeers-ai-input" placeholder="Tanya AI seputar kode, APK, atau arsitektur...">
+                  <button class="shopeers-ai-send-btn" id="btnShopeersSendAi" title="Send to AI Assistant">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </section>
+
+        <!-- View 1: Repositories & Codexer Dashboard -->
+        <section id="view-repositories" class="tab-view">
+          <!-- What gets analyzed Banner -->
+          <div class="analysis-banner card">
+            <div class="banner-title">What gets analyzed:</div>
+            <div class="banner-grid">
+              <div class="banner-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                <span>Security vulnerabilities</span>
+              </div>
+              <div class="banner-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                <span>Code metrics & quality</span>
+              </div>
+              <div class="banner-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>Dependency analysis</span>
+              </div>
+              <div class="banner-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                <span>Repository correlations</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Real-Data Intelligence Scanner Bar -->
+          <div class="real-scan-bar card">
+            <div class="scan-bar-header">
+              <div class="scan-title">
+                <span class="pulse-indicator"></span>
+                <strong>Real Data Intelligence Engine</strong>
+                <span class="badge-live">LIVE API + OSV.dev</span>
+              </div>
+              <div class="scan-mode-tabs">
+                <button class="mode-btn active" data-mode="github" id="modeBtnGithub">🌐 GitHub Live</button>
+                <button class="mode-btn" data-mode="local" id="modeBtnLocal">💻 Local StudioProjects</button>
+                <button class="mode-btn" data-mode="mock" id="modeBtnMock">🔄 Demo Mock (Marc Seitz)</button>
+              </div>
+            </div>
+
+            <div class="scan-input-group" id="githubInputGroup">
+              <div class="input-with-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="targetScanInput" placeholder="Masukkan GitHub username/org (contoh: budisusanto911, flutter, google)..." value="budisusanto911">
+              </div>
+              <button class="btn btn-primary" id="btnRunRealScan">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                <span>Scan Real Data</span>
+              </button>
+            </div>
+
+            <div class="quick-chips" id="quickChipsBar">
+              <span class="chip-label">Quick Targets:</span>
+              <button class="chip" data-target="budisusanto911" style="border-color:#8b5cf6; color:#c4b5fd;">★ budisusanto911</button>
+              <button class="chip" data-target="flutter">flutter</button>
+              <button class="chip" data-target="google">google</button>
+              <button class="chip" data-target="facebook">facebook</button>
+              <button class="chip" data-target="octocat">octocat</button>
+            </div>
+
+            <div id="scanStatusIndicator" class="scan-status-message hidden">
+              <div class="spinner-small"></div>
+              <span id="scanStatusText">Mengambil repositori live dari GitHub API & memindai CVE via OSV.dev...</span>
+            </div>
+          </div>
+
+          <!-- Owner / Project Profile Card -->
+          <div class="profile-card card">
+            <div class="profile-left">
+              <div class="profile-icon" id="profileAvatarBox">
+                <img src="https://avatars.githubusercontent.com/u/61399478?v=4" alt="Avatar" style="width:100%; height:100%; border-radius:8px; object-fit:cover;">
+              </div>
+              <div class="profile-meta">
+                <div class="profile-title-row">
+                  <h2 id="profileOwnerName">Mochamad Budi Susanto (@budisusanto911)</h2>
+                  <span class="badge-target-type" id="profileModeBadge">GitHub Live Data</span>
+                </div>
+                <p class="profile-bio" id="profileBio">Android & Mobile Engineer • Global Loyalty Indonesia (GLI)</p>
+                <div class="profile-stats">
+                  <span id="statReposCount"><strong>&lt;/&gt;</strong> 8 repositories</span>
+                  <span id="statStarsCount"><strong>⭐</strong> 8 contributions</span>
+                  <span id="statVulnsCount"><strong>🛡️</strong> 0 vulnerabilities</span>
+                  <span id="statScannedTime"><strong>🕒</strong> Scanned Live</span>
+                </div>
+              </div>
+            </div>
+            <div class="profile-selector">
+              <button class="btn btn-ghost" id="quickSwitchTargetBtn">Switch Mode ▾</button>
+            </div>
+          </div>
+
+          <!-- Metric Scores Grid (The 3 Cards from Screenshot) -->
+          <div class="scores-grid">
+            <div class="score-card card score-security">
+              <div class="score-header">
+                <span class="score-label">Security Score</span>
+                <div class="score-icon shield-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                </div>
+              </div>
+              <div class="score-value">
+                <span class="num text-success" id="valSecurityScore">95</span>
+                <span class="max">/100</span>
+              </div>
+            </div>
+
+            <div class="score-card card score-maintenance">
+              <div class="score-header">
+                <span class="score-label">Maintenance Score</span>
+                <div class="score-icon clock-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </div>
+              </div>
+              <div class="score-value">
+                <span class="num text-primary" id="valMaintScore">78</span>
+                <span class="max">/100</span>
+              </div>
+            </div>
+
+            <div class="score-card card score-innovation">
+              <div class="score-header">
+                <span class="score-label">Innovation Score</span>
+                <div class="score-icon bar-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                </div>
+              </div>
+              <div class="score-value">
+                <span class="num text-purple" id="valInnovScore">85</span>
+                <span class="max">/100</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section Tabs -->
+          <div class="section-tabs">
+            <button class="sub-tab" data-sub="overview" onclick="switchSubTab('overview')">Overview</button>
+            <button class="sub-tab" data-sub="security" onclick="switchSubTab('security')">Security</button>
+            <button class="sub-tab" data-sub="dependencies" onclick="switchSubTab('dependencies')">Dependencies</button>
+            <button class="sub-tab active" data-sub="correlations" onclick="switchSubTab('correlations')">&lt;/&gt; Correlations</button>
+          </div>
+
+          <script>
+            function switchSubTab(subKey) {
+              document.querySelectorAll('.sub-tab').forEach(function(st) {
+                if (st.getAttribute('data-sub') === subKey) {
+                  st.classList.add('active');
+                } else {
+                  st.classList.remove('active');
+                }
+              });
+              document.querySelectorAll('.subview-pane').forEach(function(p) {
+                p.classList.remove('active');
+                p.style.display = 'none';
+              });
+              var activePane = document.getElementById('subview-' + subKey);
+              if (activePane) {
+                activePane.classList.remove('hidden');
+                activePane.classList.add('active');
+                activePane.style.display = 'block';
+              }
+              if (window.loadOverviewData && subKey === 'overview') window.loadOverviewData();
+              if (window.loadSecurityData && subKey === 'security') window.loadSecurityData();
+              if (window.loadDependenciesData && subKey === 'dependencies') window.loadDependenciesData();
+              if (subKey === 'correlations' && window.graphSimulation && window.graphSimulation.reset) {
+                setTimeout(function() { window.graphSimulation.reset(); }, 50);
+              }
+            }
+          </script>
+
+          <!-- Sub-View 1: Overview Tab Container -->
+          <div id="subview-overview" class="subview-pane hidden">
+            <div class="card subview-card">
+              <div class="subview-header">
+                <h3>Scanned Repositories & Lineage</h3>
+                <span class="subview-count" id="overviewRepoCount">0 repos</span>
+              </div>
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Repository</th>
+                      <th>Language</th>
+                      <th>Stars</th>
+                      <th>Forks</th>
+                      <th>Issues</th>
+                      <th>Last Updated</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="overviewTableBody">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-View 2: Security Tab Container -->
+          <div id="subview-security" class="subview-pane hidden">
+            <div class="card subview-card">
+              <div class="subview-header">
+                <h3>Vulnerabilities & Security Advisories (OSV.dev + Static Audit)</h3>
+                <span class="subview-count text-danger" id="securityVulnCount">0 issues</span>
+              </div>
+              <div class="security-list" id="securityListContainer">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-View 3: Dependencies Tab Container -->
+          <div id="subview-dependencies" class="subview-pane hidden">
+            <div class="card subview-card">
+              <div class="subview-header">
+                <div>
+                  <h3>Software Bill of Materials (SBOM) & Dependencies</h3>
+                  <p style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Audit dependensi pustaka Gradle, Android Jetpack, dan SDK yang terdeteksi di repositori Anda</p>
+                </div>
+                <span class="subview-count" id="depsCount">12 packages</span>
+              </div>
+
+              <!-- Dependencies Stat Badges & Search Filter -->
+              <div class="deps-toolbar">
+                <div class="deps-stats-pills">
+                  <span class="deps-pill-stat">📦 <strong>12</strong> Packages</span>
+                  <span class="deps-pill-stat">🛡️ <strong>100%</strong> Verified Safe</span>
+                  <span class="deps-pill-stat">☕ <strong>Gradle / Maven</strong></span>
+                  <span class="deps-pill-stat">⚡ <strong>8</strong> Shared Across Repos</span>
+                </div>
+                <div class="deps-search-wrapper">
+                  <input type="text" id="depsFilterInput" placeholder="Cari package (contoh: retrofit, coroutines, material, lifecycle)...">
+                </div>
+              </div>
+
+              <div class="table-responsive" style="margin-top:14px;">
+                <table class="data-table" id="depsTable">
+                  <thead>
+                    <tr>
+                      <th>Package Name & Artifact</th>
+                      <th>Version</th>
+                      <th>Category</th>
+                      <th>Used in Repositories</th>
+                      <th>License</th>
+                      <th>Security Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="depsTableBody">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-View 4: Correlation Graph Container Card (Active by default) -->
+          <div id="subview-correlations" class="subview-pane active">
+            <div class="graph-card card">
+              <div class="graph-header">
+                <div class="graph-title-group">
+                  <div class="graph-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                  </div>
+                  <div>
+                    <h3 id="graphCardTitle">Repository Correlation Graph</h3>
+                    <p id="graphCardSubtitle">Interactive visualization of repository relationships and dependencies</p>
+                  </div>
+                </div>
+                <div class="graph-controls">
+                  <button class="btn btn-icon" id="filterGraphBtn" title="Filter nodes">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                  </button>
+                  <button class="btn btn-icon btn-highlight" id="fullscreenGraphBtn" title="Reset View">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Canvas / SVG Graph Viewport -->
+              <div class="graph-viewport-wrapper">
+                <div id="graphContainer" class="graph-container"></div>
+
+                <!-- Graph Legend Overlay (Matching Screenshot) -->
+                <div class="graph-legend">
+                  <div class="legend-header">● Legend</div>
+                  <div class="legend-item"><span class="line-indicator solid-blue"></span> Correlations</div>
+                  <div class="legend-item"><span class="line-indicator dashed-red"></span> Vulnerabilities</div>
+                  <div class="legend-item"><span class="line-indicator solid-yellow"></span> Dependencies</div>
+                  <div class="legend-item"><span class="line-indicator solid-purple"></span> Topics</div>
+                  <div class="legend-types">
+                    <small>Node Types: 🔵 Repo, 🔴 CVE/Vuln, 🟡 Lib, 🟣 Topic</small>
+                  </div>
+                </div>
+
+                <!-- Node Detail Popover Drawer -->
+                <div id="nodeDetailDrawer" class="node-drawer hidden">
+                  <div class="drawer-header">
+                    <h4 id="drawerNodeTitle">Repository Detail</h4>
+                    <button class="btn-close" id="closeDrawerBtn">×</button>
+                  </div>
+                  <div class="drawer-body" id="drawerNodeContent">
+                    <!-- Dynamic node info -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- View 2: APK Inspector (Bedah APK & Security Audit) -->
+        <section id="view-apk-inspector" class="tab-view">
+          <div class="apk-hero card">
+            <div class="apk-hero-content">
+              <div class="hero-badge">MOBILE SECURITY & QA ENGINE</div>
+              <h2>Bedah APK & Static Security Audit</h2>
+              <p>Menganalisis file binary <code>.apk</code> langsung dari upload: bongkar manifest, deteksi celah debuggable, audit exported components, scanning hardcoded secrets, dan visualisasi distribusi ukuran asset.</p>
+            </div>
+            <div class="apk-quick-test" style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button class="btn btn-primary" id="btnTestSampleApk">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                Test Sample APK (Appium)
+              </button>
+              <button class="btn btn-secondary" id="btnTestAlfagiftAab">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                Test Alfagift AAB (Target Real 33 Issues)
+              </button>
+            </div>
+          </div>
+
+          <!-- Upload Dropzone -->
+          <div class="upload-dropzone card" id="apkDropzone">
+            <input type="file" id="apkFileInput" accept=".apk,.aab" class="file-input-hidden">
+            <div class="dropzone-inner">
+              <div class="upload-icon">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              </div>
+              <h3>Drag & Drop file APK / AAB kamu ke sini</h3>
+              <p>atau klik untuk memilih file dari komputer</p>
+              <div class="upload-hints">Mendukung APK release/debug • Scan 100% lokal di mesin</div>
+            </div>
+            <div id="uploadProgress" class="upload-progress hidden">
+              <div class="spinner"></div>
+              <span>Mendekomposisi APK & menjalankan audit security...</span>
+            </div>
+          </div>
+
+          <!-- APK Analysis Report Results Container -->
+          <div id="apkReportContainer" class="apk-report-container hidden">
+            <!-- App Summary Header -->
+            <div class="apk-app-card card">
+              <div class="apk-app-info">
+                <div class="apk-avatar">📱</div>
+                <div>
+                  <h3 id="apkAppLabel">App Label</h3>
+                  <div class="apk-sub-meta">
+                    <span id="apkPackageName" class="code-tag">com.example.app</span>
+                    <span id="apkVersionName">v1.0.0</span>
+                    <span id="apkFileSize" class="size-tag">0 MB</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="apk-score-box">
+                <div class="apk-score-num" id="apkScoreNum">85</div>
+                <div class="apk-score-label">Mobile Security Score</div>
+              </div>
+            </div>
+
+            <!-- APK Highlights Grid -->
+            <div class="apk-grid-2">
+              <!-- Security Flags Matrix -->
+              <div class="card">
+                <h4 class="card-title">Manifest Security Flags</h4>
+                <div class="flag-list" id="apkSecurityFlags">
+                  <!-- Dynamic flags -->
+                </div>
+              </div>
+
+              <!-- QA & Google Play Compatibility -->
+              <div class="card">
+                <h4 class="card-title">QA & SDK Compatibility</h4>
+                <div class="qa-list" id="apkQaMetrics">
+                  <!-- Dynamic QA items -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Deep Security Audits Grid -->
+            <div class="apk-grid-2" style="margin-top: 16px;">
+              <div class="card">
+                <h4 class="card-title">Deep Engine Audits (Crypto, NetSec, Anti-Tamper)</h4>
+                <div class="flag-list" id="apkDeepAudits">
+                  <!-- Dynamic deep audits -->
+                </div>
+              </div>
+
+              <div class="card">
+                <h4 class="card-title">Cleartext Domains & Sensitive Endpoints</h4>
+                <div class="qa-list" id="apkEndpointsList">
+                  <!-- Dynamic endpoints -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Security Findings / Vulnerabilities -->
+            <div class="card">
+              <div class="findings-header">
+                <h4 class="card-title">Temuan Celah Keamanan (Vulnerabilities)</h4>
+                <span class="badge badge-danger" id="apkVulnCount">0 Temuan</span>
+              </div>
+              <div class="findings-list" id="apkFindingsList">
+                <!-- Dynamic findings -->
+              </div>
+            </div>
+
+            <!-- Binary Size Breakdown & Secrets -->
+            <div class="apk-grid-2">
+              <div class="card">
+                <h4 class="card-title">Distribusi Ukuran Binary</h4>
+                <div class="size-bar-container" id="apkSizeBar"></div>
+                <div class="size-legend" id="apkSizeLegend"></div>
+              </div>
+
+              <div class="card">
+                <h4 class="card-title">Secret & Credential Hunter</h4>
+                <div class="secret-list" id="apkSecretList"></div>
+              </div>
+            </div>
+
+            <!-- Permissions Table -->
+            <div class="card">
+              <h4 class="card-title">Audit Permissions</h4>
+              <div class="perms-summary" id="apkPermsSummary"></div>
+              <div class="perms-table-wrapper">
+                <table class="perms-table" id="apkPermsTable">
+                  <thead>
+                    <tr>
+                      <th>Permission</th>
+                      <th>Risk</th>
+                      <th>Deskripsi / Alasan Privasi</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- View 3: MCP & Context Hub -->
+        <section id="view-mcp-hub" class="tab-view">
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 12px; flex-wrap:wrap; gap:12px;">
+              <div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <h3 class="card-title" style="margin:0;">Model Context Protocol (MCP) Connectors</h3>
+                  <span class="badge badge-cert" style="font-size:11px; padding:3px 8px;">OAuth 2.0 Live Connect</span>
+                </div>
+                <p class="section-desc" style="margin-top:4px;">Pembeda utama ToolKitDev: AI memahami konteks proyek secara holistik melalui konektor MCP terstandardisasi yang terautentikasi via OAuth 2.0.</p>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-outline" id="btnRefreshMcpHub" style="font-size:12px; padding:6px 12px; display:inline-flex; align-items:center; gap:6px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                  Sync Semua MCP
+                </button>
+              </div>
+            </div>
+            <div class="mcp-grid" id="mcpConnectorsList"></div>
+          </div>
+
+          <div class="card">
+            <div class="history-search-header">
+              <div>
+                <h3 class="card-title">Cari Implementasi Fitur Terdahulu</h3>
+                <p class="section-desc">Melacak kapan fitur dibuat, PR mana yang mengubah, siapa author-nya, dan apa rationale bisnisnya.</p>
+              </div>
+              <div class="history-input-box">
+                <input type="text" id="histSearchInput" placeholder="Cari fitur (misal: 'Clean Architecture', 'Security', 'Gradle', 'Watermark', 'Localization')...">
+                <button class="btn btn-outline" id="btnSearchHist">Cari</button>
+              </div>
+            </div>
+            <div class="history-results" id="histResultsList"></div>
+          </div>
+        </section>
+
+        <!-- View 4: Security & Compliance View -->
+        <section id="view-security-compliance" class="tab-view">
+          <div class="card">
+            <h3 class="card-title">Security & Compliance Dashboard</h3>
+            <p class="section-desc">Kepatuhan standar industri SOC2, ISO27001, GDPR, dan OWASP.</p>
+            <div class="compliance-cards-grid">
+              <div class="comp-box">
+                <div class="comp-status passed">PASSED</div>
+                <h4>SOC 2 Type II</h4>
+                <p>Access control, secret rotation, dan CI/CD audit logs terverifikasi.</p>
+              </div>
+              <div class="comp-box">
+                <div class="comp-status in-review">IN REVIEW</div>
+                <h4>ISO 27001</h4>
+                <p>69 dependensi rentan sedang dalam proses mitigasi patch.</p>
+              </div>
+              <div class="comp-box">
+                <div class="comp-status passed">COMPLIANT</div>
+                <h4>GDPR / Privacy</h4>
+                <p>Data masking pada logging client dan verifikasi consent cookie.</p>
+              </div>
+              <div class="comp-box">
+                <div class="comp-status passed">READY</div>
+                <h4>OWASP Mobile Top 10</h4>
+                <p>Proteksi M1 (Improper Credential Usage) dan M2 (Insecure Supply Chain).</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- View 5: Settings & Preferences -->
+        <section id="view-settings" class="tab-view">
+          <div class="settings-container">
+            <div class="card settings-card">
+              <div class="dash-card-header">
+                <div>
+                  <h3>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    Platform Settings &amp; Configuration
+                  </h3>
+                  <p>Sesuaikan preferensi pemindaian live, API token, dan ambang batas audit keamanan</p>
+                </div>
+              </div>
+
+              <div class="settings-group">
+                <div class="settings-row">
+                  <label for="setTargetUser">Target GitHub Default</label>
+                  <span class="settings-desc">Username atau organisasi GitHub yang otomatis dipindai saat dashboard dibuka.</span>
+                  <input type="text" id="setTargetUser" class="settings-input" value="budisusanto911">
+                </div>
+
+                <div class="settings-row">
+                  <label for="setLocalPath">Direktori Workspace Lokal</label>
+                  <span class="settings-desc">Path folder StudioProjects untuk audit source code dan git log lokal.</span>
+                  <input type="text" id="setLocalPath" class="settings-input" value="/home/gli-budi-agf/StudioProjects">
+                </div>
+
+                <div class="settings-row">
+                  <label for="setGhToken">GitHub Personal Access Token (Opsional)</label>
+                  <span class="settings-desc">Tingkatkan limit request rate GitHub API dari 60/jam menjadi 5,000/jam.</span>
+                  <input type="password" id="setGhToken" class="settings-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+                </div>
+
+                <div class="settings-row">
+                  <label for="setOsvCache">Database OSV.dev Cache</label>
+                  <span class="settings-desc">Simpan cache advisory keamanan lokal untuk mempercepat pemindaian berulang.</span>
+                  <select id="setOsvCache" class="settings-input">
+                    <option value="enabled" selected>Aktif (Rekomendasi - Caching 24 Jam)</option>
+                    <option value="always_live">Selalu Live Query Real-time</option>
+                  </select>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:12px;">
+                  <button class="btn btn-primary" id="btnSaveSettings">
+                    Simpan Pengaturan
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- Floating AI Context Chatbot Bubble & Drawer -->
+    <button class="floating-chat-bubble" id="toggleChatDrawer" title="Tanya AI Konteks Project">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+    </button>
+
+    <div class="ai-chat-drawer hidden" id="aiChatDrawer">
+      <div class="chat-header">
+        <div class="chat-title">
+          <span class="ai-dot"></span>
+          <strong>ToolKitDev AI Context Assistant</strong>
+        </div>
+        <button class="btn-close" id="closeChatBtn">×</button>
+      </div>
+
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-msg ai">
+          <div class="msg-author">AI Context Engine</div>
+          <div class="msg-text">
+            Halo! Saya AI yang memahami konteks seluruh project kamu (Kode, Git history, PRD Google Docs, Desain Figma, dan APK binary). Ada yang ingin kamu tanyakan atau audit?
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-suggestions">
+        <button class="btn-chip" data-query="Apa temuan security terpenting pada project ini?">Security Highlights</button>
+        <button class="btn-chip" data-query="Kapan fitur PDF Watermark dibuat dan kenapa?">Riwayat Fitur Watermark</button>
+        <button class="btn-chip" data-query="Bagaimana cara memperbaiki celah APK debuggable?">Fix APK Debuggable</button>
+      </div>
+
+      <div class="chat-input-bar">
+        <input type="text" id="chatInput" placeholder="Tanya AI berdasarkan sumber project...">
+        <button class="btn btn-primary" id="btnSendChat">Kirim</button>
+      </div>
+    </div>
+
+  </div>
+
+  
+  <!-- Shopeers Add Widget Slide-over Drawer Modal -->
+  <div class="shopeers-drawer-overlay hidden" id="shopeersWidgetDrawer">
+    <div class="shopeers-drawer">
+      <div class="shopeers-drawer-header">
+        <div>
+          <div class="shopeers-drawer-title">Add Widget to Dashboard</div>
+          <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Select components to customize your dashboard layout</div>
+        </div>
+        <button class="shopeers-drawer-close" id="btnCloseWidgetDrawer">&times;</button>
+      </div>
+
+      <div class="shopeers-drawer-body">
+        <!-- Widget 1: APK Security Breakdown -->
+        <div class="shopeers-widget-option">
+          <div class="shopeers-widget-preview">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.8">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+              <line x1="12" y1="18" x2="12.01" y2="18"></line>
+            </svg>
+          </div>
+          <div class="shopeers-widget-info">
+            <div class="shopeers-widget-name">APK Security Breakdown</div>
+            <div class="shopeers-widget-desc">Audit Android permissions, debuggable flags, and binary size distribution.</div>
+          </div>
+          <input type="checkbox" checked class="shopeers-checkbox">
+        </div>
+
+        <!-- Widget 2: Repository Correlation Graph -->
+        <div class="shopeers-widget-option">
+          <div class="shopeers-widget-preview">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="1.8">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+          </div>
+          <div class="shopeers-widget-info">
+            <div class="shopeers-widget-name">Repository Correlation Graph</div>
+            <div class="shopeers-widget-desc">Force-directed map connecting codebases, SBOM packages, and CVEs.</div>
+          </div>
+          <input type="checkbox" checked class="shopeers-checkbox">
+        </div>
+
+        <!-- Widget 3: SBOM Dependencies Stream -->
+        <div class="shopeers-widget-option">
+          <div class="shopeers-widget-preview">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </div>
+          <div class="shopeers-widget-info">
+            <div class="shopeers-widget-name">SBOM Dependencies Stream</div>
+            <div class="shopeers-widget-desc">Real-time vulnerability verification against the OSV.dev open database.</div>
+          </div>
+          <input type="checkbox" checked class="shopeers-checkbox">
+        </div>
+
+        <!-- Widget 4: Multi-MCP Protocol Hub -->
+        <div class="shopeers-widget-option">
+          <div class="shopeers-widget-preview">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.8">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </div>
+          <div class="shopeers-widget-info">
+            <div class="shopeers-widget-name">Multi-MCP Protocol Hub</div>
+            <div class="shopeers-widget-desc">Status of 4 connectors: GitHub, Architecture ADRs, Google Docs PRD, Figma.</div>
+          </div>
+          <input type="checkbox" class="shopeers-checkbox">
+        </div>
+
+        <!-- Widget 5: Compliance & Security Policy -->
+        <div class="shopeers-widget-option">
+          <div class="shopeers-widget-preview">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="1.8">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="shopeers-widget-info">
+            <div class="shopeers-widget-name">Compliance &amp; Policy Audit</div>
+            <div class="shopeers-widget-desc">SOC2, ISO27001, and GDPR enterprise regulatory compliance tracking.</div>
+          </div>
+          <input type="checkbox" class="shopeers-checkbox">
+        </div>
+      </div>
+
+      <div class="shopeers-drawer-footer">
+        <button class="btn btn-outline" id="btnCancelWidgetDrawer" style="flex:1;">Cancel</button>
+        <button class="btn btn-primary" id="btnSaveWidgetDrawer" style="flex:1;">Save Layout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detail Temuan Keamanan APK -->
+  <div class="apk-modal-overlay hidden" id="apkFindingDetailModal">
+    <div class="apk-modal">
+      <div class="apk-modal-header">
+        <div class="apk-modal-title-area">
+          <div class="apk-modal-badges">
+            <span class="badge badge-danger" id="modalFindingSeverity">CRITICAL</span>
+            <span class="badge badge-warning" id="modalFindingDeduction">-20 pts</span>
+            <span class="badge badge-cert" id="modalFindingCategory">CWE-319</span>
+          </div>
+          <h3 class="apk-modal-title" id="modalFindingTitle">Judul Kerentanan</h3>
+        </div>
+        <button class="apk-modal-close" id="btnCloseFindingModal">&times;</button>
+      </div>
+
+      <div class="apk-modal-body" id="modalFindingBody">
+        <!-- Dynamic Content populated via app.js -->
+      </div>
+
+      <div class="apk-modal-footer">
+        <button class="btn btn-primary" id="btnOkFindingModal">Tutup Rincian</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal OAuth Connection MCP Hub -->
+  <div class="apk-modal-overlay hidden" id="mcpOAuthModal">
+    <div class="apk-modal" style="max-width: 580px;">
+      <div class="apk-modal-header">
+        <div class="apk-modal-title-area">
+          <div class="apk-modal-badges">
+            <span class="badge badge-cert" id="mcpModalProviderBadge">OAuth 2.0</span>
+            <span class="badge badge-warning" id="mcpModalStatusBadge">Ready to Connect</span>
+          </div>
+          <h3 class="apk-modal-title" id="mcpModalTitle">Hubungkan MCP Connector</h3>
+        </div>
+        <button class="apk-modal-close" id="btnCloseMcpModal">&times;</button>
+      </div>
+
+      <div class="apk-modal-body">
+        <div class="mcp-oauth-provider-badge" id="mcpModalProviderInfo">
+          <!-- Dynamically populated provider icon & details -->
+        </div>
+
+        <div class="mcp-tabs">
+          <button class="mcp-tab-btn active" id="tabBtnDirectToken" onclick="window.switchMcpModalTab('token')">🔑 OAuth / Access Token</button>
+          <button class="mcp-tab-btn" id="tabBtnWebOAuth" onclick="window.switchMcpModalTab('oauth')">⚡ 1-Click OAuth Authorize Flow</button>
+        </div>
+
+        <!-- Tab 1: Direct Token Verification -->
+        <div id="mcpTabTokenContent">
+          <div class="mcp-form-group">
+            <label id="lblMcpTokenInput">OAuth Access Token / Personal Access Token (PAT):</label>
+            <input type="password" id="mcpTokenInput" class="mcp-form-input" placeholder="Masukkan token (cth: ghp_... / ya29... / figd_...)">
+            <div class="mcp-form-helper" id="mcpTokenHelper">Token akan langsung divalidasi ke API provider untuk mengautentikasi akun &amp; izin akses repository/dokumen.</div>
+          </div>
+
+          <div class="mcp-form-group">
+            <label id="lblMcpTargetInput">Target Scope / Resource Terikat (Opsional):</label>
+            <input type="text" id="mcpTargetInput" class="mcp-form-input" placeholder="cth: username/repository-name atau Nama Dokumen PRD">
+            <div class="mcp-form-helper">Spesifikasikan repo atau project target yang akan disinkronkan ke context engine.</div>
+          </div>
+        </div>
+
+        <!-- Tab 2: OAuth 2.0 Web Authorize Flow -->
+        <div id="mcpTabOAuthContent" style="display:none;">
+          <div class="mcp-form-group">
+            <label>OAuth 2.0 Client ID:</label>
+            <input type="text" id="mcpClientIdInput" class="mcp-form-input" placeholder="Client ID dari Developer Console">
+            <div class="mcp-form-helper">Gunakan Client ID terdaftar Anda atau default dev client ToolKitDev.</div>
+          </div>
+          <div class="mcp-form-group">
+            <label>OAuth 2.0 Client Secret (Opsional untuk Backend Exchange):</label>
+            <input type="password" id="mcpClientSecretInput" class="mcp-form-input" placeholder="Client Secret (jika memerlukan backend token exchange)">
+          </div>
+          <div class="mcp-form-group">
+            <label>Redirect Callback URI:</label>
+            <input type="text" id="mcpRedirectUriInput" class="mcp-form-input" readonly value="http://localhost:8080/api/mcp/oauth/callback">
+          </div>
+          <button class="btn btn-primary" id="btnLaunchOAuthFlow" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; margin-top:10px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            Buka OAuth Provider Login
+          </button>
+        </div>
+
+        <!-- Feedback & Status Area -->
+        <div class="mcp-live-feedback" id="mcpLiveFeedback"></div>
+      </div>
+
+      <div class="apk-modal-footer">
+        <button class="btn btn-outline" id="btnCancelMcpModal">Batal</button>
+        <button class="btn btn-primary" id="btnSubmitMcpConnect">Verifikasi &amp; Hubungkan Akun</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js?v=4.0"></script>
+</body>
+</html>
+

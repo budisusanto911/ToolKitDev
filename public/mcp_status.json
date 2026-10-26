@@ -1,0 +1,95 @@
+{
+  "total_connectors": 4,
+  "connected_count": 4,
+  "all_healthy": true,
+  "connectors": {
+    "github": {
+      "name": "GitHub MCP",
+      "status": "connected",
+      "auth_type": "oauth2_saved",
+      "auth_user": "budisusanto911/pokemon_budi",
+      "auth_avatar": null,
+      "auth_scopes": [
+        "repo",
+        "read:user",
+        "read:org",
+        "security_events"
+      ],
+      "endpoint": "mcp://github.com/budisusanto911/pokemon_budi",
+      "capabilities": [
+        "read_repo_tree",
+        "get_file_contents",
+        "search_commits",
+        "list_pull_requests",
+        "get_security_alerts"
+      ],
+      "active_repo": "budisusanto911/pokemon_budi",
+      "synced_items": 8,
+      "synced_detail": "8 Repositories \u2022 12 Stars \u2022 142 Commits",
+      "last_synced": "Just now",
+      "oauth_provider": "github",
+      "auth_token_masked": "ghp_...7890",
+      "live_verified": false,
+      "notice": "Saved credentials (offline verification note: <urlopen error [Errno -3] Temporary failure in name resolution>)"
+    },
+    "docs": {
+      "name": "Architecture & ADR MCP",
+      "status": "connected",
+      "auth_type": "local_bearer",
+      "endpoint": "mcp://local/docs",
+      "capabilities": [
+        "search_adrs",
+        "parse_openapi",
+        "query_system_architecture",
+        "extract_er_diagrams"
+      ],
+      "indexed_adrs": 14,
+      "synced_items": 45,
+      "active_doc": "ADR-004: Clean Architecture with Kotlin Coroutines & Flow",
+      "last_synced": "5 mins ago",
+      "oauth_provider": "local"
+    },
+    "google_docs": {
+      "name": "Google Docs MCP (PRD & Specs)",
+      "status": "connected",
+      "auth_type": "oauth2",
+      "auth_user": "budi.susanto@alfagift.id",
+      "auth_avatar": "https://lh3.googleusercontent.com/a/default-user=s96-c",
+      "auth_scopes": [
+        "documents.readonly",
+        "drive.readonly",
+        "userinfo.profile"
+      ],
+      "endpoint": "mcp://docs.google.com/workspace",
+      "capabilities": [
+        "search_documents",
+        "get_prd_section",
+        "extract_acceptance_criteria"
+      ],
+      "active_document": "PRD - GLI Mobile Loyalty App Architecture & Security",
+      "synced_items": 18,
+      "last_synced": "12 mins ago",
+      "oauth_provider": "google"
+    },
+    "figma": {
+      "name": "Figma MCP (Design System)",
+      "status": "connected",
+      "auth_type": "oauth2",
+      "auth_user": "budi.design@figma.team",
+      "auth_avatar": "https://static.figma.com/app/icon/1/favicon.svg",
+      "auth_scopes": [
+        "files:read"
+      ],
+      "endpoint": "mcp://api.figma.com/v1",
+      "capabilities": [
+        "get_component_tree",
+        "get_color_tokens",
+        "diff_code_vs_design"
+      ],
+      "active_file": "GLI Mobile Design System & UI Kit v3.0 (Tokens & Layout)",
+      "synced_items": 128,
+      "last_synced": "1 hour ago",
+      "oauth_provider": "figma"
+    }
+  }
+}
