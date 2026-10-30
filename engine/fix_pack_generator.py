@@ -9,14 +9,16 @@ import os
 import io
 import json
 import zipfile
+import datetime
 from typing import Dict, Any, Optional, List
 
 
 class FixPackGenerator:
     def __init__(self, analysis_data: Dict[str, Any], app_name: Optional[str] = None):
         self.analysis = analysis_data
+        self.platform = self.analysis.get("platform", "android")
         meta = self.analysis.get("metadata", {})
-        self.app_name = app_name or meta.get("app_label") or meta.get("package_name") or "ToolKitDev_SecuredApp"
+        self.app_name = app_name or meta.get("app_label") or meta.get("app_name") or meta.get("package_name") or "ToolKitDev_SecuredApp"
         self.package_name = meta.get("package_name") or "com.example.app"
         self.target_sdk = meta.get("target_sdk") or 34
         self.min_sdk = meta.get("min_sdk") or 24
@@ -410,29 +412,170 @@ class SecureVaultService {{
 *Generated automatically by ToolKitDev AI Remediation Engine.*
 """
 
+    def _generate_web_nginx_conf(self) -> str:
+        return """# ToolKitDev - Nginx Web Security & Hardening Configuration
+# Include this snippet in your server block: include /etc/nginx/conf.d/security.conf;
+
+# 1. Hide Server Version
+server_tokens off;
+
+# 2. Strong HTTP Security Headers
+add_header X-Frame-Options "SAMEORIGIN" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always;
+
+# 3. HTTP Strict Transport Security (HSTS)
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+
+# 4. Content Security Policy (CSP)
+add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self';" always;
+
+# 5. Prevent Access to Hidden & Sensitive Files (.env, .git, etc.)
+location ~ /\\.(?!well-known) {
+    deny all;
+    access_log off;
+    log_not_found off;
+}
+
+location ~* (\\.env|\\.git|\\.bak|\\.sql|\\.zip|\\.tar|\\.gz|composer\\.json|package\\.json)$ {
+    deny all;
+    return 404;
+}
+"""
+
+    def _generate_web_express_middleware(self) -> str:
+        return """// ToolKitDev - Express.js Security Headers & Hardening Middleware
+// Installation: npm install helmet cors
+const helmet = require('helmet');
+const cors = require('cors');
+
+function applySecurityMiddleware(app) {
+    // 1. Remove x-powered-by
+    app.disable('x-powered-by');
+
+    // 2. Comprehensive Security Headers with Helmet
+    app.use(helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'"],
+                styleSrc: ["'self'", "'unsafe-inline'"],
+                imgSrc: ["'self'", "data:", "https:"],
+                objectSrc: ["'none'"],
+                upgradeInsecureRequests: [],
+            },
+        },
+        crossOriginEmbedderPolicy: false,
+        hsts: {
+            maxAge: 31536000,
+            includeSubDomains: true,
+            preload: true
+        },
+        frameguard: {
+            action: 'sameorigin'
+        },
+        noSniff: true,
+        referrerPolicy: {
+            policy: 'strict-origin-when-cross-origin'
+        }
+    }));
+
+    // 3. Strict CORS Whitelist
+    const allowedOrigins = ['https://yourdomain.com', 'https://app.yourdomain.com'];
+    app.use(cors({
+        origin: function(origin, callback) {
+            if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+                callback(null, true);
+            } else {
+                callback(new Error('Blocked by ToolKitDev CORS Policy'));
+            }
+        },
+        credentials: true
+    }));
+}
+
+module.exports = applySecurityMiddleware;
+"""
+
+    def _generate_web_apache_htaccess(self) -> str:
+        return """# ToolKitDev - Apache .htaccess Security Hardening
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+</IfModule>
+
+# Block access to hidden files (.env, .git, etc.)
+<FilesMatch "^\\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Block access to environment and backup files
+<FilesMatch "\\.(env|bak|sql|zip|gz)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+"""
+
+    def _generate_web_readme_guide(self) -> str:
+        findings_md = ""
+        for idx, f in enumerate(self.findings, 1):
+            findings_md += f"### {idx}. [{f.get('severity')}] {f.get('title')}\n"
+            findings_md += f"- **Kategori**: {f.get('category')} ({f.get('cwe', 'N/A')})\n"
+            findings_md += f"- **Rekomendasi**: {f.get('recommendation')}\n\n"
+
+        return f"""# ToolKitDev Autonomous Web Remediation Fix Pack
+**Target**: {self.app_name}  
+**Generated At**: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  
+
+Paket ini berisi konfigurasi keamanan siap pakai untuk mengatasi seluruh celah keamanan web yang ditemukan oleh ToolKitDev Scanner.
+
+## 📦 Berkas yang Disertakan:
+1. `nginx_security.conf`: Konfigurasi reverse proxy Nginx untuk mengaktifkan CSP, HSTS, X-Frame-Options, dan memblokir akses ke `/.env` / `/.git`.
+2. `security_headers.htaccess`: Konfigurasi untuk web server Apache.
+3. `express_security_middleware.js`: Middleware keamanan untuk Node.js Express menggunakan `helmet` dan whitelist CORS.
+
+## 🎯 Temuan Keamanan Web yang Diperbaiki:
+{findings_md}
+
+---
+*Generated automatically by ToolKitDev Autonomous Web SecOps Engine.*
+"""
+
     def generate_zip_bytes(self) -> bytes:
         """Creates an in-memory ZIP package containing all remediation files."""
         zip_buffer = io.BytesIO()
 
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as z:
-            # 1. Network Security Config
-            z.writestr("res/xml/network_security_config.xml", self._generate_network_security_config())
+            if self.platform == "web":
+                # Web Remediation Bundle
+                z.writestr("nginx/nginx_security.conf", self._generate_web_nginx_conf())
+                z.writestr("apache/security_headers.htaccess", self._generate_web_apache_htaccess())
+                z.writestr("nodejs/express_security_middleware.js", self._generate_web_express_middleware())
+                z.writestr("README_WEB_SECURITY_GUIDE.md", self._generate_web_readme_guide())
+            else:
+                # 1. Network Security Config
+                z.writestr("res/xml/network_security_config.xml", self._generate_network_security_config())
 
-            # 2. ProGuard Rules
-            z.writestr("proguard-rules.pro", self._generate_proguard_rules())
+                # 2. ProGuard Rules
+                z.writestr("proguard-rules.pro", self._generate_proguard_rules())
 
-            # 3. Hardened AndroidManifest
-            z.writestr("AndroidManifest_secured.xml", self._generate_secured_manifest())
+                # 3. Hardened AndroidManifest
+                z.writestr("AndroidManifest_secured.xml", self._generate_secured_manifest())
 
-            # 4. Kotlin Crypto Util
-            pkg_path = self.package_name.replace(".", "/")
-            z.writestr(f"kotlin/{pkg_path}/security/SecureCryptoUtil.kt", self._generate_secure_crypto_util_kt())
+                # 4. Kotlin Crypto Util
+                pkg_path = self.package_name.replace(".", "/")
+                z.writestr(f"kotlin/{pkg_path}/security/SecureCryptoUtil.kt", self._generate_secure_crypto_util_kt())
 
-            # 5. Flutter Secure Storage Service
-            z.writestr("flutter/secure_vault_service.dart", self._generate_secure_storage_dart())
+                # 5. Flutter Secure Storage Service
+                z.writestr("flutter/secure_vault_service.dart", self._generate_secure_storage_dart())
 
-            # 6. Implementation Readme Guide
-            z.writestr("README_SECURITY_FIX_GUIDE.md", self._generate_readme_guide())
+                # 6. Implementation Readme Guide
+                z.writestr("README_SECURITY_FIX_GUIDE.md", self._generate_readme_guide())
 
         zip_buffer.seek(0)
         return zip_buffer.getvalue()

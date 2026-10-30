@@ -256,6 +256,15 @@ def cmd_web(args) -> int:
         except Exception as e:
             print(f"{RED}Gagal membuat PDF Report: {e}{RESET}", file=sys.stderr)
 
+    # Generate Fix Pack if requested
+    if getattr(args, "fix_pack", None):
+        try:
+            generator = FixPackGenerator(result, app_name=result.get("metadata", {}).get("app_name"))
+            generator.save_zip(args.fix_pack)
+            print(f"{GREEN}✓ Web Fix Pack ZIP berhasil disimpan ke:{RESET} {args.fix_pack}")
+        except Exception as e:
+            print(f"{RED}Gagal membuat Fix Pack: {e}{RESET}", file=sys.stderr)
+
     if args.format == "json":
         print(json.dumps(result, indent=2))
     else:
@@ -334,6 +343,7 @@ def main():
     p_web.add_argument("--fail-on", choices=["CRITICAL", "HIGH", "MEDIUM", "LOW"], help="Gagalkan exit code jika ada temuan pada tingkat ini")
     p_web.add_argument("--min-score", type=int, help="Ambang batas minimum security score (0-100)")
     p_web.add_argument("--format", choices=["table", "json"], default="table", help="Format output stdout")
+    p_web.add_argument("--fix-pack", help="Path untuk menyimpan bundel Web Fix Pack (.zip)")
     p_web.add_argument("--export-pdf", help="Path untuk menyimpan laporan resmi PDF (.pdf)")
 
     # Command: diff

@@ -45,6 +45,12 @@ jobs:
           python3 cli.py diff samples/sample-debug.apk uploads/base.apk \
             --fail-on-regression
 
+      - name: Run ToolKitDev Autonomous Web Security Gate
+        run: |
+          python3 cli.py web https://example.com \
+            --export-pdf build/reports/web-security-audit.pdf \
+            --fix-pack build/reports/toolkitdev-web-fixpack.zip
+
       - name: Upload Security Reports & Fix Pack Artifacts
         if: always()
         uses: actions/upload-artifact@v4

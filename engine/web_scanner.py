@@ -540,3 +540,4 @@ if __name__ == "__main__":
     scanner = WebSecurityScanner(target)
     result = scanner.scan()
     print(json.dumps(result, indent=2))
+
