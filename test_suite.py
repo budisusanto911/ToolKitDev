@@ -29,6 +29,8 @@ from engine.sca_scanner import ScaScanner
 from engine.fix_pack_generator import FixPackGenerator
 from engine.ipa_analyzer import IpaAnalyzer
 from engine.frida_runner import FridaRunner
+from engine.threat_modeling import ThreatModelingEngine
+from engine.webhook_notifier import format_notification, generate_sarif
 from cli import cmd_scan
 
 
@@ -209,6 +211,69 @@ def test_frida_and_cli():
     print("-> Frida & CLI Test: PASSED")
 
 
+def test_threat_modeling_engine():
+    print("\n--- [11] Testing STRIDE & Threat Modeling Engine ---")
+    mock_findings = [
+        {"id": "VULN-001", "description": "Exported activity allows spoofing of intents", "severity": "HIGH", "component": "apk"},
+        {"id": "VULN-002", "description": "Cleartext HTTP traffic causes information disclosure", "severity": "MEDIUM", "component": "network"},
+        {"id": "VULN-003", "description": "Missing signature verification leads to tampering", "severity": "CRITICAL", "component": "apk", "mitigated": True}
+    ]
+    engine = ThreatModelingEngine(mock_findings)
+    rep = engine.generate_report()
+
+    assert rep["findings_count"] == 3
+    assert "stride_mapping" in rep
+    assert "VULN-001" in rep["stride_mapping"]
+    assert "risk_scores" in rep
+    assert rep["summary"]["total_inherent_risk"] > 0
+    assert rep["summary"]["total_residual_risk"] < rep["summary"]["total_inherent_risk"]
+    print(f"✓ Findings Count: {rep['findings_count']}")
+    print(f"✓ Inherent Risk: {rep['summary']['total_inherent_risk']} | Residual Risk: {rep['summary']['total_residual_risk']}")
+    print(f"✓ Risk Reduction: {rep['summary']['risk_reduction_percent']:.1f}%")
+    print("-> Threat Modeling Test: PASSED")
+
+
+def test_webhook_notifier_and_sarif():
+    print("\n--- [12] Testing Webhook Notifier Hub & OASIS SARIF Exporter ---")
+    # 1. Slack
+    slack_payload = format_notification("slack", message="Security alert detected", severity="danger", title="Alert")
+    assert "blocks" in slack_payload
+    assert len(slack_payload["attachments"]) > 0
+
+    # 2. Discord
+    discord_payload = format_notification("discord", message="Discord alert", severity="warning", title="Warning")
+    assert "embeds" in discord_payload
+    assert discord_payload["embeds"][0]["title"] == "Warning"
+
+    # 3. Jira
+    jira_payload = format_notification("jira", summary="Fix critical leak", description="Detailed description")
+    assert jira_payload["fields"]["summary"] == "Fix critical leak"
+
+    # 4. SARIF
+    mock_analysis = {
+        "findings": [
+            {
+                "id": "RULE-DEBUG-01",
+                "title": "Debuggable Flag Enabled",
+                "severity": "CRITICAL",
+                "description": "App is debuggable in production.",
+                "location": {"uri": "AndroidManifest.xml", "region": {"startLine": 12}}
+            }
+        ]
+    }
+    sarif = generate_sarif(mock_analysis)
+    assert sarif["version"] == "2.1.0"
+    assert len(sarif["runs"]) == 1
+    assert sarif["runs"][0]["results"][0]["ruleId"] == "RULE-DEBUG-01"
+    assert sarif["runs"][0]["results"][0]["level"] == "error"
+
+    print("✓ Slack Block Kit formatted correctly")
+    print("✓ Discord Embeds formatted correctly")
+    print("✓ Jira Issue payload structured correctly")
+    print(f"✓ OASIS SARIF v2.1.0 generated: {len(sarif['runs'][0]['results'])} rule results")
+    print("-> Webhook & SARIF Test: PASSED")
+
+
 if __name__ == "__main__":
     try:
         test_apk_analyzer()
@@ -221,8 +286,10 @@ if __name__ == "__main__":
         test_fix_pack_generator()
         test_ipa_analyzer()
         test_frida_and_cli()
+        test_threat_modeling_engine()
+        test_webhook_notifier_and_sarif()
         print("\n=======================================================")
-        print("🎉 ALL TEST SUITES PASSED PERFECTLY (10/10 ENGINES)!")
+        print("🎉 ALL TEST SUITES PASSED PERFECTLY (12/12 ENGINES)!")
         print("=======================================================\n")
     except AssertionError as e:
         print(f"\n❌ TEST FAILED: {str(e)}")

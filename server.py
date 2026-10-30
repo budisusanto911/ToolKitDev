@@ -40,6 +40,8 @@ from engine.fix_pack_generator import FixPackGenerator
 from engine.ipa_analyzer import IpaAnalyzer
 from engine.frida_runner import FridaRunner
 from engine.web_scanner import WebSecurityScanner
+from engine.threat_modeling import ThreatModelingEngine
+from engine.webhook_notifier import format_notification
 
 PORT = int(os.environ.get("PORT", 8080))
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
@@ -367,6 +369,81 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(zip_data)
             except Exception as e:
                 self._send_json({"error": f"Failed to generate Fix Pack: {str(e)}"}, status=500)
+        elif path == "/api/threat-model":
+            # Generate threat model report from analysis JSON
+            file_name = query.get("file", [""])[0]
+            analysis_data = None
+            if file_name and file_name.endswith(".json"):
+                json_path = os.path.join(PUBLIC_DIR, os.path.basename(file_name))
+                if os.path.exists(json_path):
+                    with open(json_path, "r", encoding="utf-8") as fp:
+                        analysis_data = json.load(fp)
+            if not analysis_data:
+                target_path = self._resolve_apk_file(os.path.basename(file_name) if file_name else "")
+                if target_path and os.path.isfile(target_path):
+                    try:
+                        analyzer = ApkAnalyzer(target_path)
+                        analysis_data = analyzer.analyze()
+                    except Exception:
+                        pass
+            if not analysis_data:
+                alfagift_json = os.path.join(PUBLIC_DIR, "alfagift_analysis.json")
+                if os.path.exists(alfagift_json):
+                    try:
+                        with open(alfagift_json, "r", encoding="utf-8") as fp:
+                            analysis_data = json.load(fp)
+                    except Exception:
+                        pass
+            if not analysis_data:
+                self._send_json({"error": "Analysis data not found"}, status=404)
+                return
+            engine = ThreatModelingEngine(analysis_data.get("findings", []))
+            report = engine.generate_report()
+            self._send_json(report)
+        elif path == "/api/webhooks/test":
+            # Simple test endpoint to preview formatted payloads
+            platform = query.get("platform", ["slack"])[0]
+            message = query.get("message", ["Test notification"])[0]
+            title = query.get("title", ["ToolKitDev Test"])[0]
+            severity = query.get("severity", ["info"])[0]
+            payload = format_notification(platform, message=message, title=title, severity=severity)
+            self._send_json(payload)
+        elif path == "/api/export-sarif":
+            # Export SARIF report for given analysis JSON or target APK
+            file_name = query.get("file", [""])[0]
+            analysis_data = None
+            if file_name and file_name.endswith(".json"):
+                json_path = os.path.join(PUBLIC_DIR, os.path.basename(file_name))
+                if os.path.exists(json_path):
+                    with open(json_path, "r", encoding="utf-8") as fp:
+                        analysis_data = json.load(fp)
+            if not analysis_data:
+                target_path = self._resolve_apk_file(os.path.basename(file_name) if file_name else "")
+                if target_path and os.path.isfile(target_path):
+                    try:
+                        analyzer = ApkAnalyzer(target_path)
+                        analysis_data = analyzer.analyze()
+                    except Exception:
+                        pass
+            if not analysis_data:
+                alfagift_json = os.path.join(PUBLIC_DIR, "alfagift_analysis.json")
+                if os.path.exists(alfagift_json):
+                    try:
+                        with open(alfagift_json, "r", encoding="utf-8") as fp:
+                            analysis_data = json.load(fp)
+                    except Exception:
+                        pass
+            if not analysis_data:
+                self._send_json({"error": "Analysis data not found"}, status=404)
+                return
+            sarif_payload = format_notification("sarif", analysis=analysis_data)
+            sarif_bytes = json.dumps(sarif_payload, indent=2).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Disposition", 'attachment; filename="report.sarif.json"')
+            self.send_header("Content-Length", str(len(sarif_bytes)))
+            self.end_headers()
+            self.wfile.write(sarif_bytes)
         elif path == "/api/ipa/inspect" or path == "/api/scan-sample-ipa":
             file_name = query.get("file", ["sample-ios.ipa"])[0]
             resolved = self._resolve_diff_target(file_name)

@@ -20,6 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initAiFixPackGenerator();
   initIpaInspector();
   initUpgradePremiumModal();
+  initRedTeamAndThreatModel();
   loadDashboardData();
   initShopeersInteractions();
 });
@@ -6439,6 +6440,127 @@ function initUpgradePremiumModal() {
     }
   });
 }
+
+/* =========================================================================
+   12. AUTONOMOUS STRIDE THREAT MODELING & WEBHOOK NOTIFIER
+   ========================================================================= */
+function initRedTeamAndThreatModel() {
+  const targetSelect = document.getElementById("threatModelTargetSelect");
+  const btnRun = document.getElementById("btnRunThreatModel");
+  const btnSarif = document.getElementById("btnDownloadSarif");
+  const btnPreviewWebhook = document.getElementById("btnPreviewWebhook");
+  const webhookPlatform = document.getElementById("webhookPlatformSelect");
+  const webhookSeverity = document.getElementById("webhookSeveritySelect");
+  const webhookMessage = document.getElementById("webhookMessageInput");
+  const webhookPreview = document.getElementById("webhookPayloadPreview");
+  const webhookStatus = document.getElementById("webhookStatusIndicator");
+
+  // Threat Model Loader
+  async function loadThreatModel() {
+    const file = targetSelect ? targetSelect.value : "alfagift_analysis.json";
+    if (btnRun) {
+      btnRun.disabled = true;
+      btnRun.innerHTML = `<span>Menghitung...</span>`;
+    }
+    try {
+      const res = await fetch(`/api/threat-model?file=${encodeURIComponent(file)}`);
+      if (!res.ok) throw new Error("Gagal memuat model ancaman");
+      const data = await res.json();
+
+      // Update metrics
+      const findingsEl = document.getElementById("tmMetricFindings");
+      const inherentEl = document.getElementById("tmMetricInherent");
+      const residualEl = document.getElementById("tmMetricResidual");
+      const reductionEl = document.getElementById("tmMetricReduction");
+
+      if (findingsEl) findingsEl.textContent = data.findings_count || 0;
+      if (inherentEl) inherentEl.textContent = data.summary?.total_inherent_risk?.toFixed(1) || "-";
+      if (residualEl) residualEl.textContent = data.summary?.total_residual_risk?.toFixed(1) || "-";
+      if (reductionEl) reductionEl.textContent = `${data.summary?.risk_reduction_percent?.toFixed(1) || 0}%`;
+
+      // Update Detailed STRIDE Table
+      const tbody = document.getElementById("threatModelTableBody");
+      if (tbody && data.stride_mapping) {
+        tbody.innerHTML = "";
+        const fids = Object.keys(data.stride_mapping);
+        if (fids.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px;">Tidak ada temuan aktif yang terpetakan.</td></tr>`;
+        } else {
+          fids.forEach(fid => {
+            const mappings = data.stride_mapping[fid] || [];
+            const scores = (data.risk_scores && data.risk_scores[fid]) || { inherent: 5, residual: 5 };
+            const strideStr = mappings.map(m => m.stride).join(", ");
+            const techStr = mappings.flatMap(m => m.techniques).join(", ");
+            const tr = document.createElement("tr");
+            tr.style.borderBottom = "1px solid var(--border-color, #334155)";
+            tr.innerHTML = `
+              <td style="padding:10px; font-weight:600; font-family:'JetBrains Mono', monospace; font-size:12px; color:#38bdf8;">${fid}</td>
+              <td style="padding:10px;"><span class="badge" style="background:rgba(59,130,246,0.15); color:#60a5fa; font-size:11.5px; padding:3px 8px; border-radius:4px;">${strideStr || 'Information Disclosure'}</span></td>
+              <td style="padding:10px; font-family:'JetBrains Mono', monospace; font-size:12px; color:#a5f3fc;">${techStr || 'T1406'}</td>
+              <td style="padding:10px; font-weight:700; color:#f87171;">${scores.inherent}</td>
+              <td style="padding:10px; font-weight:700; color:#34d399;">${scores.residual}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+      }
+      showToast("Model ancaman STRIDE & MITRE ATT&CK berhasil dihitung!", "success");
+    } catch (e) {
+      showToast(`Error: ${e.message}`, "error");
+    } finally {
+      if (btnRun) {
+        btnRun.disabled = false;
+        btnRun.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg><span>Analisis STRIDE</span>`;
+      }
+    }
+  }
+
+  btnRun?.addEventListener("click", loadThreatModel);
+
+  // SARIF Export
+  btnSarif?.addEventListener("click", () => {
+    const file = targetSelect ? targetSelect.value : "alfagift_analysis.json";
+    window.location.href = `/api/export-sarif?file=${encodeURIComponent(file)}`;
+    showToast("Mengunduh laporan OASIS SARIF v2.1.0...", "info");
+  });
+
+  // Webhook Preview
+  async function previewWebhook() {
+    const platform = webhookPlatform ? webhookPlatform.value : "slack";
+    const severity = webhookSeverity ? webhookSeverity.value : "danger";
+    const message = webhookMessage ? webhookMessage.value : "Alert";
+    if (webhookStatus) webhookStatus.textContent = "Mengirim simulasi...";
+    try {
+      const res = await fetch(`/api/webhooks/test?platform=${platform}&severity=${severity}&message=${encodeURIComponent(message)}`);
+      const payload = await res.json();
+      if (webhookPreview) {
+        webhookPreview.textContent = JSON.stringify(payload, null, 2);
+      }
+      if (webhookStatus) {
+        webhookStatus.textContent = `✓ Berhasil diformat (${platform.toUpperCase()})`;
+        webhookStatus.style.color = "#34d399";
+      }
+    } catch (e) {
+      if (webhookStatus) {
+        webhookStatus.textContent = `❌ Gagal: ${e.message}`;
+        webhookStatus.style.color = "#f87171";
+      }
+    }
+  }
+
+  btnPreviewWebhook?.addEventListener("click", previewWebhook);
+
+  // Auto trigger threat model on view switch if data not yet loaded
+  const navItem = document.querySelector(`.sidebar-nav .nav-item[data-tab="redteam-threat"]`);
+  navItem?.addEventListener("click", () => {
+    const findingsEl = document.getElementById("tmMetricFindings");
+    if (findingsEl && findingsEl.textContent === "-") {
+      setTimeout(loadThreatModel, 100);
+      setTimeout(previewWebhook, 200);
+    }
+  });
+}
+
 
 
 
