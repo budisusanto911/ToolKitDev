@@ -33,6 +33,8 @@ from engine.auth_manager import AuthManager
 from engine.pdf_reporter import ExecutivePdfReporter
 from engine.apk_comparator import ApkComparator
 from engine.sca_scanner import ScaScanner
+from engine.fix_pack_generator import FixPackGenerator
+from engine.ipa_analyzer import IpaAnalyzer
 
 PORT = int(os.environ.get("PORT", 8080))
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
@@ -234,25 +236,27 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                         })
             if os.path.exists(UPLOADS_DIR):
                 for f in sorted(os.listdir(UPLOADS_DIR)):
-                    if f.endswith((".apk", ".aab")) and not f.startswith("."):
+                    if f.endswith((".apk", ".aab", ".ipa")) and not f.startswith("."):
                         p = os.path.join(UPLOADS_DIR, f)
                         sz = os.path.getsize(p)
+                        ftype = "IPA (iOS)" if f.endswith(".ipa") else ("AAB" if f.endswith(".aab") else "APK")
                         files_list.append({
                             "name": f,
-                            "path": f,
-                            "type": "AAB" if f.endswith(".aab") else "APK",
+                            "path": f"uploads/{f}",
+                            "type": ftype,
                             "folder": "uploads",
                             "size_fmt": f"{sz / (1024*1024):.2f} MB"
                         })
             if os.path.exists(SAMPLES_DIR):
                 for f in sorted(os.listdir(SAMPLES_DIR)):
-                    if f.endswith((".apk", ".aab")):
+                    if f.endswith((".apk", ".aab", ".ipa")):
                         p = os.path.join(SAMPLES_DIR, f)
                         sz = os.path.getsize(p)
+                        ftype = "IPA (iOS)" if f.endswith(".ipa") else ("AAB" if f.endswith(".aab") else "APK")
                         files_list.append({
                             "name": f,
                             "path": f"samples/{f}",
-                            "type": "AAB" if f.endswith(".aab") else "APK",
+                            "type": ftype,
                             "folder": "samples",
                             "size_fmt": f"{sz / (1024*1024):.2f} MB"
                         })
@@ -298,6 +302,69 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                 self._send_json(res)
             except Exception as e:
                 self._send_json({"error": f"SCA scan failed: {str(e)}"}, status=500)
+        elif path == "/api/apk/fix-pack":
+            file_name = query.get("file", [""])[0]
+            analysis_data = None
+            if file_name and file_name.endswith(".json"):
+                json_path = os.path.join(PUBLIC_DIR, os.path.basename(file_name))
+                if os.path.exists(json_path):
+                    try:
+                        with open(json_path, "r", encoding="utf-8") as fp:
+                            analysis_data = json.load(fp)
+                    except Exception as e:
+                        sys.stderr.write(f"Error loading json for fix pack: {e}\n")
+            if not analysis_data:
+                target_path = self._resolve_apk_file(os.path.basename(file_name) if file_name else "")
+                if target_path and os.path.isfile(target_path):
+                    try:
+                        if target_path.endswith(".ipa"):
+                            analyzer = IpaAnalyzer(target_path)
+                        else:
+                            analyzer = ApkAnalyzer(target_path)
+                        analysis_data = analyzer.analyze()
+                    except Exception as e:
+                        sys.stderr.write(f"Error analyzing for fix pack: {e}\n")
+            if not analysis_data:
+                alfagift_json = os.path.join(PUBLIC_DIR, "alfagift_analysis.json")
+                if os.path.exists(alfagift_json):
+                    try:
+                        with open(alfagift_json, "r", encoding="utf-8") as fp:
+                            analysis_data = json.load(fp)
+                    except Exception:
+                        pass
+            if not analysis_data:
+                self._send_json({"error": "No analysis data available to generate Fix Pack"}, status=404)
+                return
+
+            try:
+                pkg = analysis_data.get("metadata", {}).get("package_name") or analysis_data.get("metadata", {}).get("bundle_id") or "app"
+                app_name = analysis_data.get("metadata", {}).get("app_label") or analysis_data.get("metadata", {}).get("app_name") or pkg
+                generator = FixPackGenerator(analysis_data, app_name=app_name)
+                zip_data = generator.generate_zip_bytes()
+                out_filename = f"ToolKitDev_FixPack_{pkg}.zip"
+                self.send_response(200)
+                self.send_header("Content-Type", "application/zip")
+                self.send_header("Content-Disposition", f'attachment; filename="{out_filename}"')
+                self.send_header("Content-Length", str(len(zip_data)))
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(zip_data)
+            except Exception as e:
+                self._send_json({"error": f"Failed to generate Fix Pack: {str(e)}"}, status=500)
+        elif path == "/api/ipa/inspect" or path == "/api/scan-sample-ipa":
+            file_name = query.get("file", ["sample-ios.ipa"])[0]
+            resolved = self._resolve_diff_target(file_name)
+            if not resolved or not os.path.isfile(resolved):
+                resolved = os.path.join(SAMPLES_DIR, "sample-ios.ipa")
+            if not os.path.isfile(resolved):
+                self._send_json({"error": "IPA sample or target file not found"}, status=404)
+                return
+            try:
+                analyzer = IpaAnalyzer(resolved)
+                result = analyzer.analyze()
+                self._send_json(result)
+            except Exception as e:
+                self._send_json({"error": f"Failed to analyze IPA: {str(e)}"}, status=500)
         elif path == "/api/mcp/oauth-url":
             conn = query.get("connector", ["github"])[0]
             cid = query.get("client_id", [""])[0]
@@ -513,11 +580,14 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                         f.write(apk_item.file.read())
 
                     try:
-                        analyzer = ApkAnalyzer(dest_path)
+                        if clean_name.lower().endswith(".ipa"):
+                            analyzer = IpaAnalyzer(dest_path)
+                        else:
+                            analyzer = ApkAnalyzer(dest_path)
                         result = analyzer.analyze()
                         self._send_json(result)
                     except Exception as e:
-                        self._send_json({"error": f"Failed to analyze APK: {str(e)}"}, status=500)
+                        self._send_json({"error": f"Failed to analyze package: {str(e)}"}, status=500)
                 else:
                     self._send_json({"error": "No 'apk' file provided in form data"}, status=400)
             else:
@@ -546,13 +616,16 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
         return ""
 
     def _resolve_apk_file(self, file_name: str) -> str:
-        """Resolve an APK/AAB filename in uploads/ or samples/, falling back to base.apk or sample-debug.apk."""
+        """Resolve an APK/AAB/IPA filename in uploads/ or samples/, falling back to base.apk or sample-debug.apk."""
         candidates = []
         if file_name:
             candidates.append(os.path.join(UPLOADS_DIR, file_name))
             candidates.append(os.path.join(SAMPLES_DIR, file_name))
+            if file_name.endswith(".ipa"):
+                candidates.append(os.path.join(SAMPLES_DIR, "sample-ios.ipa"))
         candidates.append(os.path.join(UPLOADS_DIR, "base.apk"))
         candidates.append(os.path.join(SAMPLES_DIR, "sample-debug.apk"))
+        candidates.append(os.path.join(SAMPLES_DIR, "sample-ios.ipa"))
         for c in candidates:
             if os.path.isfile(c):
                 return c

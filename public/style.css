@@ -6572,6 +6572,23 @@ body.dark-theme .sca-chip.active {
   color: #ffffff !important;
 }
 
+/* Emerald Action Buttons (Fix Pack) */
+.mobsf-btn-emerald {
+  background: #059669;
+  border-color: #047857;
+  color: #ffffff;
+}
+.mobsf-btn-emerald:hover {
+  background: #047857;
+  border-color: #065f46;
+  color: #ffffff;
+}
+
+/* iOS Teardown Inspector Subpanels */
+.ios-subpanel {
+  animation: fadeIn 0.15s ease-in-out;
+}
+
 
 
 
