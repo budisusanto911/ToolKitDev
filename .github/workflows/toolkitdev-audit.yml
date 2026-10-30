@@ -29,6 +29,8 @@ jobs:
         run: |
           echo "Building APK for security evaluation..."
           # ./gradlew assembleRelease
+          mkdir -p uploads
+          cp samples/sample-debug.apk uploads/base.apk
 
       - name: Run ToolKitDev Headless Security Gate
         run: |
