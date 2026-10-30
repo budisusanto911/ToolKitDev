@@ -6242,6 +6242,353 @@ body.dark-theme .hardening-box {
   color: #a7f3d0 !important;
 }
 
+/* =========================================================================
+   APK VERSION DIFF & DELTA AUDIT STYLES
+   ========================================================================= */
+.diff-selector-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  flex-wrap: wrap;
+}
+
+.diff-select-box {
+  flex: 1;
+  min-width: 240px;
+}
+
+.diff-select-box label {
+  display: block;
+  font-size: 12px;
+  color: #334155;
+  margin-bottom: 6px;
+}
+
+.diff-select {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.diff-file-tag {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.diff-arrow-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #0284c7;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 0 4px;
+}
+
+.diff-action-box {
+  min-width: 180px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.diff-hero-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 24px 32px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.diff-hero-col {
+  flex: 1;
+  min-width: 200px;
+}
+
+.diff-col-sub {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #64748b;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.diff-hero-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px;
+}
+
+.diff-hero-meta {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.diff-hero-score {
+  font-size: 32px;
+  font-weight: 800;
+  color: #0284c7;
+  line-height: 1;
+}
+
+.diff-delta-badge-col {
+  text-align: center;
+  padding: 0 20px;
+}
+
+.diff-delta-pill {
+  font-size: 20px;
+  font-weight: 800;
+  padding: 8px 18px;
+  border-radius: 24px;
+  background: #f1f5f9;
+  color: #0f172a;
+  border: 1.5px solid #cbd5e1;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.diff-delta-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-top: 6px;
+  letter-spacing: 0.5px;
+}
+
+.diff-narrative-card {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  font-size: 12.5px;
+  color: #1e40af;
+}
+
+.diff-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.diff-kpi-box {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-align: center;
+}
+
+.diff-kpi-num {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.diff-kpi-lbl {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.diff-kpi-sub {
+  font-size: 10.5px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.diff-2col-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 16px;
+}
+
+.diff-list-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  min-height: 120px;
+  max-height: 380px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.diff-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #e2e8f0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+.diff-item-row:last-child {
+  border-bottom: none;
+}
+
+/* =========================================================================
+   SCA & 3RD-PARTY SDK SCANNER STYLES
+   ========================================================================= */
+.sca-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.sca-kpi-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-align: center;
+}
+.sca-kpi-total { border-top: 3px solid #6366f1; }
+.sca-kpi-vuln { border-top: 3px solid #dc2626; background: #fef2f2; }
+.sca-kpi-outdated { border-top: 3px solid #d97706; background: #fffbeb; }
+.sca-kpi-clean { border-top: 3px solid #16a34a; background: #f0fdf4; }
+
+.sca-kpi-val {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.sca-kpi-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.3px;
+}
+
+.sca-category-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.sca-chip {
+  padding: 5px 12px;
+  border-radius: 14px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sca-chip:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.sca-chip.active {
+  background: #7c3aed;
+  border-color: #6d28d9;
+  color: #ffffff;
+}
+
+.sca-cvss-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.sca-cvss-critical { background: #fee2e2; color: #b91c1c; border: 1px solid #f87171; }
+.sca-cvss-high { background: #ffedd5; color: #c2410c; border: 1px solid #fb923c; }
+.sca-cvss-clean { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+
+/* Dark Theme for Diff & SCA */
+body.dark-theme .diff-selector-row,
+body.dark-theme .diff-hero-banner,
+body.dark-theme .diff-kpi-box,
+body.dark-theme .sca-kpi-card {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+body.dark-theme .diff-hero-name {
+  color: #f8fafc !important;
+}
+
+body.dark-theme .diff-narrative-card {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #93c5fd !important;
+}
+
+body.dark-theme .diff-list-box {
+  background: #090d16 !important;
+  border-color: #334155 !important;
+}
+
+body.dark-theme .diff-item-row {
+  border-color: #1e293b !important;
+}
+
+body.dark-theme .sca-chip {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+body.dark-theme .sca-chip.active {
+  background: #7c3aed !important;
+  color: #ffffff !important;
+}
+
+/* Emerald Action Buttons (Fix Pack) */
+.mobsf-btn-emerald {
+  background: #059669;
+  border-color: #047857;
+  color: #ffffff;
+}
+.mobsf-btn-emerald:hover {
+  background: #047857;
+  border-color: #065f46;
+  color: #ffffff;
+}
+
+/* iOS Teardown Inspector Subpanels */
+.ios-subpanel {
+  animation: fadeIn 0.15s ease-in-out;
+}
+
 
 
 

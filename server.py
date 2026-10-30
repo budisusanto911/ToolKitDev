@@ -19,8 +19,12 @@ import cgi
 import zipfile
 import tempfile
 import datetime
+import time
+import random
+import re
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
+from typing import Dict, Any, List, Optional
 
 # Import engine modules
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -30,6 +34,11 @@ from engine.mcp_hub import McpHub
 from engine.context_qa import ContextQaEngine
 from engine.auth_manager import AuthManager
 from engine.pdf_reporter import ExecutivePdfReporter
+from engine.apk_comparator import ApkComparator
+from engine.sca_scanner import ScaScanner
+from engine.fix_pack_generator import FixPackGenerator
+from engine.ipa_analyzer import IpaAnalyzer
+from engine.frida_runner import FridaRunner
 
 PORT = int(os.environ.get("PORT", 8080))
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
@@ -38,11 +47,14 @@ SAMPLES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "samples"
 
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
-# Initialize engines
+# Initialize engines & caches
 graph_engine = CorrelationGraphEngine(default_target="budisusanto911")
 mcp_hub = McpHub()
 qa_engine = ContextQaEngine()
 auth_manager = AuthManager()
+frida_runner = FridaRunner()
+diff_cache: Dict[str, Any] = {}
+sca_cache: Dict[str, Any] = {}
 
 
 class ToolKitDevHandler(SimpleHTTPRequestHandler):
@@ -213,6 +225,164 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(pdf_bytes)
             except Exception as e:
                 self._send_json({"error": f"Failed to generate PDF: {str(e)}"}, status=500)
+        elif path == "/api/apk/diff-list":
+            files_list = []
+            if os.path.exists(PUBLIC_DIR):
+                for f in sorted(os.listdir(PUBLIC_DIR)):
+                    if f.endswith(".json") and "analysis" in f:
+                        p = os.path.join(PUBLIC_DIR, f)
+                        sz = os.path.getsize(p)
+                        files_list.append({
+                            "name": f"{f} (Pre-analyzed Baseline)",
+                            "path": f,
+                            "type": "JSON Analysis",
+                            "folder": "public",
+                            "size_fmt": f"{sz / (1024*1024):.2f} MB"
+                        })
+            if os.path.exists(UPLOADS_DIR):
+                for f in sorted(os.listdir(UPLOADS_DIR)):
+                    if f.endswith((".apk", ".aab", ".ipa")) and not f.startswith("."):
+                        p = os.path.join(UPLOADS_DIR, f)
+                        sz = os.path.getsize(p)
+                        ftype = "IPA (iOS)" if f.endswith(".ipa") else ("AAB" if f.endswith(".aab") else "APK")
+                        files_list.append({
+                            "name": f,
+                            "path": f"uploads/{f}",
+                            "type": ftype,
+                            "folder": "uploads",
+                            "size_fmt": f"{sz / (1024*1024):.2f} MB"
+                        })
+            if os.path.exists(SAMPLES_DIR):
+                for f in sorted(os.listdir(SAMPLES_DIR)):
+                    if f.endswith((".apk", ".aab", ".ipa")):
+                        p = os.path.join(SAMPLES_DIR, f)
+                        sz = os.path.getsize(p)
+                        ftype = "IPA (iOS)" if f.endswith(".ipa") else ("AAB" if f.endswith(".aab") else "APK")
+                        files_list.append({
+                            "name": f,
+                            "path": f"samples/{f}",
+                            "type": ftype,
+                            "folder": "samples",
+                            "size_fmt": f"{sz / (1024*1024):.2f} MB"
+                        })
+            self._send_json({"files": files_list})
+        elif path == "/api/apk/diff":
+            base_file = query.get("base", ["samples/sample-debug.apk"])[0]
+            target_file = query.get("target", ["uploads/base.apk"])[0]
+
+            cache_key = f"{base_file}:::_:::{target_file}"
+            if cache_key in diff_cache:
+                self._send_json(diff_cache[cache_key])
+                return
+
+            base_path = self._resolve_diff_target(base_file)
+            target_path = self._resolve_diff_target(target_file)
+
+            if not base_path or not target_path:
+                self._send_json({"error": f"Base ({base_file}) or Target ({target_file}) not found"}, status=404)
+                return
+
+            try:
+                comparator = ApkComparator(base_path, target_path)
+                result = comparator.compare()
+                diff_cache[cache_key] = result
+                self._send_json(result)
+            except Exception as e:
+                self._send_json({"error": f"Comparison failed: {str(e)}"}, status=500)
+        elif path == "/api/apk/sca":
+            file_name = query.get("file", ["base.apk"])[0]
+            resolved = self._resolve_diff_target(file_name)
+            if not resolved or not os.path.isfile(resolved):
+                resolved = os.path.join(UPLOADS_DIR, "base.apk")
+
+            cache_key = resolved
+            if cache_key in sca_cache:
+                self._send_json(sca_cache[cache_key])
+                return
+
+            try:
+                scanner = ScaScanner(resolved)
+                res = scanner.scan()
+                sca_cache[cache_key] = res
+                self._send_json(res)
+            except Exception as e:
+                self._send_json({"error": f"SCA scan failed: {str(e)}"}, status=500)
+        elif path == "/api/apk/fix-pack":
+            file_name = query.get("file", [""])[0]
+            analysis_data = None
+            if file_name and file_name.endswith(".json"):
+                json_path = os.path.join(PUBLIC_DIR, os.path.basename(file_name))
+                if os.path.exists(json_path):
+                    try:
+                        with open(json_path, "r", encoding="utf-8") as fp:
+                            analysis_data = json.load(fp)
+                    except Exception as e:
+                        sys.stderr.write(f"Error loading json for fix pack: {e}\n")
+            if not analysis_data:
+                target_path = self._resolve_apk_file(os.path.basename(file_name) if file_name else "")
+                if target_path and os.path.isfile(target_path):
+                    try:
+                        if target_path.endswith(".ipa"):
+                            analyzer = IpaAnalyzer(target_path)
+                        else:
+                            analyzer = ApkAnalyzer(target_path)
+                        analysis_data = analyzer.analyze()
+                    except Exception as e:
+                        sys.stderr.write(f"Error analyzing for fix pack: {e}\n")
+            if not analysis_data:
+                alfagift_json = os.path.join(PUBLIC_DIR, "alfagift_analysis.json")
+                if os.path.exists(alfagift_json):
+                    try:
+                        with open(alfagift_json, "r", encoding="utf-8") as fp:
+                            analysis_data = json.load(fp)
+                    except Exception:
+                        pass
+            if not analysis_data:
+                self._send_json({"error": "No analysis data available to generate Fix Pack"}, status=404)
+                return
+
+            try:
+                pkg = analysis_data.get("metadata", {}).get("package_name") or analysis_data.get("metadata", {}).get("bundle_id") or "app"
+                app_name = analysis_data.get("metadata", {}).get("app_label") or analysis_data.get("metadata", {}).get("app_name") or pkg
+                generator = FixPackGenerator(analysis_data, app_name=app_name)
+                zip_data = generator.generate_zip_bytes()
+                out_filename = f"ToolKitDev_FixPack_{pkg}.zip"
+                self.send_response(200)
+                self.send_header("Content-Type", "application/zip")
+                self.send_header("Content-Disposition", f'attachment; filename="{out_filename}"')
+                self.send_header("Content-Length", str(len(zip_data)))
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(zip_data)
+            except Exception as e:
+                self._send_json({"error": f"Failed to generate Fix Pack: {str(e)}"}, status=500)
+        elif path == "/api/ipa/inspect" or path == "/api/scan-sample-ipa":
+            file_name = query.get("file", ["sample-ios.ipa"])[0]
+            resolved = self._resolve_diff_target(file_name)
+            if not resolved or not os.path.isfile(resolved):
+                resolved = os.path.join(SAMPLES_DIR, "sample-ios.ipa")
+            if not os.path.isfile(resolved):
+                self._send_json({"error": "IPA sample or target file not found"}, status=404)
+                return
+            try:
+                analyzer = IpaAnalyzer(resolved)
+                result = analyzer.analyze()
+                self._send_json(result)
+            except Exception as e:
+                self._send_json({"error": f"Failed to analyze IPA: {str(e)}"}, status=500)
+        elif path == "/api/frida/scripts":
+            self._send_json({"scripts": frida_runner.get_available_scripts()})
+        elif path == "/api/billing/status":
+            token = self.headers.get("Authorization", "") or query.get("token", [""])[0]
+            sess = auth_manager.get_session(token)
+            user_tier = sess.get("user", {}).get("tier", "Community Free") if sess else "Community Free"
+            is_pro = user_tier.startswith("Enterprise") or (sess and sess.get("user", {}).get("is_premium", False))
+            self._send_json({
+                "tier": user_tier,
+                "is_premium": is_pro,
+                "scans_remaining": "Unlimited" if is_pro else 3,
+                "features_unlocked": ["apk_diff", "sca_cve", "fix_pack", "ios_ipa", "formal_pdf", "ai_forensic_agent"] if is_pro else ["static_sast"]
+            })
         elif path == "/api/mcp/oauth-url":
             conn = query.get("connector", ["github"])[0]
             cid = query.get("client_id", [""])[0]
@@ -340,6 +510,87 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._send_json({"error": str(e)}, status=400)
 
+        elif path == "/api/chat/stream":
+            content_len = int(self.headers.get("Content-Length", 0))
+            post_body = self.rfile.read(content_len).decode("utf-8")
+            try:
+                payload = json.loads(post_body) if post_body.strip().startswith("{") else {}
+                q = payload.get("question", "")
+                apk_ctx = payload.get("apk_context", None)
+                res = qa_engine.answer_question(q, apk_ctx)
+                full_text = res.get("answer", "")
+                citations = res.get("citations", [])
+
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                self.send_header("Cache-Control", "no-cache")
+                self.send_header("Connection", "keep-alive")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+
+                # Stream tokens
+                tokens = re.findall(r"\S+|\n+", full_text)
+                for idx, tok in enumerate(tokens):
+                    is_nl = "\n" in tok
+                    chunk = tok if is_nl else (tok + " ")
+                    payload_chunk = json.dumps({"token": chunk})
+                    self.wfile.write(f"data: {payload_chunk}\n\n".encode("utf-8"))
+                    self.wfile.flush()
+                    if idx % 2 == 0:
+                        time.sleep(0.012)
+
+                terminal = json.dumps({"done": True, "citations": citations, "confidence": res.get("confidence", 0.95)})
+                self.wfile.write(f"data: {terminal}\n\n".encode("utf-8"))
+                self.wfile.flush()
+            except Exception as e:
+                self._send_json({"error": str(e)}, status=400)
+
+        elif path == "/api/billing/checkout":
+            content_len = int(self.headers.get("Content-Length", 0))
+            post_body = self.rfile.read(content_len).decode("utf-8")
+            try:
+                payload = json.loads(post_body) if post_body.strip().startswith("{") else {}
+                plan = payload.get("plan", "pro")
+                cycle = payload.get("cycle", "monthly")
+                method = payload.get("method", "qris")
+                token = self.headers.get("Authorization", "") or payload.get("token", "")
+
+                inv_id = f"INV-TKD-{datetime.datetime.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}"
+                amount = "$49.00 USD" if plan == "pro" else "$199.00 USD"
+
+                # Upgrade session user to Pro
+                sess = auth_manager.get_session(token)
+                if sess and "user" in sess:
+                    sess["user"]["tier"] = "Enterprise Pro"
+                    sess["user"]["is_premium"] = True
+                    sess["user"]["plan"] = plan
+
+                self._send_json({
+                    "success": True,
+                    "invoice_id": inv_id,
+                    "plan": plan.upper(),
+                    "amount": amount,
+                    "payment_method": method.upper(),
+                    "status": "PAID_ACTIVE",
+                    "activated_at": datetime.datetime.now().isoformat(),
+                    "valid_until": (datetime.datetime.now() + datetime.timedelta(days=365 if cycle == 'annual' else 30)).strftime("%Y-%m-%d"),
+                    "message": "Langganan Enterprise Pro berhasil diaktifkan. Seluruh kuota dan fitur otonom telah aktif!"
+                })
+            except Exception as e:
+                self._send_json({"success": False, "error": str(e)}, status=400)
+
+        elif path == "/api/frida/execute":
+            content_len = int(self.headers.get("Content-Length", 0))
+            post_body = self.rfile.read(content_len).decode("utf-8")
+            try:
+                payload = json.loads(post_body) if post_body.strip().startswith("{") else {}
+                script_id = payload.get("script_id", "ssl_unpinning")
+                pkg = payload.get("package", "com.alfa.alfagift")
+                session_result = frida_runner.execute_live_session(script_id, target_package=pkg)
+                self._send_json(session_result)
+            except Exception as e:
+                self._send_json({"error": str(e)}, status=400)
+
         elif path == "/api/mcp/connect":
             content_len = int(self.headers.get("Content-Length", 0))
             post_body = self.rfile.read(content_len).decode("utf-8")
@@ -376,6 +627,33 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._send_json({"error": str(e)}, status=500)
 
+        elif path == "/api/apk/diff":
+            content_len = int(self.headers.get("Content-Length", 0))
+            post_body = self.rfile.read(content_len).decode("utf-8")
+            try:
+                payload = json.loads(post_body) if post_body.strip().startswith("{") else {}
+                base_file = payload.get("base", "samples/sample-debug.apk")
+                target_file = payload.get("target", "uploads/base.apk")
+
+                cache_key = f"{base_file}:::_:::{target_file}"
+                if cache_key in diff_cache:
+                    self._send_json(diff_cache[cache_key])
+                    return
+
+                base_path = self._resolve_diff_target(base_file)
+                target_path = self._resolve_diff_target(target_file)
+
+                if not base_path or not target_path:
+                    self._send_json({"error": f"Base ({base_file}) or Target ({target_file}) not found"}, status=404)
+                    return
+
+                comparator = ApkComparator(base_path, target_path)
+                result = comparator.compare()
+                diff_cache[cache_key] = result
+                self._send_json(result)
+            except Exception as e:
+                self._send_json({"error": str(e)}, status=500)
+
         elif path == "/api/scan-apk":
             ctype, pdict = cgi.parse_header(self.headers.get("Content-Type", ""))
             if ctype == "multipart/form-data":
@@ -401,11 +679,14 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                         f.write(apk_item.file.read())
 
                     try:
-                        analyzer = ApkAnalyzer(dest_path)
+                        if clean_name.lower().endswith(".ipa"):
+                            analyzer = IpaAnalyzer(dest_path)
+                        else:
+                            analyzer = ApkAnalyzer(dest_path)
                         result = analyzer.analyze()
                         self._send_json(result)
                     except Exception as e:
-                        self._send_json({"error": f"Failed to analyze APK: {str(e)}"}, status=500)
+                        self._send_json({"error": f"Failed to analyze package: {str(e)}"}, status=500)
                 else:
                     self._send_json({"error": "No 'apk' file provided in form data"}, status=400)
             else:
@@ -413,14 +694,37 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
         else:
             self._send_json({"error": "Not Found"}, status=404)
 
+    def _resolve_diff_target(self, file_param: str) -> str:
+        """Resolve a file path or filename to an absolute path for diff/SCA."""
+        if not file_param:
+            return ""
+        if os.path.isabs(file_param) and os.path.isfile(file_param):
+            return file_param
+        if os.path.isfile(file_param):
+            return os.path.abspath(file_param)
+        clean = os.path.basename(file_param)
+        candidates = [
+            os.path.join(PUBLIC_DIR, clean),
+            os.path.join(UPLOADS_DIR, clean),
+            os.path.join(SAMPLES_DIR, clean),
+            os.path.join(PUBLIC_DIR, "alfagift_analysis.json")
+        ]
+        for c in candidates:
+            if os.path.isfile(c):
+                return c
+        return ""
+
     def _resolve_apk_file(self, file_name: str) -> str:
-        """Resolve an APK/AAB filename in uploads/ or samples/, falling back to base.apk or sample-debug.apk."""
+        """Resolve an APK/AAB/IPA filename in uploads/ or samples/, falling back to base.apk or sample-debug.apk."""
         candidates = []
         if file_name:
             candidates.append(os.path.join(UPLOADS_DIR, file_name))
             candidates.append(os.path.join(SAMPLES_DIR, file_name))
+            if file_name.endswith(".ipa"):
+                candidates.append(os.path.join(SAMPLES_DIR, "sample-ios.ipa"))
         candidates.append(os.path.join(UPLOADS_DIR, "base.apk"))
         candidates.append(os.path.join(SAMPLES_DIR, "sample-debug.apk"))
+        candidates.append(os.path.join(SAMPLES_DIR, "sample-ios.ipa"))
         for c in candidates:
             if os.path.isfile(c):
                 return c

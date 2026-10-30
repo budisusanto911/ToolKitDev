@@ -11,3 +11,8 @@ uploads/*
 users_auth.json
 mcp_auth.json
 
+# Build & CI outputs
+build/
+*.pdf
+*.zip
+

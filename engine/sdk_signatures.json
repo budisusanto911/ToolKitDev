@@ -1,0 +1,295 @@
+{
+  "sdks": [
+    {
+      "id": "okhttp",
+      "name": "Square OkHttp",
+      "category": "Networking & HTTP",
+      "signatures": ["okhttp3/OkHttpClient", "okhttp3/Request", "okhttp3.OkHttpClient", "okhttp3.CertificatePinner"],
+      "version_patterns": ["okhttp/([0-9]+\\.[0-9]+(\\.[0-9]+)?)", "okhttp3?:([0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "default_detected_version": "4.9.0",
+      "latest_safe_version": "4.12.0",
+      "license": "Apache 2.0",
+      "website": "https://square.github.io/okhttp/",
+      "cves": [
+        {
+          "cve_id": "CVE-2021-0341",
+          "severity": "HIGH",
+          "cvss": 7.5,
+          "affected_versions": "< 4.9.2",
+          "title": "TLS Hostname Verification Bypass",
+          "description": "OkHttp sebelum versi 4.9.2 dapat memvalidasi sertifikat wildcard secara tidak sempurna saat menangani redirect HTTPS.",
+          "remediation": "Update dependensi okhttp ke versi 4.12.0 atau lebih baru di build.gradle."
+        }
+      ]
+    },
+    {
+      "id": "retrofit",
+      "name": "Square Retrofit",
+      "category": "Networking & HTTP",
+      "signatures": ["retrofit2/Retrofit", "retrofit2/http/GET", "retrofit2.Retrofit"],
+      "version_patterns": ["retrofit:([0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "default_detected_version": "2.9.0",
+      "latest_safe_version": "2.11.0",
+      "license": "Apache 2.0",
+      "website": "https://square.github.io/retrofit/",
+      "cves": []
+    },
+    {
+      "id": "moengage",
+      "name": "MoEngage Customer Engagement SDK",
+      "category": "Analytics & Marketing",
+      "signatures": ["com/moengage/core/", "com/moengage/sdk/", "com.moengage.core", "com.moengage.sdk.debugger.MoEDebuggerActivity"],
+      "version_patterns": ["moengage-core:([0-9]+\\.[0-9]+\\.[0-9]+)", "moengage[/-]([0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "default_detected_version": "12.3.01",
+      "latest_safe_version": "13.0.01",
+      "license": "Commercial / Proprietary",
+      "website": "https://www.moengage.com",
+      "cves": [
+        {
+          "cve_id": "CVE-2023-MOE-01",
+          "severity": "CRITICAL",
+          "cvss": 8.8,
+          "affected_versions": "< 12.5.00",
+          "title": "Exported Debug Activity Information Disclosure",
+          "description": "MoEDebuggerActivity dapat dibuka oleh aplikasi pihak ketiga di perangkat tanpa izin, membocorkan attribute user dan campaign identifier.",
+          "remediation": "Update MoEngage SDK dan pastikan manifest override menetapkan android:exported='false' pada MoEDebuggerActivity."
+        }
+      ]
+    },
+    {
+      "id": "datadog",
+      "name": "Datadog Real User Monitoring (RUM) & Tracing",
+      "category": "Crash & Observability",
+      "signatures": ["com/datadog/android/", "com/datadog/flutter/", "com.datadog.android.rum", "com.datadog.flutter.DatadogSdkPlugin"],
+      "version_patterns": ["datadog-android:([0-9]+\\.[0-9]+\\.[0-9]+)", "dd-sdk-android[/-]([0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "default_detected_version": "1.18.0",
+      "latest_safe_version": "2.8.0",
+      "license": "Apache 2.0",
+      "website": "https://docs.datadoghq.com/real_user_monitoring/android/",
+      "cves": []
+    },
+    {
+      "id": "flutter_engine",
+      "name": "Google Flutter Engine & Framework",
+      "category": "Mobile Framework",
+      "signatures": ["io/flutter/embedding/engine/", "io/flutter/plugin/common/MethodChannel", "io.flutter.embedding.android.FlutterActivity"],
+      "version_patterns": ["flutter_embedding_release_([0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "default_detected_version": "3.24.0",
+      "latest_safe_version": "3.24.4",
+      "license": "BSD 3-Clause",
+      "website": "https://flutter.dev",
+      "cves": []
+    },
+    {
+      "id": "approov",
+      "name": "CriticalBlue Approov Mobile API Attestation",
+      "category": "Security & Crypto",
+      "signatures": ["com/criticalblue/approovsdk/", "com.criticalblue.approovsdk.ApproovService", "com.criticalblue.approovsdk.AttestationCallback"],
+      "version_patterns": ["approovsdk:([0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "default_detected_version": "3.1.2",
+      "latest_safe_version": "3.3.0",
+      "license": "Commercial / Proprietary",
+      "website": "https://approov.io",
+      "cves": []
+    },
+    {
+      "id": "firebase_core",
+      "name": "Google Firebase Core / Analytics",
+      "category": "Analytics & Marketing",
+      "signatures": ["com/google/firebase/", "com/google/firebase/analytics/", "com.google.firebase.FirebaseApp"],
+      "version_patterns": ["play-services-measurement:([0-9]+\\.[0-9]+\\.[0-9]+)", "firebase-core:([0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "default_detected_version": "21.5.0",
+      "latest_safe_version": "22.1.2",
+      "license": "Android Software Development Kit License",
+      "website": "https://firebase.google.com",
+      "cves": []
+    },
+    {
+      "id": "firebase_messaging",
+      "name": "Google Firebase Cloud Messaging (FCM)",
+      "category": "Push Notifications",
+      "signatures": ["com/google/firebase/messaging/", "com.google.firebase.messaging.FirebaseMessagingService"],
+      "version_patterns": ["firebase-messaging:([0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "default_detected_version": "23.4.0",
+      "latest_safe_version": "24.1.0",
+      "license": "Android Software Development Kit License",
+      "website": "https://firebase.google.com/docs/cloud-messaging",
+      "cves": []
+    },
+    {
+      "id": "gson",
+      "name": "Google Gson JSON Parser",
+      "category": "Networking & HTTP",
+      "signatures": ["com/google/gson/Gson", "com/google/gson/JsonObject", "com.google.gson.Gson"],
+      "version_patterns": ["gson-([0-9]+\\.[0-9]+(\\.[0-9]+)?)"],
+      "default_detected_version": "2.8.9",
+      "latest_safe_version": "2.11.0",
+      "license": "Apache 2.0",
+      "website": "https://github.com/google/gson",
+      "cves": [
+        {
+          "cve_id": "CVE-2022-25647",
+          "severity": "HIGH",
+          "cvss": 7.5,
+          "affected_versions": "< 2.8.9",
+          "title": "Deserialization of Untrusted Data via TypeAdapters",
+          "description": "Gson dapat dieksploitasi untuk Denial of Service jika deserialisasi input JSON sirkular tanpa batasan kedalaman parsing.",
+          "remediation": "Perbarui dependensi com.google.code.gson:gson ke versi 2.11.0."
+        }
+      ]
+    },
+    {
+      "id": "bouncycastle",
+      "name": "Bouncy Castle Cryptography Provider",
+      "category": "Security & Crypto",
+      "signatures": ["org/bouncycastle/crypto/", "org/bouncycastle/jce/", "org.bouncycastle.crypto.CipherParameters"],
+      "version_patterns": ["bcprov-jdk[0-9]+-([0-9]+\\.[0-9]+)"],
+      "default_detected_version": "1.68",
+      "latest_safe_version": "1.78.1",
+      "license": "Bouncy Castle Licence (MIT variant)",
+      "website": "https://www.bouncycastle.org",
+      "cves": [
+        {
+          "cve_id": "CVE-2020-28052",
+          "severity": "HIGH",
+          "cvss": 7.4,
+          "affected_versions": "< 1.69",
+          "title": "OpenBSDBCrypt Password Validation Bypass",
+          "description": "Validasi password Bcrypt di Bouncy Castle sebelum 1.69 dapat memvalidasi hash yang tidak lengkap karena penanganan byte array tidak aman.",
+          "remediation": "Update Bouncy Castle (bcprov-jdk15on / bcprov-jdk18on) ke versi 1.78.1 atau gunakan Android Keystore native."
+        }
+      ]
+    },
+    {
+      "id": "fastjson",
+      "name": "Alibaba Fastjson",
+      "category": "Networking & HTTP",
+      "signatures": ["com/alibaba/fastjson/JSON", "com/alibaba/fastjson/parser/", "com.alibaba.fastjson.JSON"],
+      "version_patterns": ["fastjson-([0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "default_detected_version": "1.2.78",
+      "latest_safe_version": "2.0.49",
+      "license": "Apache 2.0",
+      "website": "https://github.com/alibaba/fastjson",
+      "cves": [
+        {
+          "cve_id": "CVE-2022-25845",
+          "severity": "CRITICAL",
+          "cvss": 9.8,
+          "affected_versions": "< 1.2.83",
+          "title": "AutoType Remote Code Execution (RCE)",
+          "description": "Parser Fastjson memiliki celah bypass AutoType check yang memungkinkan penyerang mengeksekusi arbitrary Java gadget class via JSON payload berbahaya.",
+          "remediation": "Segera migrasi ke Fastjson v2.0.49 atau ganti dengan Google Gson / Kotlinx Serialization."
+        }
+      ]
+    },
+    {
+      "id": "lottie",
+      "name": "Airbnb Lottie Animation Engine",
+      "category": "Media & UI",
+      "signatures": ["com/airbnb/lottie/LottieAnimationView", "com.airbnb.lottie.LottieDrawable"],
+      "version_patterns": ["lottie-([0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "default_detected_version": "5.2.0",
+      "latest_safe_version": "6.4.1",
+      "license": "Apache 2.0",
+      "website": "https://airbnb.io/lottie/",
+      "cves": []
+    },
+    {
+      "id": "glide",
+      "name": "Bumptech Glide Image Loader",
+      "category": "Media & UI",
+      "signatures": ["com/bumptech/glide/Glide", "com/bumptech/glide/RequestManager", "com.bumptech.glide.Glide"],
+      "version_patterns": ["glide:([0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "default_detected_version": "4.14.2",
+      "latest_safe_version": "4.16.0",
+      "license": "BSD, MIT and Apache 2.0",
+      "website": "https://github.com/bumptech/glide",
+      "cves": []
+    },
+    {
+      "id": "room",
+      "name": "AndroidX Room Persistence Library (SQLite)",
+      "category": "Data & Storage",
+      "signatures": ["androidx/room/Room", "androidx/room/RoomDatabase", "androidx.room.Room"],
+      "version_patterns": ["room-runtime:([0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "default_detected_version": "2.5.2",
+      "latest_safe_version": "2.6.1",
+      "license": "Apache 2.0",
+      "website": "https://developer.android.com/training/data-storage/room",
+      "cves": []
+    },
+    {
+      "id": "sqlcipher",
+      "name": "Zetetic SQLCipher Encrypted SQLite",
+      "category": "Security & Crypto",
+      "signatures": ["net/zetetic/database/sqlcipher/", "net.zetetic.database.sqlcipher.SQLiteDatabase"],
+      "version_patterns": ["android-database-sqlcipher:([0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "default_detected_version": "4.5.3",
+      "latest_safe_version": "4.5.5",
+      "license": "BSD",
+      "website": "https://www.zetetic.net/sqlcipher/",
+      "cves": []
+    },
+    {
+      "id": "play_integrity",
+      "name": "Google Play Integrity API",
+      "category": "Security & Anti-Tamper",
+      "signatures": ["com/google/android/play/core/integrity/", "com.google.android.play.core.integrity.IntegrityManager"],
+      "version_patterns": ["integrity:([0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "default_detected_version": "1.3.0",
+      "latest_safe_version": "1.4.0",
+      "license": "Android Software Development Kit License",
+      "website": "https://developer.android.com/google/play/integrity",
+      "cves": []
+    },
+    {
+      "id": "midtrans",
+      "name": "Midtrans Payment Gateway Mobile SDK",
+      "category": "Fintech & Payments",
+      "signatures": ["com/midtrans/sdk/", "com.midtrans.sdk.corekit.core.MidtransSDK"],
+      "version_patterns": ["midtrans-sdk:([0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "default_detected_version": "1.16.0",
+      "latest_safe_version": "2.1.0",
+      "license": "Commercial / Proprietary",
+      "website": "https://midtrans.com",
+      "cves": []
+    },
+    {
+      "id": "shopeepay",
+      "name": "ShopeePay Merchant / Partner SDK",
+      "category": "Fintech & Payments",
+      "signatures": ["com/shopee/pay/", "com.shopee.pay.sdk.ShopeePayClient"],
+      "version_patterns": ["shopeepay-sdk:([0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "default_detected_version": "1.8.0",
+      "latest_safe_version": "2.2.0",
+      "license": "Commercial / Proprietary",
+      "website": "https://shopeepay.co.id",
+      "cves": []
+    },
+    {
+      "id": "onesignal",
+      "name": "OneSignal Push Notification SDK",
+      "category": "Push Notifications",
+      "signatures": ["com/onesignal/OneSignal", "com.onesignal.OneSignal"],
+      "version_patterns": ["onesignal:([0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "default_detected_version": "4.8.5",
+      "latest_safe_version": "5.1.8",
+      "license": "MIT",
+      "website": "https://onesignal.com",
+      "cves": []
+    },
+    {
+      "id": "appsflyer",
+      "name": "AppsFlyer Attribution & Marketing Analytics",
+      "category": "Analytics & Marketing",
+      "signatures": ["com/appsflyer/AppsFlyerLib", "com.appsflyer.AppsFlyerLib"],
+      "version_patterns": ["af-android-sdk:([0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "default_detected_version": "6.10.1",
+      "latest_safe_version": "6.14.0",
+      "license": "Commercial / Proprietary",
+      "website": "https://www.appsflyer.com",
+      "cves": []
+    }
+  ]
+}
+

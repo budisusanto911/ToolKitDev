@@ -23,6 +23,8 @@ import subprocess
 from datetime import datetime
 from typing import Dict, Any, List, Set, Tuple
 
+from engine.sca_scanner import ScaScanner
+
 DANGEROUS_PERMISSIONS = {
     "android.permission.READ_CALENDAR": "Access user's calendar data",
     "android.permission.WRITE_CALENDAR": "Modify user's calendar data",
@@ -107,6 +109,14 @@ class ApkAnalyzer:
         code_analysis_audit = self._audit_code_analysis()
         frida_telemetry = self._audit_dataflow_and_services(manifest_tree, badging, endpoint_audit)
 
+        # Software Composition Analysis (SCA) & 3rd-Party SDK CVEs
+        sca_analysis = {}
+        try:
+            sca = ScaScanner(self.apk_path)
+            sca_analysis = sca.scan()
+        except Exception:
+            pass
+
         # Compute Security Score & Findings
         findings, security_score = self._compute_security_score(
             badging, manifest_tree, secrets, cert_info,
@@ -153,7 +163,8 @@ class ApkAnalyzer:
             "scan_logs": scan_logs,
             "security_score": security_score,
             "findings": findings,
-            "qa_metrics": qa_metrics
+            "qa_metrics": qa_metrics,
+            "sca_analysis": sca_analysis
         }
 
     def _parse_badging(self) -> Dict[str, Any]:

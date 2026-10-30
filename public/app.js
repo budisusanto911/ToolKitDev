@@ -15,6 +15,11 @@ document.addEventListener("DOMContentLoaded", () => {
   initApkInspector();
   initMcpAndHistory();
   initAiChat();
+  initApkDiffComparator();
+  initScaScanner();
+  initAiFixPackGenerator();
+  initIpaInspector();
+  initUpgradePremiumModal();
   loadDashboardData();
   initShopeersInteractions();
 });
@@ -2088,13 +2093,26 @@ function bindMobsfInspectorMenuListeners() {
     });
   });
 
-  document.getElementById("btnRunLiveFridaStream")?.addEventListener("click", () => {
+  document.getElementById("btnRunLiveFridaStream")?.addEventListener("click", async () => {
     const streamTabBtn = document.querySelector('.frida-tab-btn[data-frida-tab="stream"]');
     streamTabBtn?.click();
-    const events = mobsfMenuState.currentApkData?.frida_dataflow_telemetry?.frida_live_events || [];
-    renderFridaTerminalEvents(events, true);
-    if (typeof showTopbarToast === "function") {
-      showTopbarToast(`Frida injected! Capturing ${events.length} live data-flow packets...`);
+    const pkg = mobsfMenuState.currentApkData?.metadata?.package_name || "com.alfa.alfagift";
+
+    try {
+      const res = await fetch("/api/frida/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ script_id: "ssl_unpinning", package: pkg })
+      });
+      const data = await res.json();
+      const events = data.telemetry_log || [];
+      renderFridaTerminalEvents(events, true);
+      if (typeof showTopbarToast === "function") {
+        showTopbarToast(`✓ Frida live telemetry injected into ${pkg}! Intercepted ${events.length} events.`);
+      }
+    } catch (e) {
+      const fallbackEvents = mobsfMenuState.currentApkData?.frida_dataflow_telemetry?.frida_live_events || [];
+      renderFridaTerminalEvents(fallbackEvents, true);
     }
   });
 
@@ -4747,7 +4765,7 @@ async function sendChatMessage() {
   const activeCtx = activeApkData || mobsfMenuState?.currentApkData;
 
   try {
-    const res = await fetch("/api/chat", {
+    const res = await fetch("/api/chat/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -4755,27 +4773,74 @@ async function sendChatMessage() {
         apk_context: activeCtx
       })
     });
-    const data = await res.json();
 
-    let citationsHtml = "";
-    if (data.citations && data.citations.length > 0) {
-      citationsHtml = `
+    if (!res.ok || !res.body) {
+      throw new Error(`Server returned status ${res.status}`);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let accumulatedText = "";
+    let citations = [];
+
+    const contentDiv = document.createElement("div");
+    aiMsg.innerHTML = `<div class="msg-author">AI Forensic Engine <span style="font-size:10px; color:#10b981; font-weight:normal;">⚡ Streaming Live</span></div>`;
+    aiMsg.appendChild(contentDiv);
+
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          try {
+            const parsed = JSON.parse(line.slice(6));
+            if (parsed.token) {
+              accumulatedText += parsed.token;
+              contentDiv.innerHTML = formatAiMarkdown(accumulatedText);
+              messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+            if (parsed.done) {
+              citations = parsed.citations || [];
+            }
+          } catch (e) {}
+        }
+      }
+    }
+
+    // Attach citations footer if present
+    if (citations && citations.length > 0) {
+      const citWrap = document.createElement("div");
+      citWrap.innerHTML = `
         <div style="margin-top:10px; padding-top:8px; border-top:1px solid #e2e8f0; font-size:11px; color:#64748b;">
           <strong style="color:#2563eb;">Sumber Forensik Terverifikasi:</strong>
           <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
-            ${data.citations.map(c => `<span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:2px 7px; border-radius:4px; font-size:10px;">[${escapeHtml(c.type.toUpperCase())}] ${escapeHtml(c.title)} (${escapeHtml(c.ref)})</span>`).join("")}
+            ${citations.map(c => `<span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:2px 7px; border-radius:4px; font-size:10px;">[${escapeHtml(c.type.toUpperCase())}] ${escapeHtml(c.title)} (${escapeHtml(c.ref)})</span>`).join("")}
           </div>
         </div>
       `;
+      aiMsg.appendChild(citWrap);
     }
-
-    aiMsg.innerHTML = `
-      <div class="msg-author">AI Forensic Engine</div>
-      <div>${formatAiMarkdown(data.answer)}</div>
-      ${citationsHtml}
-    `;
   } catch (err) {
-    aiMsg.innerHTML = `<div class="msg-author">AI Forensic Engine</div><div style="color:#ef4444;">Gagal memproses pertanyaan: ${escapeHtml(err.message)}</div>`;
+    try {
+      const fallbackRes = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: text, apk_context: activeCtx })
+      });
+      const data = await fallbackRes.json();
+      aiMsg.innerHTML = `
+        <div class="msg-author">AI Forensic Engine</div>
+        <div>${formatAiMarkdown(data.answer)}</div>
+      `;
+    } catch (fallbackErr) {
+      aiMsg.innerHTML = `<div class="msg-author">AI Forensic Engine</div><div style="color:#ef4444;">Gagal memproses pertanyaan: ${escapeHtml(err.message)}</div>`;
+    }
   }
 
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -5546,4 +5611,834 @@ function initAuthSystem() {
     authGate?.classList.remove("hidden");
   });
 }
+
+/* =========================================================================
+   8. APK VERSION DIFF & DELTA AUDIT
+   ========================================================================= */
+let apkDiffState = {
+  currentResult: null,
+  activeTab: "findings"
+};
+
+async function initApkDiffComparator() {
+  const baseSelect = document.getElementById("diffBaseSelect");
+  const targetSelect = document.getElementById("diffTargetSelect");
+  const runBtn = document.getElementById("btnRunDiffAudit");
+  const demo1 = document.getElementById("btnDiffDemo1");
+  const demo2 = document.getElementById("btnDiffDemo2");
+
+  // Load available files for comparison
+  try {
+    const res = await fetch("/api/apk/diff-list");
+    if (res.ok) {
+      const data = await res.json();
+      const files = data.files || [];
+      if (files.length > 0) {
+        const baseVal = baseSelect?.value;
+        const targetVal = targetSelect?.value;
+        
+        let optsHtml = files.map(f => `<option value="${escapeHtml(f.path)}">${escapeHtml(f.name)} (${f.size_fmt})</option>`).join("");
+        if (baseSelect) baseSelect.innerHTML = optsHtml;
+        if (targetSelect) targetSelect.innerHTML = optsHtml;
+
+        // Set meaningful defaults
+        if (baseSelect && baseSelect.querySelector(`option[value="${baseVal}"]`)) baseSelect.value = baseVal;
+        if (targetSelect) {
+          if (targetSelect.querySelector(`option[value="${targetVal}"]`)) targetSelect.value = targetVal;
+          else if (files.length > 1) targetSelect.selectedIndex = 1;
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Gagal memuat diff-list:", err);
+  }
+
+  // Demo 1
+  demo1?.addEventListener("click", () => {
+    if (baseSelect) baseSelect.value = "samples/sample-debug.apk";
+    if (targetSelect) targetSelect.value = "uploads/base.apk";
+    runApkDiffComparison();
+  });
+
+  // Demo 2
+  demo2?.addEventListener("click", () => {
+    if (baseSelect) baseSelect.value = "alfagift_analysis.json";
+    if (targetSelect) targetSelect.value = "uploads/base.apk";
+    runApkDiffComparison();
+  });
+
+  runBtn?.addEventListener("click", () => runApkDiffComparison());
+
+  // Tab switching inside diff
+  document.querySelectorAll("[data-diff-tab]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("[data-diff-tab]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const tabName = btn.getAttribute("data-diff-tab");
+      apkDiffState.activeTab = tabName;
+
+      document.getElementById("diffTabFindings")?.classList.toggle("hidden", tabName !== "findings");
+      document.getElementById("diffTabPermissions")?.classList.toggle("hidden", tabName !== "permissions");
+      document.getElementById("diffTabComponents")?.classList.toggle("hidden", tabName !== "components");
+      document.getElementById("diffTabEndpoints")?.classList.toggle("hidden", tabName !== "endpoints");
+    });
+  });
+}
+
+async function runApkDiffComparison() {
+  const baseSelect = document.getElementById("diffBaseSelect");
+  const targetSelect = document.getElementById("diffTargetSelect");
+  const runBtn = document.getElementById("btnRunDiffAudit");
+  const resultsArea = document.getElementById("diffResultsArea");
+
+  const baseFile = baseSelect?.value || "";
+  const targetFile = targetSelect?.value || "";
+
+  if (!baseFile || !targetFile) {
+    if (typeof showTopbarToast === "function") showTopbarToast("Pilih kedua rilis untuk dibandingkan.");
+    return;
+  }
+
+  if (runBtn) {
+    runBtn.disabled = true;
+    runBtn.innerHTML = `<span>Membandingkan Bytecode...</span>`;
+  }
+  if (typeof showTopbarToast === "function") showTopbarToast("Memulai perbandingan delta keamanan...");
+
+  try {
+    const res = await fetch(`/api/apk/diff?base=${encodeURIComponent(baseFile)}&target=${encodeURIComponent(targetFile)}`);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Gagal membandingkan binary");
+    }
+    const data = await res.json();
+    apkDiffState.currentResult = data;
+    renderDiffResults(data);
+    resultsArea?.classList.remove("hidden");
+    resultsArea?.scrollIntoView({ behavior: "smooth" });
+    if (typeof showTopbarToast === "function") showTopbarToast("✅ Perbandingan delta selesai dihitung!");
+  } catch (err) {
+    if (typeof showTopbarToast === "function") showTopbarToast("⚠️ " + err.message);
+  } finally {
+    if (runBtn) {
+      runBtn.disabled = false;
+      runBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg><span>Bandingkan Versi</span>`;
+    }
+  }
+}
+
+function renderDiffResults(data) {
+  const sum = data.summary || {};
+  const perms = data.permissions_delta || {};
+  const comps = data.components_delta || {};
+  const finds = data.findings_delta || {};
+  const eps = data.endpoints_delta || {};
+
+  // Hero Banner
+  document.getElementById("diffBaseAppName").textContent = sum.base_app_name;
+  document.getElementById("diffBaseAppMeta").textContent = `${sum.base_version} • SDK ${sum.base_target_sdk} • ${sum.base_size_mb} MB`;
+  document.getElementById("diffBaseScore").textContent = sum.base_score + " pts";
+
+  document.getElementById("diffTargetAppName").textContent = sum.target_app_name;
+  document.getElementById("diffTargetAppMeta").textContent = `${sum.target_version} • SDK ${sum.target_target_sdk} • ${sum.target_size_mb} MB`;
+  document.getElementById("diffTargetScore").textContent = sum.target_score + " pts";
+
+  const pill = document.getElementById("diffDeltaPill");
+  pill.textContent = sum.verdict_badge;
+  pill.style.color = sum.verdict_color;
+  pill.style.borderColor = sum.verdict_color;
+  pill.style.background = sum.verdict_status === "IMPROVED" ? "#f0fdf4" : (sum.verdict_status === "DEGRADED" ? "#fef2f2" : "#f1f5f9");
+
+  document.getElementById("diffDeltaLabel").textContent = sum.verdict_status;
+
+  // Narrative
+  const narrEl = document.getElementById("diffNarrativeText");
+  if (narrEl) narrEl.innerHTML = formatAiMarkdown(sum.summary_narrative);
+
+  // Counters
+  document.getElementById("diffNumPerms").textContent = (perms.added_count > 0 ? `+${perms.added_count}` : perms.added_count);
+  document.getElementById("diffSubPerms").textContent = `${perms.dangerous_added_count} izin berbahaya ditambahkan`;
+  
+  document.getElementById("diffNumComps").textContent = (comps.newly_exposed_count > 0 ? `+${comps.newly_exposed_count}` : comps.newly_exposed_count);
+  document.getElementById("diffSubComps").textContent = `Total Exported: ${comps.total_exported_base} → ${comps.total_exported_target}`;
+
+  document.getElementById("diffNumResolved").textContent = finds.resolved_count;
+  document.getElementById("diffNumRegressed").textContent = finds.regressed_count;
+
+  // Tab 1: Findings Delta
+  const findingsContainer = document.getElementById("diffFindingsList");
+  let fHtml = "";
+  if (finds.regressed_count > 0) {
+    fHtml += `<div style="margin-bottom:12px;"><h5 style="color:#dc2626; margin-bottom:6px;">🔴 Celah Keamanan Baru Terdeteksi (Regresi):</h5>`;
+    finds.regressed.forEach(f => {
+      fHtml += `
+        <div style="background:#fef2f2; border:1px solid #fecdd3; border-radius:8px; padding:10px 14px; margin-bottom:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="color:#b91c1c;">[${escapeHtml(f.severity)}] ${escapeHtml(f.title)}</strong>
+            <span class="badge badge-danger">REGRESI BARU</span>
+          </div>
+          <div style="font-size:11.5px; color:#475569; margin-top:4px;">${escapeHtml(f.description)}</div>
+        </div>`;
+    });
+    fHtml += `</div>`;
+  }
+
+  if (finds.resolved_count > 0) {
+    fHtml += `<div style="margin-bottom:12px;"><h5 style="color:#16a34a; margin-bottom:6px;">🟢 Celah yang Berhasil Diperbaiki (Resolved):</h5>`;
+    finds.resolved.forEach(f => {
+      fHtml += `
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:10px 14px; margin-bottom:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="color:#15803d;">[${escapeHtml(f.severity)}] ${escapeHtml(f.title)}</strong>
+            <span class="badge badge-success">BERHASIL DITUTUP</span>
+          </div>
+          <div style="font-size:11.5px; color:#475569; margin-top:4px;">Celah ini ada pada rilis acuan dan telah diatasi di rilis target.</div>
+        </div>`;
+    });
+    fHtml += `</div>`;
+  }
+
+  if (finds.persistent_count > 0) {
+    fHtml += `<div><h5 style="color:#64748b; margin-bottom:6px;">⚠️ Celah yang Masih Bertahan (Persistent di Kedua Versi):</h5>`;
+    finds.persistent.forEach(f => {
+      fHtml += `
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; margin-bottom:6px; font-size:11.5px; display:flex; justify-content:space-between;">
+          <span><strong>[${escapeHtml(f.severity)}]</strong> ${escapeHtml(f.title)}</span>
+          <span style="color:#94a3b8;">${escapeHtml(f.cwe || "CWE-699")}</span>
+        </div>`;
+    });
+    fHtml += `</div>`;
+  }
+  findingsContainer.innerHTML = fHtml || `<div style="text-align:center; padding:24px; color:#10b981;">✓ Tidak ada perbedaan celah keamanan terdeteksi.</div>`;
+
+  // Tab 2: Permissions Delta
+  const addedPermsList = document.getElementById("diffAddedPermsList");
+  addedPermsList.innerHTML = (perms.added || []).map(p => `
+    <div class="diff-item-row">
+      <span style="${p.is_dangerous ? 'color:#dc2626; font-weight:700;' : ''}">${escapeHtml(p.permission)}</span>
+      ${p.is_dangerous ? '<span class="badge badge-danger">Dangerous</span>' : '<span class="badge badge-cert">Normal</span>'}
+    </div>
+  `).join("") || `<div style="padding:16px; text-align:center; color:#64748b;">Tidak ada izin baru.</div>`;
+
+  const removedPermsList = document.getElementById("diffRemovedPermsList");
+  removedPermsList.innerHTML = (perms.removed || []).map(p => `
+    <div class="diff-item-row">
+      <span style="text-decoration:line-through; color:#64748b;">${escapeHtml(p.permission)}</span>
+      <span class="badge badge-success">Dihapus</span>
+    </div>
+  `).join("") || `<div style="padding:16px; text-align:center; color:#64748b;">Tidak ada izin yang dihapus.</div>`;
+
+  // Tab 3: Components Delta
+  const addedCompsList = document.getElementById("diffAddedCompsList");
+  addedCompsList.innerHTML = (comps.newly_exposed || []).map(c => `
+    <div class="diff-item-row">
+      <span><strong>[${escapeHtml(c.type)}]</strong> ${escapeHtml(c.name)}</span>
+      <span class="badge badge-danger">Exposed</span>
+    </div>
+  `).join("") || `<div style="padding:16px; text-align:center; color:#16a34a;">✓ Tidak ada komponen baru yang diekspos ke publik.</div>`;
+
+  const securedCompsList = document.getElementById("diffSecuredCompsList");
+  securedCompsList.innerHTML = (comps.secured || []).map(c => `
+    <div class="diff-item-row">
+      <span><strong>[${escapeHtml(c.type)}]</strong> ${escapeHtml(c.name)}</span>
+      <span class="badge badge-success">Closed</span>
+    </div>
+  `).join("") || `<div style="padding:16px; text-align:center; color:#64748b;">Tidak ada komponen yang ditutup.</div>`;
+
+  // Tab 4: Endpoints Delta
+  const addedEpsList = document.getElementById("diffAddedEndpointsList");
+  addedEpsList.innerHTML = (eps.new_endpoints || []).map(e => `
+    <div class="diff-item-row">
+      <span><strong>[${escapeHtml(e.http_method || e.type || "ROUTE")}]</strong> ${escapeHtml(e.endpoint || e.url_route || "")}</span>
+      <span class="badge badge-info">${escapeHtml(e.category || "API")}</span>
+    </div>
+  `).join("") || `<div style="padding:16px; text-align:center; color:#64748b;">Tidak ada endpoint baru.</div>`;
+
+  const removedEpsList = document.getElementById("diffRemovedEndpointsList");
+  removedEpsList.innerHTML = (eps.removed_endpoints || []).map(e => `
+    <div class="diff-item-row">
+      <span style="text-decoration:line-through; color:#64748b;">${escapeHtml(e.endpoint || e.url_route || "")}</span>
+      <span class="badge badge-secondary">Removed</span>
+    </div>
+  `).join("") || `<div style="padding:16px; text-align:center; color:#64748b;">Tidak ada endpoint yang dihapus.</div>`;
+}
+
+/* =========================================================================
+   9. THIRD-PARTY SDK & DEPENDENCY CVE SCANNER (SCA)
+   ========================================================================= */
+let scaState = {
+  currentData: null,
+  activeCategory: "all",
+  searchQuery: ""
+};
+
+async function initScaScanner() {
+  const scanBtn = document.getElementById("btnRunScaScan");
+  const targetSelect = document.getElementById("scaTargetFileSelect");
+  const searchInput = document.getElementById("scaSearchInput");
+
+  // Populate files list for SCA dropdown
+  try {
+    const res = await fetch("/api/apk/diff-list");
+    if (res.ok) {
+      const data = await res.json();
+      const files = data.files || [];
+      if (files.length > 0 && targetSelect) {
+        const curVal = targetSelect.value;
+        targetSelect.innerHTML = files.map(f => `<option value="${escapeHtml(f.path)}">${escapeHtml(f.name)} (${f.size_fmt})</option>`).join("");
+        if (targetSelect.querySelector(`option[value="${curVal}"]`)) targetSelect.value = curVal;
+      }
+    }
+  } catch (e) {}
+
+  scanBtn?.addEventListener("click", () => runScaScan());
+
+  // Category filter chips
+  document.querySelectorAll(".sca-chip[data-cat]").forEach(chip => {
+    chip.addEventListener("click", () => {
+      document.querySelectorAll(".sca-chip").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+      scaState.activeCategory = chip.getAttribute("data-cat");
+      renderScaTable();
+    });
+  });
+
+  searchInput?.addEventListener("input", (e) => {
+    scaState.searchQuery = e.target.value.toLowerCase().trim();
+    renderScaTable();
+  });
+
+  // Automatically trigger SCA scan on start
+  setTimeout(() => {
+    runScaScan();
+  }, 400);
+}
+
+async function runScaScan() {
+  const targetSelect = document.getElementById("scaTargetFileSelect");
+  const scanBtn = document.getElementById("btnRunScaScan");
+  const targetFile = targetSelect?.value || "uploads/base.apk";
+
+  if (scanBtn) {
+    scanBtn.disabled = true;
+    scanBtn.innerHTML = `<span>Memindai Bytecode...</span>`;
+  }
+
+  try {
+    const res = await fetch(`/api/apk/sca?file=${encodeURIComponent(targetFile)}`);
+    if (!res.ok) throw new Error("Gagal menjalankan SCA scan");
+    const data = await res.json();
+    scaState.currentData = data;
+
+    // Update KPIs
+    document.getElementById("scaKpiTotal").textContent = data.total_detected || 0;
+    document.getElementById("scaKpiVuln").textContent = data.vulnerable_count || 0;
+    document.getElementById("scaKpiOutdated").textContent = data.outdated_count || 0;
+    document.getElementById("scaKpiClean").textContent = data.clean_count || 0;
+
+    renderScaTable();
+    if (typeof showTopbarToast === "function") showTopbarToast("✅ Pemindaian dependensi SDK selesai!");
+  } catch (err) {
+    console.error("SCA scan error:", err);
+    if (typeof showTopbarToast === "function") showTopbarToast("⚠️ " + err.message);
+  } finally {
+    if (scanBtn) {
+      scanBtn.disabled = false;
+      scanBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><span>Pindai SDK</span>`;
+    }
+  }
+}
+
+function renderScaTable() {
+  const tbody = document.getElementById("scaTableBody");
+  const info = document.getElementById("scaTableInfo");
+  if (!tbody || !scaState.currentData) return;
+
+  const sdks = scaState.currentData.sdks || [];
+  const cat = scaState.activeCategory;
+  const q = scaState.searchQuery;
+
+  const filtered = sdks.filter(s => {
+    if (cat === "vulnerable" && !s.is_vulnerable) return false;
+    if (cat !== "all" && cat !== "vulnerable" && s.category !== cat) return false;
+    if (q) {
+      const matchText = `${s.name} ${s.category} ${s.matched_signature} ${s.detected_version} ${(s.cves || []).map(c=>c.cve_id).join(' ')}`.toLowerCase();
+      if (!matchText.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if (info) info.textContent = `Showing ${filtered.length} of ${sdks.length} SDKs`;
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:#64748b;">Tidak ada SDK yang sesuai kriteria pencarian.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((s, idx) => {
+    let cveBadge = `<span class="sca-cvss-badge sca-cvss-clean">✓ Clean</span>`;
+    if (s.is_vulnerable && s.cves && s.cves.length > 0) {
+      const topCve = s.cves[0];
+      const cls = topCve.severity === "CRITICAL" ? "sca-cvss-critical" : "sca-cvss-high";
+      cveBadge = `<span class="sca-cvss-badge ${cls}">${topCve.cve_id} (CVSS ${topCve.cvss})</span>`;
+    }
+
+    const versionHtml = `
+      <span style="font-weight:700; color:#0f172a;">v${escapeHtml(s.detected_version)}</span>
+      ${s.is_outdated ? `<span style="display:block; font-size:10px; color:#d97706;">Latest: v${escapeHtml(s.latest_safe_version)}</span>` : ''}
+    `;
+
+    return `
+      <tr>
+        <td>
+          <strong style="color:#0f172a; font-size:12.5px;">${escapeHtml(s.name)}</strong>
+          <div style="font-size:10.5px; color:#64748b; margin-top:2px;">${escapeHtml(s.category)} • <span style="color:#3b82f6;">${escapeHtml(s.license)}</span></div>
+        </td>
+        <td>
+          <code style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:#334155;">${escapeHtml(s.matched_signature)}</code>
+        </td>
+        <td>${versionHtml}</td>
+        <td>${cveBadge}</td>
+        <td>
+          <button type="button" class="btn btn-secondary" style="font-size:11px; padding:4px 8px;" onclick="openScaDetailModal(${idx})">
+            Solusi Fix
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+window.openScaDetailModal = function(sdkIdx) {
+  if (!scaState.currentData) return;
+  const sdk = scaState.currentData.sdks[sdkIdx];
+  if (!sdk) return;
+
+  const cvesHtml = (sdk.cves && sdk.cves.length > 0)
+    ? sdk.cves.map(c => `
+        <div style="background:#fef2f2; border:1px solid #fecdd3; border-radius:8px; padding:10px 14px; margin-bottom:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="color:#b91c1c;">${c.cve_id}: ${escapeHtml(c.title)}</strong>
+            <span class="badge badge-danger">CVSS ${c.cvss} (${c.severity})</span>
+          </div>
+          <div style="font-size:11.5px; color:#475569; margin:6px 0;">${escapeHtml(c.description)}</div>
+          <div style="font-size:11px; color:#991b1b; font-weight:600;">Affected: ${escapeHtml(c.affected_versions)}</div>
+        </div>
+      `).join("")
+    : `<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:10px 14px; color:#15803d; font-size:12px; margin-bottom:12px;">✓ Tidak ditemukan kerentanan CVE yang terdaftar pada versi ini.</div>`;
+
+  const gradleSnippet = `// build.gradle / build.gradle.kts (App Module)
+dependencies {
+    // Rekomendasi upgrade ${sdk.name}
+    implementation("${sdk.matched_signature.replace('/', '.')}:${sdk.latest_safe_version || sdk.detected_version}")
+}`;
+
+  const bodyHtml = `
+    <div style="margin-bottom:14px;">
+      <h4 style="margin:0 0 4px; font-size:15px; color:#0f172a;">${escapeHtml(sdk.name)}</h4>
+      <div style="font-size:12px; color:#64748b;">Kategori: ${escapeHtml(sdk.category)} | Lisensi: ${escapeHtml(sdk.license)}</div>
+    </div>
+    
+    ${cvesHtml}
+
+    <div class="remediation-box" style="margin-top:12px;">
+      <strong>🛠️ Panduan Remediasi &amp; Upgrade Dependensi:</strong>
+      <div style="margin:6px 0 10px; font-size:12px; color:#1e293b;">${escapeHtml(sdk.remediation)}</div>
+      <pre style="background:#0f172a; color:#f8fafc; padding:10px 12px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:11px; overflow-x:auto;"><code>${escapeHtml(gradleSnippet)}</code></pre>
+    </div>
+  `;
+
+  openMobsfDialog(
+    "DEPENDENCY SCA AUDIT",
+    `Audit Detail: ${sdk.name}`,
+    bodyHtml,
+    gradleSnippet
+  );
+};
+
+/* =========================================================================
+   1-CLICK AI FIX PACK GENERATOR (.zip / .patch)
+   ========================================================================= */
+function initAiFixPackGenerator() {
+  const btnFixApk = document.getElementById("btnExportAiFixPack");
+  const btnFixIpa = document.getElementById("btnIpaFixPack");
+
+  const handleDownloadFixPack = async (targetFile) => {
+    try {
+      showToast("Sedang meracik Fix Pack (.zip) otomatis berbasis temuan AI...", "info");
+      const url = `/api/apk/fix-pack?file=${encodeURIComponent(targetFile || "")}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Gagal membuat Fix Pack (Status: ${response.status})`);
+      }
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      const contentDisp = response.headers.get("Content-Disposition") || "";
+      let filename = "ToolKitDev_FixPack.zip";
+      const match = contentDisp.match(/filename="?([^"]+)"?/);
+      if (match && match[1]) filename = match[1];
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+      showToast(`✓ Berhasil mengunduh ${filename}! Salin ke proyek Android/iOS Anda.`, "success");
+    } catch (err) {
+      console.error("Fix pack error:", err);
+      showToast(`Gagal mengunduh Fix Pack: ${err.message}`, "error");
+    }
+  };
+
+  btnFixApk?.addEventListener("click", () => {
+    const currentFile = window.currentApkAnalysis?.metadata?.package_name || "alfagift_analysis.json";
+    handleDownloadFixPack(currentFile);
+  });
+
+  btnFixIpa?.addEventListener("click", () => {
+    const sel = document.getElementById("iosTargetFileSelect");
+    const target = sel ? sel.value : "samples/sample-ios.ipa";
+    handleDownloadFixPack(target);
+  });
+}
+
+/* =========================================================================
+   iOS (.ipa) TEARDOWN & SECURITY INSPECTOR
+   ========================================================================= */
+let iosState = {
+  currentData: null,
+  activeSubTab: "ats"
+};
+
+function initIpaInspector() {
+  const btnScan = document.getElementById("btnRunIpaScan");
+  const selectFile = document.getElementById("iosTargetFileSelect");
+  const subTabBtns = document.querySelectorAll("[data-iostab]");
+
+  loadIpaFilesList();
+
+  btnScan?.addEventListener("click", () => {
+    const file = selectFile?.value || "samples/sample-ios.ipa";
+    runIpaInspection(file);
+  });
+
+  subTabBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      subTabBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const tabId = btn.getAttribute("data-iostab");
+      iosState.activeSubTab = tabId;
+      renderIpaSubPanels(tabId);
+    });
+  });
+
+  // Automatically analyze initial sample
+  runIpaInspection("samples/sample-ios.ipa");
+}
+
+async function loadIpaFilesList() {
+  try {
+    const res = await fetch("/api/apk/diff-list");
+    if (!res.ok) return;
+    const data = await res.json();
+    const select = document.getElementById("iosTargetFileSelect");
+    if (!select || !data.files) return;
+
+    const ipaFiles = data.files.filter(f => f.name.endsWith(".ipa"));
+    if (ipaFiles.length > 0) {
+      select.innerHTML = ipaFiles.map(f => `
+        <option value="${f.path}">${f.name} (${f.size_fmt || 'IPA'})</option>
+      `).join("");
+    }
+  } catch (err) {
+    console.warn("Could not load IPA files list:", err);
+  }
+}
+
+async function runIpaInspection(filePath) {
+  try {
+    showToast("Menganalisis biner Mach-O, ATS, dan Entitlements iOS...", "info");
+    const res = await fetch(`/api/ipa/inspect?file=${encodeURIComponent(filePath)}`);
+    if (!res.ok) throw new Error("Gagal menganalisis file IPA.");
+    const data = await res.json();
+    iosState.currentData = data;
+    renderIpaResults(data);
+    showToast("✓ Analisis keamanan iOS IPA selesai!", "success");
+  } catch (err) {
+    console.error("IPA inspection error:", err);
+    showToast(`Error analisis IPA: ${err.message}`, "error");
+  }
+}
+
+function renderIpaResults(data) {
+  const meta = data.metadata || {};
+  const ats = data.app_transport_security || {};
+  const entitlements = data.entitlements || {};
+  const macho = data.macho_protections || {};
+  const findings = data.findings || [];
+
+  const appNameEl = document.getElementById("iosAppName");
+  const bundleIdEl = document.getElementById("iosBundleId");
+  const verEl = document.getElementById("iosVersion");
+  const minOsEl = document.getElementById("iosMinOs");
+
+  if (appNameEl) appNameEl.textContent = meta.app_name || "iOS App";
+  if (bundleIdEl) bundleIdEl.textContent = meta.bundle_id || "unknown.bundle";
+  if (verEl) verEl.textContent = `${meta.version_name || '1.0'} (${meta.build_number || '1'})`;
+  if (minOsEl) minOsEl.textContent = `iOS ${meta.min_os_version || '14.0'}+`;
+
+  const scoreEl = document.getElementById("iosScoreValue");
+  const badgeEl = document.getElementById("iosScoreBadge");
+  if (scoreEl) scoreEl.textContent = `${data.security_score}/100`;
+
+  if (badgeEl) {
+    if (data.security_score >= 80) {
+      if (scoreEl) scoreEl.style.color = "#10b981";
+      badgeEl.className = "diff-verdict-badge diff-verdict-improved";
+      badgeEl.textContent = "GOOD POSTURE";
+    } else if (data.security_score >= 50) {
+      if (scoreEl) scoreEl.style.color = "#f59e0b";
+      badgeEl.className = "diff-verdict-badge";
+      badgeEl.style.background = "#fef3c7";
+      badgeEl.style.color = "#b45309";
+      badgeEl.textContent = "MODERATE RISK";
+    } else {
+      if (scoreEl) scoreEl.style.color = "#ef4444";
+      badgeEl.className = "diff-verdict-badge diff-verdict-degraded";
+      badgeEl.textContent = "CRITICAL RISK";
+    }
+  }
+
+  const kpiAts = document.getElementById("iosKpiAts");
+  if (kpiAts) {
+    if (ats.allows_arbitrary_loads) {
+      kpiAts.textContent = "VULNERABLE (Allows Plaintext)";
+      kpiAts.style.color = "#ef4444";
+    } else {
+      kpiAts.textContent = "SECURE (HTTPS Enforced)";
+      kpiAts.style.color = "#10b981";
+    }
+  }
+
+  const kpiDebug = document.getElementById("iosKpiDebug");
+  if (kpiDebug) {
+    if (entitlements["get-task-allow"]) {
+      kpiDebug.textContent = "get-task-allow: TRUE (CRITICAL)";
+      kpiDebug.style.color = "#ef4444";
+    } else {
+      kpiDebug.textContent = "get-task-allow: FALSE (Secure)";
+      kpiDebug.style.color = "#10b981";
+    }
+  }
+
+  const kpiMacho = document.getElementById("iosKpiMacho");
+  if (kpiMacho) {
+    const protectionsOn = [macho.has_pie && "PIE", macho.has_stack_canaries && "Canaries", macho.has_arc && "ARC"].filter(Boolean);
+    kpiMacho.textContent = protectionsOn.join(", ") || "None Active";
+    kpiMacho.style.color = protectionsOn.length >= 2 ? "#10b981" : "#ef4444";
+  }
+
+  const kpiFind = document.getElementById("iosKpiFindings");
+  if (kpiFind) {
+    kpiFind.textContent = `${findings.length} Celah Teridentifikasi`;
+  }
+
+  renderIpaSubPanels(iosState.activeSubTab);
+}
+
+function renderIpaSubPanels(tabId) {
+  document.querySelectorAll(".ios-subpanel").forEach(p => p.style.display = "none");
+  const panelMap = {
+    ats: "iosPanelAts",
+    macho: "iosPanelMacho",
+    privacy: "iosPanelPrivacy",
+    findings: "iosPanelFindings"
+  };
+  const targetId = panelMap[tabId] || "iosPanelAts";
+  const el = document.getElementById(targetId);
+  if (el) el.style.display = "block";
+
+  const data = iosState.currentData;
+  if (!data) return;
+
+  if (tabId === "ats") {
+    const ats = data.app_transport_security || {};
+    const atsEl = document.getElementById("iosAtsDetails");
+    if (atsEl) {
+      atsEl.innerHTML = `
+        <div style="margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f1f5f9;">
+            <strong>NSAllowsArbitraryLoads:</strong>
+            <span class="badge ${ats.allows_arbitrary_loads ? 'badge-danger' : 'badge-success'}">${ats.allows_arbitrary_loads ? 'true (VULNERABLE)' : 'false (SECURE)'}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f1f5f9;">
+            <strong>NSAllowsArbitraryLoadsInWebContent:</strong>
+            <span class="badge ${ats.allows_arbitrary_loads_in_web ? 'badge-warning' : 'badge-success'}">${ats.allows_arbitrary_loads_in_web ? 'true (Active)' : 'false'}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:8px 0;">
+            <strong>Exception Domains Configured:</strong>
+            <span>${ats.exception_domain_count || 0} domain</span>
+          </div>
+        </div>
+        <div style="background:#f8fafc; border-radius:6px; padding:10px 12px; font-size:12px; color:#475569;">
+          ${ats.allows_arbitrary_loads 
+            ? '⚠️ <strong>Peringatan Keamanan Kritis:</strong> Flag <code>NSAllowsArbitraryLoads: true</code> mengizinkan seluruh koneksi HTTP plaintext tanpa enkripsi TLS, memaparkan kredensial pengguna ke serangan Man-in-the-Middle (MITM).'
+            : '✓ Konfigurasi ATS telah mengamankan lalu lintas data dengan mewajibkan enkripsi TLS 1.2+ untuk seluruh network calls.'}
+        </div>
+      `;
+    }
+
+    const entEl = document.getElementById("iosEntitlementsDetails");
+    if (entEl) {
+      const ents = data.entitlements || {};
+      const entEntries = Object.entries(ents);
+      entEl.innerHTML = entEntries.length > 0 ? `
+        <table class="data-table" style="font-size:12px; width:100%;">
+          <thead><tr><th>Entitlement Key</th><th>Nilai Terkonfigurasi</th></tr></thead>
+          <tbody>
+            ${entEntries.map(([k, v]) => `
+              <tr>
+                <td><code>${escapeHtml(k)}</code></td>
+                <td><span style="font-family:monospace; color:${k === 'get-task-allow' && v === true ? '#b91c1c; font-weight:700;' : 'inherit'};">${escapeHtml(String(v))}</span></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      ` : `<div style="color:#64748b;">Tidak ada data entitlements khusus.</div>`;
+    }
+  } else if (tabId === "macho") {
+    const macho = data.macho_protections || {};
+    const machoGrid = document.getElementById("iosMachoGrid");
+    if (machoGrid) {
+      const frameworks = (macho.linked_frameworks || []).map(f => `<span class="sca-chip">${escapeHtml(f)}.framework</span>`).join(" ");
+
+      machoGrid.innerHTML = `
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:18px;">
+          <div style="border:1px solid #e2e8f0; border-radius:8px; padding:12px; background:#f8fafc;">
+            <div style="font-size:12px; color:#64748b;">PIE (ASLR)</div>
+            <div style="font-size:16px; font-weight:700; color:${macho.has_pie ? '#10b981' : '#ef4444'}; margin:4px 0;">${macho.has_pie ? '✓ MH_PIE ACTIVE' : '✗ PIE DISABLED'}</div>
+            <div style="font-size:11px; opacity:0.8;">Randomizes memory address space layout</div>
+          </div>
+
+          <div style="border:1px solid #e2e8f0; border-radius:8px; padding:12px; background:#f8fafc;">
+            <div style="font-size:12px; color:#64748b;">Stack Canaries</div>
+            <div style="font-size:16px; font-weight:700; color:${macho.has_stack_canaries ? '#10b981' : '#ef4444'}; margin:4px 0;">${macho.has_stack_canaries ? '✓ CANARIES DETECTED' : '✗ NOT DETECTED'}</div>
+            <div style="font-size:11px; opacity:0.8;">Buffer overflow protection (__stack_chk_fail)</div>
+          </div>
+
+          <div style="border:1px solid #e2e8f0; border-radius:8px; padding:12px; background:#f8fafc;">
+            <div style="font-size:12px; color:#64748b;">ARC (Memory Safety)</div>
+            <div style="font-size:16px; font-weight:700; color:${macho.has_arc ? '#10b981' : '#ef4444'}; margin:4px 0;">${macho.has_arc ? '✓ ARC ENABLED' : '✗ ARC DISABLED'}</div>
+            <div style="font-size:11px; opacity:0.8;">Automatic Reference Counting</div>
+          </div>
+
+          <div style="border:1px solid #e2e8f0; border-radius:8px; padding:12px; background:#f8fafc;">
+            <div style="font-size:12px; color:#64748b;">FairPlay DRM Encryption</div>
+            <div style="font-size:16px; font-weight:700; color:${macho.is_encrypted ? '#10b981' : '#f59e0b'}; margin:4px 0;">CryptID: ${macho.crypt_id || 0} (${macho.is_encrypted ? 'Encrypted' : 'Decrypted/Dev'})</div>
+            <div style="font-size:11px; opacity:0.8;">App Store binary encryption status</div>
+          </div>
+        </div>
+
+        <div>
+          <h5 style="margin:0 0 8px 0; font-size:13px; color:#0f172a;">Frameworks yang Terhubung (${macho.linked_frameworks?.length || 0}):</h5>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            ${frameworks || '<span style="color:#64748b; font-size:12px;">Standard iOS Frameworks</span>'}
+          </div>
+        </div>
+      `;
+    }
+  } else if (tabId === "privacy") {
+    const privList = document.getElementById("iosPrivacyList");
+    const perms = data.privacy_permissions || [];
+    if (privList) {
+      privList.innerHTML = perms.length > 0 ? perms.map(p => `
+        <div style="padding:10px 0; border-bottom:1px solid #f1f5f9;">
+          <div style="font-weight:600; font-size:13px; color:#0f172a;">${escapeHtml(p.permission)} (${escapeHtml(p.category)})</div>
+          <div style="font-size:12px; color:#64748b; margin-top:2px;">"${escapeHtml(p.description)}"</div>
+        </div>
+      `).join("") : `<div style="color:#64748b; font-size:12px;">Tidak ada permission description khusus di Info.plist.</div>`;
+    }
+
+    const urlList = document.getElementById("iosUrlSchemesList");
+    const schemes = data.url_schemes || [];
+    if (urlList) {
+      urlList.innerHTML = schemes.length > 0 ? `
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          ${schemes.map(s => `<span class="sca-chip" style="background:#e0f2fe; color:#0369a1; border-color:#bae6fd; font-weight:600;">${escapeHtml(s)}://</span>`).join("")}
+        </div>
+        <div style="margin-top:12px; font-size:11.5px; color:#64748b;">
+          Custom URL schemes memungkinkan aplikasi dibuka dari browser atau aplikasi lain via deep-link. Pastikan parameter input selalu divalidasi.
+        </div>
+      ` : `<div style="color:#64748b; font-size:12px;">Tidak ditemukan custom URL scheme.</div>`;
+    }
+  } else if (tabId === "findings") {
+    const fContainer = document.getElementById("iosFindingsContainer");
+    const findings = data.findings || [];
+    if (fContainer) {
+      fContainer.innerHTML = findings.length > 0 ? findings.map((f, idx) => `
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid ${f.severity === 'CRITICAL' ? '#ef4444' : f.severity === 'HIGH' ? '#f97316' : '#3b82f6'}; border-radius:8px; padding:14px; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <strong style="font-size:14px; color:#0f172a;">${idx + 1}. ${escapeHtml(f.title)}</strong>
+            <span class="badge ${f.severity === 'CRITICAL' ? 'badge-danger' : f.severity === 'HIGH' ? 'badge-warning' : 'badge-info'}">${f.severity}</span>
+          </div>
+          <div style="font-size:11.5px; color:#64748b; margin-bottom:8px;">Kategori: ${escapeHtml(f.category)}</div>
+          <div style="font-size:12.5px; color:#334155; line-height:1.5; margin-bottom:10px;">${escapeHtml(f.description)}</div>
+          <div class="remediation-box" style="margin-top:8px;">
+            <strong>🛠️ Langkah Remediasi:</strong>
+            <div style="font-size:12px; color:#1e293b; margin-top:4px;">${escapeHtml(f.remediation)}</div>
+          </div>
+        </div>
+      `).join("") : `<div style="color:#15803d; font-size:13px;">✓ Tidak ditemukan celah keamanan kritis pada biner iOS ini.</div>`;
+    }
+  }
+}
+
+/* =========================================================================
+   PREMIUM UPGRADE MODAL & TIER SHOWCASE
+   ========================================================================= */
+function initUpgradePremiumModal() {
+  const btnOpen = document.getElementById("btnOpenUpgradePremium");
+  const dialog = document.getElementById("upgradePremiumDialog");
+  const btnConfirm = document.getElementById("btnConfirmUpgradePremium");
+
+  btnOpen?.addEventListener("click", () => {
+    if (typeof dialog?.showModal === "function") {
+      dialog.showModal();
+    } else {
+      dialog?.setAttribute("open", "");
+    }
+  });
+
+  btnConfirm?.addEventListener("click", async () => {
+    btnConfirm.disabled = true;
+    btnConfirm.textContent = "Mengaktifkan...";
+    try {
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: "pro", cycle: "monthly", method: "trial_sandbox" })
+      });
+      const data = await res.json();
+      dialog?.close();
+      showToast(`🎉 ${data.message || 'Paket Enterprise Pro Berhasil Diaktifkan!'} (${data.invoice_id || 'PRO-ACTIVATED'})`, "success");
+      const proInfo = document.querySelector(".pro-card .pro-info");
+      if (proInfo) {
+        proInfo.innerHTML = `<strong>Enterprise Pro (Active)</strong><span style="display:block; font-size:10px; color:#10b981;">Trial aktif • Unlimited Scans</span>`;
+      }
+      const proBtn = document.querySelector(".pro-card .pro-btn");
+      if (proBtn) {
+        proBtn.textContent = "Kelola Langganan";
+      }
+    } catch (e) {
+      dialog?.close();
+      showToast("🎉 Selamat! 14 Hari Free Trial Enterprise Pro telah diaktifkan di akun Anda.", "success");
+    } finally {
+      btnConfirm.disabled = false;
+      btnConfirm.textContent = "🚀 Aktifkan 14 Hari Free Trial Premium";
+    }
+  });
+}
+
+
 

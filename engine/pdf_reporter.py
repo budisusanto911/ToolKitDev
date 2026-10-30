@@ -196,6 +196,16 @@ class ExecutivePdfReporter:
         doc.build(story, canvasmaker=NumberedCanvas)
         return buffer.getvalue()
 
+    def save_pdf(self, output_path: str) -> str:
+        """Saves the generated PDF to a file path, ensuring parent directories exist."""
+        pdf_bytes = self.generate_pdf()
+        dir_name = os.path.dirname(os.path.abspath(output_path))
+        if dir_name:
+            os.makedirs(dir_name, exist_ok=True)
+        with open(output_path, "wb") as f:
+            f.write(pdf_bytes)
+        return output_path
+
     def _build_cover_page(self, story: List[Any]):
         meta = self.data.get("metadata", {})
         file_info = self.data.get("file_info", {})
