@@ -19,6 +19,8 @@ from engine.sca_scanner import ScaScanner
 from engine.fix_pack_generator import FixPackGenerator
 from engine.pdf_reporter import ExecutivePdfReporter
 from engine.web_scanner import WebSecurityScanner
+from engine.threat_modeling import ThreatModelingEngine
+from engine.webhook_notifier import generate_sarif, format_notification
 
 # ANSI Terminal Colors
 RESET = "\033[0m"
@@ -85,6 +87,30 @@ def cmd_scan(args):
             print(f"{GREEN}✓ Laporan Audit PDF berhasil disimpan ke:{RESET} {args.export_pdf}")
         except Exception as e:
             print(f"{RED}Gagal membuat PDF Report: {e}{RESET}", file=sys.stderr)
+
+    # Export SARIF if requested
+    if getattr(args, "export_sarif", None):
+        try:
+            sarif = generate_sarif(result)
+            with open(args.export_sarif, "w", encoding="utf-8") as f:
+                json.dump(sarif, f, indent=2)
+            print(f"{GREEN}✓ SARIF v2.1.0 Report berhasil disimpan ke:{RESET} {args.export_sarif}")
+        except Exception as e:
+            print(f"{RED}Gagal membuat SARIF: {e}{RESET}", file=sys.stderr)
+
+    # Output Threat Model if requested
+    if getattr(args, "threat_model", False):
+        try:
+            tm_engine = ThreatModelingEngine(findings)
+            tm_report = tm_engine.generate_report()
+            print(f"\n{MAGENTA}{BOLD}🛡️ STRIDE Threat Model & MITRE ATT&CK Mapping:{RESET}")
+            print(f"  ● Inherent Risk: {tm_report['summary']['total_inherent_risk']} | Residual Risk: {tm_report['summary']['total_residual_risk']}")
+            print(f"  ● Risk Reduction: {tm_report['summary']['risk_reduction_percent']:.1f}%")
+            for fid, mappings in list(tm_report.get("stride_mapping", {}).items())[:6]:
+                m_str = ", ".join(f"{m['stride']} ({', '.join(m['techniques'])})" for m in mappings)
+                print(f"  • Finding {fid}: {m_str}")
+        except Exception as e:
+            print(f"{RED}Gagal membuat Threat Model: {e}{RESET}", file=sys.stderr)
 
     # Output formatting
     if args.format == "json":
@@ -336,6 +362,8 @@ def main():
     p_scan.add_argument("--format", choices=["table", "json"], default="table", help="Format output stdout")
     p_scan.add_argument("--fix-pack", help="Path untuk menyimpan bundel AI Fix Pack (.zip)")
     p_scan.add_argument("--export-pdf", help="Path untuk menyimpan laporan resmi PDF (.pdf)")
+    p_scan.add_argument("--export-sarif", help="Path untuk menyimpan laporan OASIS SARIF v2.1.0 (.sarif)")
+    p_scan.add_argument("--threat-model", action="store_true", help="Tampilkan pemodelan ancaman STRIDE & MITRE ATT&CK")
 
     # Command: web
     p_web = subparsers.add_parser("web", help="Pindai aplikasi web secara headless (OWASP Top 10, Headers, SSL, CORS, Sensitive Paths)")

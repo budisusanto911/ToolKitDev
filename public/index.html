@@ -10,7 +10,7 @@
     } catch (_) {}
   </script>
   <title>ToolKitDev.ai — AI-Powered Context & Security Analysis</title>
-  <link rel="stylesheet" href="/style.css?v=6.0">
+  <link rel="stylesheet" href="/style.css?v=7.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -289,6 +289,10 @@
         <a href="#" class="nav-item" data-tab="security-compliance">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
           Security &amp; Compliance
+        </a>
+        <a href="#" class="nav-item" data-tab="redteam-threat">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+          AI Red Team &amp; STRIDE
         </a>
         <a href="#" class="nav-item" data-tab="settings">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -2449,6 +2453,176 @@
           </div>
         </section>
 
+        <!-- View: Autonomous Threat Modeling & Enterprise Alerting Hub -->
+        <section id="view-redteam-threat" class="tab-view">
+          <div class="card">
+            <div class="dash-card-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px;">
+              <div>
+                <h3 style="display:flex; align-items:center; gap:8px;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+                  Autonomous STRIDE Threat Modeling &amp; Alerting Hub
+                </h3>
+                <p class="section-desc" style="margin-top:4px;">
+                  Pemetaan ancaman sistematis berstandar <strong>STRIDE</strong>, penelusuran taktik <strong>MITRE ATT&amp;CK for Mobile</strong>, mitigasi inherent vs residual risk, serta dispatch notifikasi SIEM &amp; GitHub SARIF v2.1.0.
+                </p>
+              </div>
+
+              <!-- Controls: Select target + Actions -->
+              <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <select id="threatModelTargetSelect" class="auth-input" style="width:240px; padding:6px 12px; font-size:13px;">
+                  <option value="alfagift_analysis.json">Alfagift Mobile (alfagift_analysis.json)</option>
+                  <option value="samples/sample-debug.apk">Appium Settings (sample-debug.apk)</option>
+                </select>
+                <button type="button" id="btnRunThreatModel" class="topbar-pill-btn primary" style="background:#2563eb; color:#fff; border-color:#2563eb;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                  <span>Analisis STRIDE</span>
+                </button>
+                <button type="button" id="btnDownloadSarif" class="topbar-pill-btn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  <span>Export SARIF v2.1.0</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Threat Modeling Metric Summary Cards -->
+            <div class="metrics-grid" style="margin-top:20px; display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
+              <div class="metric-card" style="padding:16px; border-radius:12px; background:var(--bg-secondary, #1e293b); border:1px solid var(--border-color, #334155);">
+                <span style="font-size:12px; color:var(--text-muted, #94a3b8); text-transform:uppercase; font-weight:600;">Total Findings</span>
+                <div id="tmMetricFindings" style="font-size:26px; font-weight:700; color:#38bdf8; margin-top:4px;">-</div>
+                <small style="color:var(--text-muted, #94a3b8);">Dari baseline biner teraudit</small>
+              </div>
+
+              <div class="metric-card" style="padding:16px; border-radius:12px; background:var(--bg-secondary, #1e293b); border:1px solid var(--border-color, #334155);">
+                <span style="font-size:12px; color:var(--text-muted, #94a3b8); text-transform:uppercase; font-weight:600;">Inherent Risk Score</span>
+                <div id="tmMetricInherent" style="font-size:26px; font-weight:700; color:#f87171; margin-top:4px;">-</div>
+                <small style="color:var(--text-muted, #94a3b8);">Bobot keparahan sebelum mitigasi</small>
+              </div>
+
+              <div class="metric-card" style="padding:16px; border-radius:12px; background:var(--bg-secondary, #1e293b); border:1px solid var(--border-color, #334155);">
+                <span style="font-size:12px; color:var(--text-muted, #94a3b8); text-transform:uppercase; font-weight:600;">Residual Risk Score</span>
+                <div id="tmMetricResidual" style="font-size:26px; font-weight:700; color:#fbbf24; margin-top:4px;">-</div>
+                <small style="color:var(--text-muted, #94a3b8);">Potensi risiko pasca kontrol</small>
+              </div>
+
+              <div class="metric-card" style="padding:16px; border-radius:12px; background:var(--bg-secondary, #1e293b); border:1px solid var(--border-color, #334155);">
+                <span style="font-size:12px; color:var(--text-muted, #94a3b8); text-transform:uppercase; font-weight:600;">Risk Reduction</span>
+                <div id="tmMetricReduction" style="font-size:26px; font-weight:700; color:#34d399; margin-top:4px;">-</div>
+                <small style="color:var(--text-muted, #94a3b8);">Efektivitas mitigasi &amp; proteksi</small>
+              </div>
+            </div>
+
+            <!-- Two-Column Grid: STRIDE Matrix & Webhook Dispatcher -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:24px;">
+              <!-- Left: STRIDE Category Cards -->
+              <div>
+                <h4 style="margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                  <span>📋</span> Matriks Kategori STRIDE &amp; MITRE ATT&amp;CK
+                </h4>
+                <div id="strideCategoriesList" style="display:flex; flex-direction:column; gap:12px;">
+                  <div style="padding:14px; border-radius:10px; background:var(--bg-secondary, #1e293b); border:1px solid var(--border-color, #334155);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <strong>🎭 Spoofing (Penyamaran Identitas)</strong>
+                      <span class="badge" style="background:rgba(59,130,246,0.2); color:#60a5fa;">MITRE T1418</span>
+                    </div>
+                    <p style="font-size:12.5px; color:var(--text-muted, #94a3b8); margin-top:6px;">Pemalsuan intent Android, deep-link hijacking, atau manipulasi bundle ID iOS.</p>
+                  </div>
+
+                  <div style="padding:14px; border-radius:10px; background:var(--bg-secondary, #1e293b); border:1px solid var(--border-color, #334155);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <strong>⚠️ Tampering (Perusakan Integritas)</strong>
+                      <span class="badge" style="background:rgba(239,68,68,0.2); color:#f87171;">MITRE T1456</span>
+                    </div>
+                    <p style="font-size:12.5px; color:var(--text-muted, #94a3b8); margin-top:6px;">Modifikasi binary, hook Frida, reverse engineering bytecode smali, dan bypass cert pinning.</p>
+                  </div>
+
+                  <div style="padding:14px; border-radius:10px; background:var(--bg-secondary, #1e293b); border:1px solid var(--border-color, #334155);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <strong>🔓 Information Disclosure (Kebocoran Informasi)</strong>
+                      <span class="badge" style="background:rgba(245,158,11,0.2); color:#fbbf24;">MITRE T1406</span>
+                    </div>
+                    <p style="font-size:12.5px; color:var(--text-muted, #94a3b8); margin-top:6px;">Traffic HTTP plaintext, hardcoded credentials/API keys, logging memori tak tersanitasi.</p>
+                  </div>
+
+                  <div style="padding:14px; border-radius:10px; background:var(--bg-secondary, #1e293b); border:1px solid var(--border-color, #334155);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <strong>⚡ Elevation of Privilege (Eskalasi Hak Istimewa)</strong>
+                      <span class="badge" style="background:rgba(168,85,247,0.2); color:#c084fc;">MITRE T1405</span>
+                    </div>
+                    <p style="font-size:12.5px; color:var(--text-muted, #94a3b8); margin-top:6px;">Komponen exported tanpa proteksi permission signature atau mode android:debuggable aktif.</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right: Enterprise Incident Webhook & Alerting Hub -->
+              <div>
+                <h4 style="margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                  <span>🔔</span> Enterprise Webhook Alert Hub (Slack, Discord, Jira)
+                </h4>
+                <div style="padding:16px; border-radius:12px; background:var(--bg-secondary, #1e293b); border:1px solid var(--border-color, #334155);">
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+                    <div>
+                      <label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">Platform Integrasi</label>
+                      <select id="webhookPlatformSelect" class="auth-input" style="width:100%; padding:6px 10px; font-size:13px;">
+                        <option value="slack">Slack (Block Kit)</option>
+                        <option value="discord">Discord (Rich Embeds)</option>
+                        <option value="jira">Jira Software (Issue Task)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">Tingkat Keparahan (Severity)</label>
+                      <select id="webhookSeveritySelect" class="auth-input" style="width:100%; padding:6px 10px; font-size:13px;">
+                        <option value="danger">Danger / Critical (Merah)</option>
+                        <option value="warning">Warning / High (Kuning)</option>
+                        <option value="info">Info / Low (Hijau)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style="margin-bottom:12px;">
+                    <label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">Pesan Notifikasi Insiden</label>
+                    <input type="text" id="webhookMessageInput" class="auth-input" value="🚨 [ToolKitDev Alert] Terdeteksi 3 celah berstatus CRITICAL pada rilis produksi mobile." style="width:100%; padding:8px 10px; font-size:13px;">
+                  </div>
+
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <button type="button" id="btnPreviewWebhook" class="topbar-pill-btn primary" style="background:#0ea5e9; color:#fff; border-color:#0ea5e9; font-size:12px; padding:6px 14px;">
+                      ⚡ Generate &amp; Preview Payload
+                    </button>
+                    <span id="webhookStatusIndicator" style="font-size:12px; color:#34d399;">✓ Ready</span>
+                  </div>
+
+                  <label style="font-size:11.5px; color:var(--text-muted, #94a3b8); display:block; margin-bottom:4px;">Payload JSON yang Dikirimkan:</label>
+                  <pre id="webhookPayloadPreview" style="background:#090d16; color:#a5f3fc; padding:12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11.5px; max-height:220px; overflow-y:auto; border:1px solid #1e293b;">// Klik 'Generate & Preview Payload' untuk melihat struktur JSON platform</pre>
+                </div>
+              </div>
+            </div>
+
+            <!-- Detailed Finding STRIDE Mapping Table -->
+            <div style="margin-top:24px;">
+              <h4 style="margin-bottom:12px;">Detail Pemetaan Kerentanan Temuan ke STRIDE</h4>
+              <div class="table-responsive" style="overflow-x:auto;">
+                <table class="data-table" id="threatModelTable" style="width:100%; border-collapse:collapse;">
+                  <thead>
+                    <tr style="text-align:left; border-bottom:1px solid var(--border-color, #334155);">
+                      <th style="padding:10px;">ID Temuan</th>
+                      <th style="padding:10px;">Kategori STRIDE</th>
+                      <th style="padding:10px;">Teknik MITRE ATT&amp;CK</th>
+                      <th style="padding:10px;">Inherent Risk</th>
+                      <th style="padding:10px;">Residual Risk</th>
+                    </tr>
+                  </thead>
+                  <tbody id="threatModelTableBody">
+                    <tr>
+                      <td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted, #94a3b8);">
+                        Pilih target dan klik <strong>Analisis STRIDE</strong> untuk menampilkan matriks ancaman.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- View 5: Settings & Preferences -->
         <section id="view-settings" class="tab-view">
           <div class="settings-container">
@@ -2911,7 +3085,7 @@
   </dialog>
 
   <div id="topbarToastContainer" class="topbar-toast-container" aria-live="polite"></div>
-  <script src="/app.js?v=6.0"></script>
+  <script src="/app.js?v=7.0"></script>
 </body>
 </html>
 
