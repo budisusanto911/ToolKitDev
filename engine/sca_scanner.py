@@ -191,3 +191,4 @@ if __name__ == "__main__":
     for s in res['sdks']:
         cve_str = f" [CVE: {', '.join([c['cve_id'] for c in s['cves']])}]" if s['is_vulnerable'] else " [CLEAN]"
         print(f"- {s['name']} v{s['detected_version']} ({s['category']}){cve_str}")
+

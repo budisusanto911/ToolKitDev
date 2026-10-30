@@ -405,3 +405,4 @@ class IpaAnalyzer:
             if sev in counts:
                 counts[sev] += 1
         return counts
+

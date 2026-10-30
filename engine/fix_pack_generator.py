@@ -443,3 +443,4 @@ class SecureVaultService {{
         with open(output_file_path, "wb") as f:
             f.write(data)
         return output_file_path
+
