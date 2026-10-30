@@ -39,6 +39,7 @@ from engine.sca_scanner import ScaScanner
 from engine.fix_pack_generator import FixPackGenerator
 from engine.ipa_analyzer import IpaAnalyzer
 from engine.frida_runner import FridaRunner
+from engine.web_scanner import WebSecurityScanner
 
 PORT = int(os.environ.get("PORT", 8080))
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
@@ -109,6 +110,16 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                 self._send_json(analyzer.analyze())
             else:
                 self._send_json({"error": "Target AAB file not found in uploads"}, status=404)
+        elif path == "/api/web/scan":
+            target_url = query.get("url", [""])[0]
+            if not target_url:
+                self._send_json({"error": "Query parameter 'url' wajib disertakan."}, status=400)
+                return
+            try:
+                scanner = WebSecurityScanner(target_url)
+                self._send_json(scanner.scan())
+            except Exception as e:
+                self._send_json({"error": str(e)}, status=500)
         elif path == "/api/apk/decompiled":
             mode = query.get("mode", ["manifest"])[0]
             file_name = os.path.basename(query.get("file", [""])[0])
@@ -651,6 +662,20 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                 result = comparator.compare()
                 diff_cache[cache_key] = result
                 self._send_json(result)
+            except Exception as e:
+                self._send_json({"error": str(e)}, status=500)
+
+        elif path == "/api/web/scan":
+            content_len = int(self.headers.get("Content-Length", 0))
+            post_body = self.rfile.read(content_len).decode("utf-8")
+            try:
+                payload = json.loads(post_body) if post_body.strip().startswith("{") else {}
+                target_url = payload.get("url") or payload.get("target") or ""
+                if not target_url:
+                    self._send_json({"error": "Parameter 'url' wajib disertakan."}, status=400)
+                    return
+                scanner = WebSecurityScanner(target_url)
+                self._send_json(scanner.scan())
             except Exception as e:
                 self._send_json({"error": str(e)}, status=500)
 

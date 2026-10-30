@@ -18,6 +18,7 @@ from engine.apk_comparator import ApkComparator
 from engine.sca_scanner import ScaScanner
 from engine.fix_pack_generator import FixPackGenerator
 from engine.pdf_reporter import ExecutivePdfReporter
+from engine.web_scanner import WebSecurityScanner
 
 # ANSI Terminal Colors
 RESET = "\033[0m"
@@ -231,11 +232,89 @@ def cmd_sca(args):
     return 0
 
 
+def cmd_web(args) -> int:
+    url = args.url.strip()
+    print(f"\n{CYAN}{BOLD}➜ Memulai audit web security headless untuk:{RESET} {BOLD}{url}{RESET}")
+
+    scanner = WebSecurityScanner(url)
+    try:
+        result = scanner.scan()
+    except Exception as e:
+        print(f"{RED}Error memindai target web: {e}{RESET}", file=sys.stderr)
+        return 2
+
+    findings = result.get("findings", [])
+    score = result.get("security_score", 0)
+    posture = result.get("security_posture", "UNKNOWN")
+
+    # Export PDF if requested
+    if args.export_pdf:
+        try:
+            reporter = ExecutivePdfReporter(result, auditor_name="ToolKitDev Web SecOps Runner", organization="Enterprise DevSecOps")
+            reporter.save_pdf(args.export_pdf)
+            print(f"{GREEN}✓ Laporan Audit Web PDF berhasil disimpan ke:{RESET} {args.export_pdf}")
+        except Exception as e:
+            print(f"{RED}Gagal membuat PDF Report: {e}{RESET}", file=sys.stderr)
+
+    if args.format == "json":
+        print(json.dumps(result, indent=2))
+    else:
+        score_color = GREEN if score >= 80 else (YELLOW if score >= 50 else RED)
+        print(f"\n{BOLD}═══════════════════════════════════════════════════════════════════════{RESET}")
+        print(f" {BOLD}Target Web:{RESET} {result['metadata']['target_url']} ({result['metadata']['ip_address']})")
+        print(f" {BOLD}Security Score:{RESET} {score_color}{BOLD}{score}/100{RESET} ({posture})")
+        print(f" {BOLD}Total Temuan:{RESET} {len(findings)} issues")
+        print(f"{BOLD}═══════════════════════════════════════════════════════════════════════{RESET}\n")
+
+        crit_count = sum(1 for f in findings if f.get("severity") == "CRITICAL")
+        high_count = sum(1 for f in findings if f.get("severity") == "HIGH")
+        med_count = sum(1 for f in findings if f.get("severity") == "MEDIUM")
+        low_count = sum(1 for f in findings if f.get("severity") == "LOW")
+
+        print(f" {RED}{BOLD}● CRITICAL:{RESET} {crit_count}   {YELLOW}{BOLD}● HIGH:{RESET} {high_count}   {BLUE}{BOLD}● MEDIUM:{RESET} {med_count}   {GRAY}{BOLD}● LOW:{RESET} {low_count}\n")
+
+        print(f"{BOLD}Daftar Temuan Keamanan Web Utama:{RESET}")
+        for f in findings[:10]:
+            sev = f.get("severity", "LOW")
+            color = RED if sev == "CRITICAL" else (YELLOW if sev == "HIGH" else BLUE)
+            print(f"  {color}[{sev}]{RESET} {BOLD}{f.get('title')}{RESET}")
+            print(f"    {GRAY}Kategori: {f.get('category')} | Ref: {f.get('cwe', f.get('id', 'N/A'))}{RESET}")
+            desc = f.get("description", "")
+            if desc:
+                short_desc = desc[:110] + ("..." if len(desc) > 110 else "")
+                print(f"    {short_desc}")
+            print()
+
+        if len(findings) > 10:
+            print(f"  {GRAY}... dan {len(findings) - 10} temuan lainnya.{RESET}\n")
+
+    # CI Quality Gate
+    exit_code = 0
+    if args.min_score is not None and score < args.min_score:
+        print(f"{RED}{BOLD}❌ CI GATE FAILED:{RESET} Skor keamanan ({score}) berada di bawah ambang batas minimum ({args.min_score}).", file=sys.stderr)
+        exit_code = 1
+
+    if args.fail_on:
+        threshold = args.fail_on.upper()
+        severities = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+        if threshold in severities:
+            min_idx = severities.index(threshold)
+            failing = [f for f in findings if severities.index(f.get("severity", "LOW")) >= min_idx]
+            if failing:
+                print(f"{RED}{BOLD}❌ CI GATE FAILED:{RESET} Ditemukan {len(failing)} celah berstatus {threshold} atau lebih tinggi.", file=sys.stderr)
+                exit_code = 1
+
+    if exit_code == 0:
+        print(f"{GREEN}{BOLD}✓ CI WEB GATE PASSED:{RESET} Target web memenuhi seluruh standar kepatuhan keamanan ToolKitDev.")
+
+    return exit_code
+
+
 def main():
     print_banner()
 
     parser = argparse.ArgumentParser(
-        description="ToolKitDev CLI - Headless Autonomous Mobile Security & CI/CD Runner",
+        description="ToolKitDev CLI - Headless Autonomous Mobile & Web Security Runner",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     subparsers = parser.add_subparsers(dest="command", help="Perintah audit yang tersedia")
@@ -248,6 +327,14 @@ def main():
     p_scan.add_argument("--format", choices=["table", "json"], default="table", help="Format output stdout")
     p_scan.add_argument("--fix-pack", help="Path untuk menyimpan bundel AI Fix Pack (.zip)")
     p_scan.add_argument("--export-pdf", help="Path untuk menyimpan laporan resmi PDF (.pdf)")
+
+    # Command: web
+    p_web = subparsers.add_parser("web", help="Pindai aplikasi web secara headless (OWASP Top 10, Headers, SSL, CORS, Sensitive Paths)")
+    p_web.add_argument("url", help="URL target (misal: https://example.com)")
+    p_web.add_argument("--fail-on", choices=["CRITICAL", "HIGH", "MEDIUM", "LOW"], help="Gagalkan exit code jika ada temuan pada tingkat ini")
+    p_web.add_argument("--min-score", type=int, help="Ambang batas minimum security score (0-100)")
+    p_web.add_argument("--format", choices=["table", "json"], default="table", help="Format output stdout")
+    p_web.add_argument("--export-pdf", help="Path untuk menyimpan laporan resmi PDF (.pdf)")
 
     # Command: diff
     p_diff = subparsers.add_parser("diff", help="Bandingkan dua rilis APK untuk audit regresi keamanan")
@@ -270,6 +357,8 @@ def main():
 
     if args.command == "scan":
         return cmd_scan(args)
+    elif args.command == "web":
+        return cmd_web(args)
     elif args.command == "diff":
         return cmd_diff(args)
     elif args.command == "sca":
