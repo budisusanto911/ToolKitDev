@@ -19,6 +19,9 @@ import cgi
 import zipfile
 import tempfile
 import datetime
+import time
+import random
+import re
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from typing import Dict, Any, List, Optional
@@ -35,6 +38,7 @@ from engine.apk_comparator import ApkComparator
 from engine.sca_scanner import ScaScanner
 from engine.fix_pack_generator import FixPackGenerator
 from engine.ipa_analyzer import IpaAnalyzer
+from engine.frida_runner import FridaRunner
 
 PORT = int(os.environ.get("PORT", 8080))
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
@@ -48,6 +52,7 @@ graph_engine = CorrelationGraphEngine(default_target="budisusanto911")
 mcp_hub = McpHub()
 qa_engine = ContextQaEngine()
 auth_manager = AuthManager()
+frida_runner = FridaRunner()
 diff_cache: Dict[str, Any] = {}
 sca_cache: Dict[str, Any] = {}
 
@@ -365,6 +370,19 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                 self._send_json(result)
             except Exception as e:
                 self._send_json({"error": f"Failed to analyze IPA: {str(e)}"}, status=500)
+        elif path == "/api/frida/scripts":
+            self._send_json({"scripts": frida_runner.get_available_scripts()})
+        elif path == "/api/billing/status":
+            token = self.headers.get("Authorization", "") or query.get("token", [""])[0]
+            sess = auth_manager.get_session(token)
+            user_tier = sess.get("user", {}).get("tier", "Community Free") if sess else "Community Free"
+            is_pro = user_tier.startswith("Enterprise") or (sess and sess.get("user", {}).get("is_premium", False))
+            self._send_json({
+                "tier": user_tier,
+                "is_premium": is_pro,
+                "scans_remaining": "Unlimited" if is_pro else 3,
+                "features_unlocked": ["apk_diff", "sca_cve", "fix_pack", "ios_ipa", "formal_pdf", "ai_forensic_agent"] if is_pro else ["static_sast"]
+            })
         elif path == "/api/mcp/oauth-url":
             conn = query.get("connector", ["github"])[0]
             cid = query.get("client_id", [""])[0]
@@ -489,6 +507,87 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                 apk_ctx = payload.get("apk_context", None)
                 res = qa_engine.answer_question(q, apk_ctx)
                 self._send_json(res)
+            except Exception as e:
+                self._send_json({"error": str(e)}, status=400)
+
+        elif path == "/api/chat/stream":
+            content_len = int(self.headers.get("Content-Length", 0))
+            post_body = self.rfile.read(content_len).decode("utf-8")
+            try:
+                payload = json.loads(post_body) if post_body.strip().startswith("{") else {}
+                q = payload.get("question", "")
+                apk_ctx = payload.get("apk_context", None)
+                res = qa_engine.answer_question(q, apk_ctx)
+                full_text = res.get("answer", "")
+                citations = res.get("citations", [])
+
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                self.send_header("Cache-Control", "no-cache")
+                self.send_header("Connection", "keep-alive")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+
+                # Stream tokens
+                tokens = re.findall(r"\S+|\n+", full_text)
+                for idx, tok in enumerate(tokens):
+                    is_nl = "\n" in tok
+                    chunk = tok if is_nl else (tok + " ")
+                    payload_chunk = json.dumps({"token": chunk})
+                    self.wfile.write(f"data: {payload_chunk}\n\n".encode("utf-8"))
+                    self.wfile.flush()
+                    if idx % 2 == 0:
+                        time.sleep(0.012)
+
+                terminal = json.dumps({"done": True, "citations": citations, "confidence": res.get("confidence", 0.95)})
+                self.wfile.write(f"data: {terminal}\n\n".encode("utf-8"))
+                self.wfile.flush()
+            except Exception as e:
+                self._send_json({"error": str(e)}, status=400)
+
+        elif path == "/api/billing/checkout":
+            content_len = int(self.headers.get("Content-Length", 0))
+            post_body = self.rfile.read(content_len).decode("utf-8")
+            try:
+                payload = json.loads(post_body) if post_body.strip().startswith("{") else {}
+                plan = payload.get("plan", "pro")
+                cycle = payload.get("cycle", "monthly")
+                method = payload.get("method", "qris")
+                token = self.headers.get("Authorization", "") or payload.get("token", "")
+
+                inv_id = f"INV-TKD-{datetime.datetime.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}"
+                amount = "$49.00 USD" if plan == "pro" else "$199.00 USD"
+
+                # Upgrade session user to Pro
+                sess = auth_manager.get_session(token)
+                if sess and "user" in sess:
+                    sess["user"]["tier"] = "Enterprise Pro"
+                    sess["user"]["is_premium"] = True
+                    sess["user"]["plan"] = plan
+
+                self._send_json({
+                    "success": True,
+                    "invoice_id": inv_id,
+                    "plan": plan.upper(),
+                    "amount": amount,
+                    "payment_method": method.upper(),
+                    "status": "PAID_ACTIVE",
+                    "activated_at": datetime.datetime.now().isoformat(),
+                    "valid_until": (datetime.datetime.now() + datetime.timedelta(days=365 if cycle == 'annual' else 30)).strftime("%Y-%m-%d"),
+                    "message": "Langganan Enterprise Pro berhasil diaktifkan. Seluruh kuota dan fitur otonom telah aktif!"
+                })
+            except Exception as e:
+                self._send_json({"success": False, "error": str(e)}, status=400)
+
+        elif path == "/api/frida/execute":
+            content_len = int(self.headers.get("Content-Length", 0))
+            post_body = self.rfile.read(content_len).decode("utf-8")
+            try:
+                payload = json.loads(post_body) if post_body.strip().startswith("{") else {}
+                script_id = payload.get("script_id", "ssl_unpinning")
+                pkg = payload.get("package", "com.alfa.alfagift")
+                session_result = frida_runner.execute_live_session(script_id, target_package=pkg)
+                self._send_json(session_result)
             except Exception as e:
                 self._send_json({"error": str(e)}, status=400)
 

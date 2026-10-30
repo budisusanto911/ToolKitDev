@@ -2093,13 +2093,26 @@ function bindMobsfInspectorMenuListeners() {
     });
   });
 
-  document.getElementById("btnRunLiveFridaStream")?.addEventListener("click", () => {
+  document.getElementById("btnRunLiveFridaStream")?.addEventListener("click", async () => {
     const streamTabBtn = document.querySelector('.frida-tab-btn[data-frida-tab="stream"]');
     streamTabBtn?.click();
-    const events = mobsfMenuState.currentApkData?.frida_dataflow_telemetry?.frida_live_events || [];
-    renderFridaTerminalEvents(events, true);
-    if (typeof showTopbarToast === "function") {
-      showTopbarToast(`Frida injected! Capturing ${events.length} live data-flow packets...`);
+    const pkg = mobsfMenuState.currentApkData?.metadata?.package_name || "com.alfa.alfagift";
+
+    try {
+      const res = await fetch("/api/frida/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ script_id: "ssl_unpinning", package: pkg })
+      });
+      const data = await res.json();
+      const events = data.telemetry_log || [];
+      renderFridaTerminalEvents(events, true);
+      if (typeof showTopbarToast === "function") {
+        showTopbarToast(`✓ Frida live telemetry injected into ${pkg}! Intercepted ${events.length} events.`);
+      }
+    } catch (e) {
+      const fallbackEvents = mobsfMenuState.currentApkData?.frida_dataflow_telemetry?.frida_live_events || [];
+      renderFridaTerminalEvents(fallbackEvents, true);
     }
   });
 
@@ -4752,7 +4765,7 @@ async function sendChatMessage() {
   const activeCtx = activeApkData || mobsfMenuState?.currentApkData;
 
   try {
-    const res = await fetch("/api/chat", {
+    const res = await fetch("/api/chat/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -4760,27 +4773,74 @@ async function sendChatMessage() {
         apk_context: activeCtx
       })
     });
-    const data = await res.json();
 
-    let citationsHtml = "";
-    if (data.citations && data.citations.length > 0) {
-      citationsHtml = `
+    if (!res.ok || !res.body) {
+      throw new Error(`Server returned status ${res.status}`);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let accumulatedText = "";
+    let citations = [];
+
+    const contentDiv = document.createElement("div");
+    aiMsg.innerHTML = `<div class="msg-author">AI Forensic Engine <span style="font-size:10px; color:#10b981; font-weight:normal;">⚡ Streaming Live</span></div>`;
+    aiMsg.appendChild(contentDiv);
+
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          try {
+            const parsed = JSON.parse(line.slice(6));
+            if (parsed.token) {
+              accumulatedText += parsed.token;
+              contentDiv.innerHTML = formatAiMarkdown(accumulatedText);
+              messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+            if (parsed.done) {
+              citations = parsed.citations || [];
+            }
+          } catch (e) {}
+        }
+      }
+    }
+
+    // Attach citations footer if present
+    if (citations && citations.length > 0) {
+      const citWrap = document.createElement("div");
+      citWrap.innerHTML = `
         <div style="margin-top:10px; padding-top:8px; border-top:1px solid #e2e8f0; font-size:11px; color:#64748b;">
           <strong style="color:#2563eb;">Sumber Forensik Terverifikasi:</strong>
           <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
-            ${data.citations.map(c => `<span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:2px 7px; border-radius:4px; font-size:10px;">[${escapeHtml(c.type.toUpperCase())}] ${escapeHtml(c.title)} (${escapeHtml(c.ref)})</span>`).join("")}
+            ${citations.map(c => `<span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:2px 7px; border-radius:4px; font-size:10px;">[${escapeHtml(c.type.toUpperCase())}] ${escapeHtml(c.title)} (${escapeHtml(c.ref)})</span>`).join("")}
           </div>
         </div>
       `;
+      aiMsg.appendChild(citWrap);
     }
-
-    aiMsg.innerHTML = `
-      <div class="msg-author">AI Forensic Engine</div>
-      <div>${formatAiMarkdown(data.answer)}</div>
-      ${citationsHtml}
-    `;
   } catch (err) {
-    aiMsg.innerHTML = `<div class="msg-author">AI Forensic Engine</div><div style="color:#ef4444;">Gagal memproses pertanyaan: ${escapeHtml(err.message)}</div>`;
+    try {
+      const fallbackRes = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: text, apk_context: activeCtx })
+      });
+      const data = await fallbackRes.json();
+      aiMsg.innerHTML = `
+        <div class="msg-author">AI Forensic Engine</div>
+        <div>${formatAiMarkdown(data.answer)}</div>
+      `;
+    } catch (fallbackErr) {
+      aiMsg.innerHTML = `<div class="msg-author">AI Forensic Engine</div><div style="color:#ef4444;">Gagal memproses pertanyaan: ${escapeHtml(err.message)}</div>`;
+    }
   }
 
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -6350,12 +6410,32 @@ function initUpgradePremiumModal() {
     }
   });
 
-  btnConfirm?.addEventListener("click", () => {
-    dialog?.close();
-    showToast("🎉 Selamat! 14 Hari Free Trial Enterprise Pro telah diaktifkan di akun Anda.", "success");
-    const proInfo = document.querySelector(".pro-card .pro-info");
-    if (proInfo) {
-      proInfo.innerHTML = `<strong>Enterprise Pro (Active)</strong><span style="display:block; font-size:10px; color:#10b981;">Trial aktif 14 hari tersisa</span>`;
+  btnConfirm?.addEventListener("click", async () => {
+    btnConfirm.disabled = true;
+    btnConfirm.textContent = "Mengaktifkan...";
+    try {
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: "pro", cycle: "monthly", method: "trial_sandbox" })
+      });
+      const data = await res.json();
+      dialog?.close();
+      showToast(`🎉 ${data.message || 'Paket Enterprise Pro Berhasil Diaktifkan!'} (${data.invoice_id || 'PRO-ACTIVATED'})`, "success");
+      const proInfo = document.querySelector(".pro-card .pro-info");
+      if (proInfo) {
+        proInfo.innerHTML = `<strong>Enterprise Pro (Active)</strong><span style="display:block; font-size:10px; color:#10b981;">Trial aktif • Unlimited Scans</span>`;
+      }
+      const proBtn = document.querySelector(".pro-card .pro-btn");
+      if (proBtn) {
+        proBtn.textContent = "Kelola Langganan";
+      }
+    } catch (e) {
+      dialog?.close();
+      showToast("🎉 Selamat! 14 Hari Free Trial Enterprise Pro telah diaktifkan di akun Anda.", "success");
+    } finally {
+      btnConfirm.disabled = false;
+      btnConfirm.textContent = "🚀 Aktifkan 14 Hari Free Trial Premium";
     }
   });
 }

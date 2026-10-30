@@ -1,0 +1,46 @@
+name: ToolKitDev Mobile DevSecOps Audit
+
+on:
+  pull_request:
+    branches: [ main, master, release/* ]
+  push:
+    branches: [ main ]
+
+jobs:
+  mobile-security-gate:
+    name: Autonomous Mobile Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Build Android Release APK (or mock artifact)
+        run: |
+          echo "Building APK for security evaluation..."
+          # ./gradlew assembleRelease
+
+      - name: Run ToolKitDev Headless Security Gate
+        run: |
+          python3 cli.py scan uploads/base.apk \
+            --fail-on CRITICAL \
+            --min-score 30 \
+            --export-pdf build/reports/security-audit.pdf \
+            --fix-pack build/reports/toolkitdev-fixpack.zip
+
+      - name: Run ToolKitDev Version Diff & Regression Audit
+        run: |
+          python3 cli.py diff samples/sample-debug.apk uploads/base.apk \
+            --fail-on-regression
+
+      - name: Upload Security Reports & Fix Pack Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: toolkitdev-security-artifacts
+          path: build/reports/
