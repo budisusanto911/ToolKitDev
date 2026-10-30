@@ -10,7 +10,7 @@
     } catch (_) {}
   </script>
   <title>ToolKitDev.ai — AI-Powered Context & Security Analysis</title>
-  <link rel="stylesheet" href="/style.css?v=5.4">
+  <link rel="stylesheet" href="/style.css?v=5.5">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -269,6 +269,14 @@
         <a href="#" class="nav-item" data-tab="apk-inspector">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
           APK Inspector
+        </a>
+        <a href="#" class="nav-item" data-tab="apk-diff">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>
+          APK Version Diff
+        </a>
+        <a href="#" class="nav-item" data-tab="sca-scanner">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          SDK &amp; Dependency SCA
         </a>
         <a href="#" class="nav-item" data-tab="mcp-hub">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -1932,6 +1940,269 @@
           </div>
         </section>
 
+        <!-- View: APK Version Diff & Delta Security Audit -->
+        <section id="view-apk-diff" class="tab-view">
+          <div class="card" style="margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; flex-wrap:wrap; gap:12px;">
+              <div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="mobsf-dialog-badge" style="background:#0284c7; color:#fff;">DELTA SECURITY AUDIT</span>
+                  <h3 class="card-title" style="margin:0;">🔄 APK Diff &amp; Version Comparator</h3>
+                </div>
+                <p class="section-desc" style="margin-top:4px;">
+                  Bandingkan dua binary APK/AAB (misal Rilis Lama vs Update Baru) untuk mendeteksi regresi keamanan, pertambahan izin berbahaya, dan permukaan serangan baru sebelum deployment.
+                </p>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary" id="btnDiffDemo1">⚡ Demo: Sample vs KAI</button>
+                <button type="button" class="btn btn-secondary" id="btnDiffDemo2">⚡ Demo: Alfagift vs KAI</button>
+              </div>
+            </div>
+
+            <!-- Selector Row -->
+            <div class="diff-selector-row">
+              <div class="diff-select-box">
+                <label for="diffBaseSelect"><strong>Rilis Acuan / Versi Lama (Base):</strong></label>
+                <select id="diffBaseSelect" class="mcp-form-input diff-select">
+                  <option value="samples/sample-debug.apk">Appium Settings (sample-debug.apk)</option>
+                  <option value="alfagift_analysis.json">Alfagift v4.44.9 (Pre-analyzed Baseline)</option>
+                  <option value="uploads/base.apk">Access by KAI (base.apk)</option>
+                </select>
+                <div class="diff-file-tag" id="diffBaseMetaTag">Acuan audit perbandingan</div>
+              </div>
+
+              <div class="diff-arrow-indicator">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                <span>vs</span>
+              </div>
+
+              <div class="diff-select-box">
+                <label for="diffTargetSelect"><strong>Rilis Baru / Kandidat Update (Target):</strong></label>
+                <select id="diffTargetSelect" class="mcp-form-input diff-select">
+                  <option value="uploads/base.apk" selected>Access by KAI (base.apk)</option>
+                  <option value="alfagift_analysis.json">Alfagift v4.44.9 (Pre-analyzed)</option>
+                  <option value="samples/sample-debug.apk">Appium Settings (sample-debug.apk)</option>
+                </select>
+                <div class="diff-file-tag" id="diffTargetMetaTag">Versi baru yang diuji</div>
+              </div>
+
+              <div class="diff-action-box">
+                <button type="button" class="btn btn-primary" id="btnRunDiffAudit" style="height:42px; width:100%; justify-content:center; gap:8px;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                  <span>Bandingkan Versi</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Diff Results Area -->
+          <div id="diffResultsArea" class="hidden">
+            <!-- Hero Delta Banner -->
+            <div class="diff-hero-banner" id="diffHeroBanner">
+              <div class="diff-hero-col">
+                <span class="diff-col-sub">RILIS ACUAN (BASE)</span>
+                <h4 id="diffBaseAppName" class="diff-hero-name">-</h4>
+                <div class="diff-hero-meta" id="diffBaseAppMeta">-</div>
+                <div class="diff-hero-score" id="diffBaseScore">0</div>
+              </div>
+
+              <div class="diff-delta-badge-col">
+                <div class="diff-delta-pill" id="diffDeltaPill">±0 PTS</div>
+                <div class="diff-delta-label" id="diffDeltaLabel">STABIL</div>
+              </div>
+
+              <div class="diff-hero-col">
+                <span class="diff-col-sub">KANDIDAT UPDATE (TARGET)</span>
+                <h4 id="diffTargetAppName" class="diff-hero-name">-</h4>
+                <div class="diff-hero-meta" id="diffTargetAppMeta">-</div>
+                <div class="diff-hero-score" id="diffTargetScore">0</div>
+              </div>
+            </div>
+
+            <!-- Narrative Assessment -->
+            <div class="diff-narrative-card" id="diffNarrativeCard">
+              <strong>📋 Executive Verdict &amp; Delta Security Assessment:</strong>
+              <div id="diffNarrativeText" style="margin-top:6px; line-height:1.5;"></div>
+            </div>
+
+            <!-- Metric Summary Counters -->
+            <div class="diff-kpi-grid">
+              <div class="diff-kpi-box" id="diffKpiPerms">
+                <div class="diff-kpi-num" id="diffNumPerms">0</div>
+                <div class="diff-kpi-lbl">Izin Baru Ditambahkan</div>
+                <div class="diff-kpi-sub" id="diffSubPerms">0 izin berbahaya</div>
+              </div>
+              <div class="diff-kpi-box" id="diffKpiComps">
+                <div class="diff-kpi-num" id="diffNumComps">0</div>
+                <div class="diff-kpi-lbl">Komponen Baru Diekspor</div>
+                <div class="diff-kpi-sub" id="diffSubComps">Permukaan serangan IPC</div>
+              </div>
+              <div class="diff-kpi-box" id="diffKpiResolved">
+                <div class="diff-kpi-num" style="color:#16a34a;" id="diffNumResolved">0</div>
+                <div class="diff-kpi-lbl">Celah Berhasil Diperbaiki</div>
+                <div class="diff-kpi-sub">Resolved findings</div>
+              </div>
+              <div class="diff-kpi-box" id="diffKpiRegressed">
+                <div class="diff-kpi-num" style="color:#dc2626;" id="diffNumRegressed">0</div>
+                <div class="diff-kpi-lbl">Regresi Celah Baru</div>
+                <div class="diff-kpi-sub">New security risks</div>
+              </div>
+            </div>
+
+            <!-- Detailed Tabs -->
+            <div class="frida-tabs-bar" style="margin-top:16px;">
+              <button type="button" class="frida-tab-btn active" data-diff-tab="findings">
+                🛡️ Temuan Keamanan &amp; Celah
+              </button>
+              <button type="button" class="frida-tab-btn" data-diff-tab="permissions">
+                🔑 Izin Aplikasi (Permissions)
+              </button>
+              <button type="button" class="frida-tab-btn" data-diff-tab="components">
+                ⚡ Komponen Exported IPC
+              </button>
+              <button type="button" class="frida-tab-btn" data-diff-tab="endpoints">
+                🌐 Rute &amp; Endpoints API
+              </button>
+            </div>
+
+            <div class="card" style="margin-top:0; border-top-left-radius:0; border-top-right-radius:0;">
+              <!-- Tab 1: Findings Delta -->
+              <div class="diff-tab-panel" id="diffTabFindings">
+                <div id="diffFindingsList"></div>
+              </div>
+
+              <!-- Tab 2: Permissions Delta -->
+              <div class="diff-tab-panel hidden" id="diffTabPermissions">
+                <div class="diff-2col-layout">
+                  <div>
+                    <h5 style="color:#dc2626; margin-bottom:8px;">🔴 Izin Baru Ditambahkan (Target)</h5>
+                    <div id="diffAddedPermsList" class="diff-list-box"></div>
+                  </div>
+                  <div>
+                    <h5 style="color:#16a34a; margin-bottom:8px;">🟢 Izin Dihapus / Ditutup (Base)</h5>
+                    <div id="diffRemovedPermsList" class="diff-list-box"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tab 3: Components Delta -->
+              <div class="diff-tab-panel hidden" id="diffTabComponents">
+                <div class="diff-2col-layout">
+                  <div>
+                    <h5 style="color:#dc2626; margin-bottom:8px;">🔴 Komponen Baru Terbuka ke Publik (exported=true)</h5>
+                    <div id="diffAddedCompsList" class="diff-list-box"></div>
+                  </div>
+                  <div>
+                    <h5 style="color:#16a34a; margin-bottom:8px;">🟢 Komponen Berhasil Ditutup (exported=false / removed)</h5>
+                    <div id="diffSecuredCompsList" class="diff-list-box"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tab 4: Endpoints Delta -->
+              <div class="diff-tab-panel hidden" id="diffTabEndpoints">
+                <div class="diff-2col-layout">
+                  <div>
+                    <h5 style="color:#2563eb; margin-bottom:8px;">🌐 Endpoint / Channel Baru Terdeteksi</h5>
+                    <div id="diffAddedEndpointsList" class="diff-list-box"></div>
+                  </div>
+                  <div>
+                    <h5 style="color:#64748b; margin-bottom:8px;">🗑️ Endpoint Tidak Aktif / Dihapus</h5>
+                    <div id="diffRemovedEndpointsList" class="diff-list-box"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- View: Third-Party SDK & Dependency CVE Scanner (SCA) -->
+        <section id="view-sca-scanner" class="tab-view">
+          <div class="card" style="margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; flex-wrap:wrap; gap:12px;">
+              <div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="mobsf-dialog-badge" style="background:#7c3aed; color:#fff;">SOFTWARE COMPOSITION ANALYSIS</span>
+                  <h3 class="card-title" style="margin:0;">🧩 Third-Party SDK &amp; Dependency CVE Scanner</h3>
+                </div>
+                <p class="section-desc" style="margin-top:4px;">
+                  Audit inventaris seluruh library &amp; SDK pihak ketiga di dalam binary DEX bytecode, verifikasi kepatuhan lisensi open-source, dan petakan celah keamanan CVE yang tertanam.
+                </p>
+              </div>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <select id="scaTargetFileSelect" class="mcp-form-input" style="width:240px; font-size:12px;">
+                  <option value="uploads/base.apk">Access by KAI (base.apk)</option>
+                  <option value="alfagift_analysis.json">Alfagift v4.44.9 (Baseline)</option>
+                  <option value="samples/sample-debug.apk">Appium Settings (sample-debug.apk)</option>
+                </select>
+                <button type="button" class="btn btn-primary" id="btnRunScaScan">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                  <span>Pindai SDK</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- SCA KPI Summary Strip -->
+            <div class="sca-kpi-grid">
+              <div class="sca-kpi-card sca-kpi-total">
+                <div class="sca-kpi-val" id="scaKpiTotal">0</div>
+                <div class="sca-kpi-lbl">Total SDK Terdeteksi</div>
+              </div>
+              <div class="sca-kpi-card sca-kpi-vuln">
+                <div class="sca-kpi-val" style="color:#dc2626;" id="scaKpiVuln">0</div>
+                <div class="sca-kpi-lbl">SDK Mengandung CVE</div>
+              </div>
+              <div class="sca-kpi-card sca-kpi-outdated">
+                <div class="sca-kpi-val" style="color:#d97706;" id="scaKpiOutdated">0</div>
+                <div class="sca-kpi-lbl">SDK Versi Usang</div>
+              </div>
+              <div class="sca-kpi-card sca-kpi-clean">
+                <div class="sca-kpi-val" style="color:#16a34a;" id="scaKpiClean">0</div>
+                <div class="sca-kpi-lbl">SDK Bersih / Terproteksi</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SCA Filter & Table Card -->
+          <div class="card">
+            <div class="android-api-controls" style="margin-bottom:12px;">
+              <div class="sca-category-chips" id="scaCategoryChips">
+                <button type="button" class="sca-chip active" data-cat="all">Semua Kategori</button>
+                <button type="button" class="sca-chip" data-cat="vulnerable">⚠️ Hanya Mengandung CVE</button>
+                <button type="button" class="sca-chip" data-cat="Networking &amp; HTTP">Networking</button>
+                <button type="button" class="sca-chip" data-cat="Analytics &amp; Marketing">Analytics</button>
+                <button type="button" class="sca-chip" data-cat="Security &amp; Crypto">Security</button>
+                <button type="button" class="sca-chip" data-cat="Media &amp; UI">Media &amp; UI</button>
+              </div>
+              <div class="android-api-search-wrap">
+                <label for="scaSearchInput" class="android-api-search-label">Cari SDK:</label>
+                <input type="search" id="scaSearchInput" class="android-api-search-input" placeholder="Cari nama library, package, atau CVE ID..." autocomplete="off">
+              </div>
+            </div>
+
+            <div class="android-api-table-wrapper">
+              <table class="android-api-table" id="scaTable">
+                <thead>
+                  <tr>
+                    <th style="width:24%;">Nama SDK &amp; Kategori</th>
+                    <th style="width:28%;">Bytecode Signature / Package</th>
+                    <th style="width:16%;">Versi Terdeteksi</th>
+                    <th style="width:18%;">Status Kerentanan CVE</th>
+                    <th style="width:14%;">Aksi &amp; Solusi</th>
+                  </tr>
+                </thead>
+                <tbody id="scaTableBody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="android-api-footer">
+              <div class="android-api-table-info" id="scaTableInfo">Showing 0 of 0 SDKs</div>
+            </div>
+          </div>
+        </section>
+
         <!-- View 3: MCP & Context Hub -->
         <section id="view-mcp-hub" class="tab-view">
           <div class="card">
@@ -2384,7 +2655,7 @@
   </dialog>
 
   <div id="topbarToastContainer" class="topbar-toast-container" aria-live="polite"></div>
-  <script src="/app.js?v=5.4"></script>
+  <script src="/app.js?v=5.5"></script>
 </body>
 </html>
 

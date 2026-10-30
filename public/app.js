@@ -15,6 +15,8 @@ document.addEventListener("DOMContentLoaded", () => {
   initApkInspector();
   initMcpAndHistory();
   initAiChat();
+  initApkDiffComparator();
+  initScaScanner();
   loadDashboardData();
   initShopeersInteractions();
 });
@@ -5546,4 +5548,449 @@ function initAuthSystem() {
     authGate?.classList.remove("hidden");
   });
 }
+
+/* =========================================================================
+   8. APK VERSION DIFF & DELTA AUDIT
+   ========================================================================= */
+let apkDiffState = {
+  currentResult: null,
+  activeTab: "findings"
+};
+
+async function initApkDiffComparator() {
+  const baseSelect = document.getElementById("diffBaseSelect");
+  const targetSelect = document.getElementById("diffTargetSelect");
+  const runBtn = document.getElementById("btnRunDiffAudit");
+  const demo1 = document.getElementById("btnDiffDemo1");
+  const demo2 = document.getElementById("btnDiffDemo2");
+
+  // Load available files for comparison
+  try {
+    const res = await fetch("/api/apk/diff-list");
+    if (res.ok) {
+      const data = await res.json();
+      const files = data.files || [];
+      if (files.length > 0) {
+        const baseVal = baseSelect?.value;
+        const targetVal = targetSelect?.value;
+        
+        let optsHtml = files.map(f => `<option value="${escapeHtml(f.path)}">${escapeHtml(f.name)} (${f.size_fmt})</option>`).join("");
+        if (baseSelect) baseSelect.innerHTML = optsHtml;
+        if (targetSelect) targetSelect.innerHTML = optsHtml;
+
+        // Set meaningful defaults
+        if (baseSelect && baseSelect.querySelector(`option[value="${baseVal}"]`)) baseSelect.value = baseVal;
+        if (targetSelect) {
+          if (targetSelect.querySelector(`option[value="${targetVal}"]`)) targetSelect.value = targetVal;
+          else if (files.length > 1) targetSelect.selectedIndex = 1;
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Gagal memuat diff-list:", err);
+  }
+
+  // Demo 1
+  demo1?.addEventListener("click", () => {
+    if (baseSelect) baseSelect.value = "samples/sample-debug.apk";
+    if (targetSelect) targetSelect.value = "uploads/base.apk";
+    runApkDiffComparison();
+  });
+
+  // Demo 2
+  demo2?.addEventListener("click", () => {
+    if (baseSelect) baseSelect.value = "alfagift_analysis.json";
+    if (targetSelect) targetSelect.value = "uploads/base.apk";
+    runApkDiffComparison();
+  });
+
+  runBtn?.addEventListener("click", () => runApkDiffComparison());
+
+  // Tab switching inside diff
+  document.querySelectorAll("[data-diff-tab]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("[data-diff-tab]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const tabName = btn.getAttribute("data-diff-tab");
+      apkDiffState.activeTab = tabName;
+
+      document.getElementById("diffTabFindings")?.classList.toggle("hidden", tabName !== "findings");
+      document.getElementById("diffTabPermissions")?.classList.toggle("hidden", tabName !== "permissions");
+      document.getElementById("diffTabComponents")?.classList.toggle("hidden", tabName !== "components");
+      document.getElementById("diffTabEndpoints")?.classList.toggle("hidden", tabName !== "endpoints");
+    });
+  });
+}
+
+async function runApkDiffComparison() {
+  const baseSelect = document.getElementById("diffBaseSelect");
+  const targetSelect = document.getElementById("diffTargetSelect");
+  const runBtn = document.getElementById("btnRunDiffAudit");
+  const resultsArea = document.getElementById("diffResultsArea");
+
+  const baseFile = baseSelect?.value || "";
+  const targetFile = targetSelect?.value || "";
+
+  if (!baseFile || !targetFile) {
+    if (typeof showTopbarToast === "function") showTopbarToast("Pilih kedua rilis untuk dibandingkan.");
+    return;
+  }
+
+  if (runBtn) {
+    runBtn.disabled = true;
+    runBtn.innerHTML = `<span>Membandingkan Bytecode...</span>`;
+  }
+  if (typeof showTopbarToast === "function") showTopbarToast("Memulai perbandingan delta keamanan...");
+
+  try {
+    const res = await fetch(`/api/apk/diff?base=${encodeURIComponent(baseFile)}&target=${encodeURIComponent(targetFile)}`);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Gagal membandingkan binary");
+    }
+    const data = await res.json();
+    apkDiffState.currentResult = data;
+    renderDiffResults(data);
+    resultsArea?.classList.remove("hidden");
+    resultsArea?.scrollIntoView({ behavior: "smooth" });
+    if (typeof showTopbarToast === "function") showTopbarToast("✅ Perbandingan delta selesai dihitung!");
+  } catch (err) {
+    if (typeof showTopbarToast === "function") showTopbarToast("⚠️ " + err.message);
+  } finally {
+    if (runBtn) {
+      runBtn.disabled = false;
+      runBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg><span>Bandingkan Versi</span>`;
+    }
+  }
+}
+
+function renderDiffResults(data) {
+  const sum = data.summary || {};
+  const perms = data.permissions_delta || {};
+  const comps = data.components_delta || {};
+  const finds = data.findings_delta || {};
+  const eps = data.endpoints_delta || {};
+
+  // Hero Banner
+  document.getElementById("diffBaseAppName").textContent = sum.base_app_name;
+  document.getElementById("diffBaseAppMeta").textContent = `${sum.base_version} • SDK ${sum.base_target_sdk} • ${sum.base_size_mb} MB`;
+  document.getElementById("diffBaseScore").textContent = sum.base_score + " pts";
+
+  document.getElementById("diffTargetAppName").textContent = sum.target_app_name;
+  document.getElementById("diffTargetAppMeta").textContent = `${sum.target_version} • SDK ${sum.target_target_sdk} • ${sum.target_size_mb} MB`;
+  document.getElementById("diffTargetScore").textContent = sum.target_score + " pts";
+
+  const pill = document.getElementById("diffDeltaPill");
+  pill.textContent = sum.verdict_badge;
+  pill.style.color = sum.verdict_color;
+  pill.style.borderColor = sum.verdict_color;
+  pill.style.background = sum.verdict_status === "IMPROVED" ? "#f0fdf4" : (sum.verdict_status === "DEGRADED" ? "#fef2f2" : "#f1f5f9");
+
+  document.getElementById("diffDeltaLabel").textContent = sum.verdict_status;
+
+  // Narrative
+  const narrEl = document.getElementById("diffNarrativeText");
+  if (narrEl) narrEl.innerHTML = formatAiMarkdown(sum.summary_narrative);
+
+  // Counters
+  document.getElementById("diffNumPerms").textContent = (perms.added_count > 0 ? `+${perms.added_count}` : perms.added_count);
+  document.getElementById("diffSubPerms").textContent = `${perms.dangerous_added_count} izin berbahaya ditambahkan`;
+  
+  document.getElementById("diffNumComps").textContent = (comps.newly_exposed_count > 0 ? `+${comps.newly_exposed_count}` : comps.newly_exposed_count);
+  document.getElementById("diffSubComps").textContent = `Total Exported: ${comps.total_exported_base} → ${comps.total_exported_target}`;
+
+  document.getElementById("diffNumResolved").textContent = finds.resolved_count;
+  document.getElementById("diffNumRegressed").textContent = finds.regressed_count;
+
+  // Tab 1: Findings Delta
+  const findingsContainer = document.getElementById("diffFindingsList");
+  let fHtml = "";
+  if (finds.regressed_count > 0) {
+    fHtml += `<div style="margin-bottom:12px;"><h5 style="color:#dc2626; margin-bottom:6px;">🔴 Celah Keamanan Baru Terdeteksi (Regresi):</h5>`;
+    finds.regressed.forEach(f => {
+      fHtml += `
+        <div style="background:#fef2f2; border:1px solid #fecdd3; border-radius:8px; padding:10px 14px; margin-bottom:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="color:#b91c1c;">[${escapeHtml(f.severity)}] ${escapeHtml(f.title)}</strong>
+            <span class="badge badge-danger">REGRESI BARU</span>
+          </div>
+          <div style="font-size:11.5px; color:#475569; margin-top:4px;">${escapeHtml(f.description)}</div>
+        </div>`;
+    });
+    fHtml += `</div>`;
+  }
+
+  if (finds.resolved_count > 0) {
+    fHtml += `<div style="margin-bottom:12px;"><h5 style="color:#16a34a; margin-bottom:6px;">🟢 Celah yang Berhasil Diperbaiki (Resolved):</h5>`;
+    finds.resolved.forEach(f => {
+      fHtml += `
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:10px 14px; margin-bottom:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="color:#15803d;">[${escapeHtml(f.severity)}] ${escapeHtml(f.title)}</strong>
+            <span class="badge badge-success">BERHASIL DITUTUP</span>
+          </div>
+          <div style="font-size:11.5px; color:#475569; margin-top:4px;">Celah ini ada pada rilis acuan dan telah diatasi di rilis target.</div>
+        </div>`;
+    });
+    fHtml += `</div>`;
+  }
+
+  if (finds.persistent_count > 0) {
+    fHtml += `<div><h5 style="color:#64748b; margin-bottom:6px;">⚠️ Celah yang Masih Bertahan (Persistent di Kedua Versi):</h5>`;
+    finds.persistent.forEach(f => {
+      fHtml += `
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; margin-bottom:6px; font-size:11.5px; display:flex; justify-content:space-between;">
+          <span><strong>[${escapeHtml(f.severity)}]</strong> ${escapeHtml(f.title)}</span>
+          <span style="color:#94a3b8;">${escapeHtml(f.cwe || "CWE-699")}</span>
+        </div>`;
+    });
+    fHtml += `</div>`;
+  }
+  findingsContainer.innerHTML = fHtml || `<div style="text-align:center; padding:24px; color:#10b981;">✓ Tidak ada perbedaan celah keamanan terdeteksi.</div>`;
+
+  // Tab 2: Permissions Delta
+  const addedPermsList = document.getElementById("diffAddedPermsList");
+  addedPermsList.innerHTML = (perms.added || []).map(p => `
+    <div class="diff-item-row">
+      <span style="${p.is_dangerous ? 'color:#dc2626; font-weight:700;' : ''}">${escapeHtml(p.permission)}</span>
+      ${p.is_dangerous ? '<span class="badge badge-danger">Dangerous</span>' : '<span class="badge badge-cert">Normal</span>'}
+    </div>
+  `).join("") || `<div style="padding:16px; text-align:center; color:#64748b;">Tidak ada izin baru.</div>`;
+
+  const removedPermsList = document.getElementById("diffRemovedPermsList");
+  removedPermsList.innerHTML = (perms.removed || []).map(p => `
+    <div class="diff-item-row">
+      <span style="text-decoration:line-through; color:#64748b;">${escapeHtml(p.permission)}</span>
+      <span class="badge badge-success">Dihapus</span>
+    </div>
+  `).join("") || `<div style="padding:16px; text-align:center; color:#64748b;">Tidak ada izin yang dihapus.</div>`;
+
+  // Tab 3: Components Delta
+  const addedCompsList = document.getElementById("diffAddedCompsList");
+  addedCompsList.innerHTML = (comps.newly_exposed || []).map(c => `
+    <div class="diff-item-row">
+      <span><strong>[${escapeHtml(c.type)}]</strong> ${escapeHtml(c.name)}</span>
+      <span class="badge badge-danger">Exposed</span>
+    </div>
+  `).join("") || `<div style="padding:16px; text-align:center; color:#16a34a;">✓ Tidak ada komponen baru yang diekspos ke publik.</div>`;
+
+  const securedCompsList = document.getElementById("diffSecuredCompsList");
+  securedCompsList.innerHTML = (comps.secured || []).map(c => `
+    <div class="diff-item-row">
+      <span><strong>[${escapeHtml(c.type)}]</strong> ${escapeHtml(c.name)}</span>
+      <span class="badge badge-success">Closed</span>
+    </div>
+  `).join("") || `<div style="padding:16px; text-align:center; color:#64748b;">Tidak ada komponen yang ditutup.</div>`;
+
+  // Tab 4: Endpoints Delta
+  const addedEpsList = document.getElementById("diffAddedEndpointsList");
+  addedEpsList.innerHTML = (eps.new_endpoints || []).map(e => `
+    <div class="diff-item-row">
+      <span><strong>[${escapeHtml(e.http_method || e.type || "ROUTE")}]</strong> ${escapeHtml(e.endpoint || e.url_route || "")}</span>
+      <span class="badge badge-info">${escapeHtml(e.category || "API")}</span>
+    </div>
+  `).join("") || `<div style="padding:16px; text-align:center; color:#64748b;">Tidak ada endpoint baru.</div>`;
+
+  const removedEpsList = document.getElementById("diffRemovedEndpointsList");
+  removedEpsList.innerHTML = (eps.removed_endpoints || []).map(e => `
+    <div class="diff-item-row">
+      <span style="text-decoration:line-through; color:#64748b;">${escapeHtml(e.endpoint || e.url_route || "")}</span>
+      <span class="badge badge-secondary">Removed</span>
+    </div>
+  `).join("") || `<div style="padding:16px; text-align:center; color:#64748b;">Tidak ada endpoint yang dihapus.</div>`;
+}
+
+/* =========================================================================
+   9. THIRD-PARTY SDK & DEPENDENCY CVE SCANNER (SCA)
+   ========================================================================= */
+let scaState = {
+  currentData: null,
+  activeCategory: "all",
+  searchQuery: ""
+};
+
+async function initScaScanner() {
+  const scanBtn = document.getElementById("btnRunScaScan");
+  const targetSelect = document.getElementById("scaTargetFileSelect");
+  const searchInput = document.getElementById("scaSearchInput");
+
+  // Populate files list for SCA dropdown
+  try {
+    const res = await fetch("/api/apk/diff-list");
+    if (res.ok) {
+      const data = await res.json();
+      const files = data.files || [];
+      if (files.length > 0 && targetSelect) {
+        const curVal = targetSelect.value;
+        targetSelect.innerHTML = files.map(f => `<option value="${escapeHtml(f.path)}">${escapeHtml(f.name)} (${f.size_fmt})</option>`).join("");
+        if (targetSelect.querySelector(`option[value="${curVal}"]`)) targetSelect.value = curVal;
+      }
+    }
+  } catch (e) {}
+
+  scanBtn?.addEventListener("click", () => runScaScan());
+
+  // Category filter chips
+  document.querySelectorAll(".sca-chip[data-cat]").forEach(chip => {
+    chip.addEventListener("click", () => {
+      document.querySelectorAll(".sca-chip").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+      scaState.activeCategory = chip.getAttribute("data-cat");
+      renderScaTable();
+    });
+  });
+
+  searchInput?.addEventListener("input", (e) => {
+    scaState.searchQuery = e.target.value.toLowerCase().trim();
+    renderScaTable();
+  });
+
+  // Automatically trigger SCA scan on start
+  setTimeout(() => {
+    runScaScan();
+  }, 400);
+}
+
+async function runScaScan() {
+  const targetSelect = document.getElementById("scaTargetFileSelect");
+  const scanBtn = document.getElementById("btnRunScaScan");
+  const targetFile = targetSelect?.value || "uploads/base.apk";
+
+  if (scanBtn) {
+    scanBtn.disabled = true;
+    scanBtn.innerHTML = `<span>Memindai Bytecode...</span>`;
+  }
+
+  try {
+    const res = await fetch(`/api/apk/sca?file=${encodeURIComponent(targetFile)}`);
+    if (!res.ok) throw new Error("Gagal menjalankan SCA scan");
+    const data = await res.json();
+    scaState.currentData = data;
+
+    // Update KPIs
+    document.getElementById("scaKpiTotal").textContent = data.total_detected || 0;
+    document.getElementById("scaKpiVuln").textContent = data.vulnerable_count || 0;
+    document.getElementById("scaKpiOutdated").textContent = data.outdated_count || 0;
+    document.getElementById("scaKpiClean").textContent = data.clean_count || 0;
+
+    renderScaTable();
+    if (typeof showTopbarToast === "function") showTopbarToast("✅ Pemindaian dependensi SDK selesai!");
+  } catch (err) {
+    console.error("SCA scan error:", err);
+    if (typeof showTopbarToast === "function") showTopbarToast("⚠️ " + err.message);
+  } finally {
+    if (scanBtn) {
+      scanBtn.disabled = false;
+      scanBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><span>Pindai SDK</span>`;
+    }
+  }
+}
+
+function renderScaTable() {
+  const tbody = document.getElementById("scaTableBody");
+  const info = document.getElementById("scaTableInfo");
+  if (!tbody || !scaState.currentData) return;
+
+  const sdks = scaState.currentData.sdks || [];
+  const cat = scaState.activeCategory;
+  const q = scaState.searchQuery;
+
+  const filtered = sdks.filter(s => {
+    if (cat === "vulnerable" && !s.is_vulnerable) return false;
+    if (cat !== "all" && cat !== "vulnerable" && s.category !== cat) return false;
+    if (q) {
+      const matchText = `${s.name} ${s.category} ${s.matched_signature} ${s.detected_version} ${(s.cves || []).map(c=>c.cve_id).join(' ')}`.toLowerCase();
+      if (!matchText.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if (info) info.textContent = `Showing ${filtered.length} of ${sdks.length} SDKs`;
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:#64748b;">Tidak ada SDK yang sesuai kriteria pencarian.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((s, idx) => {
+    let cveBadge = `<span class="sca-cvss-badge sca-cvss-clean">✓ Clean</span>`;
+    if (s.is_vulnerable && s.cves && s.cves.length > 0) {
+      const topCve = s.cves[0];
+      const cls = topCve.severity === "CRITICAL" ? "sca-cvss-critical" : "sca-cvss-high";
+      cveBadge = `<span class="sca-cvss-badge ${cls}">${topCve.cve_id} (CVSS ${topCve.cvss})</span>`;
+    }
+
+    const versionHtml = `
+      <span style="font-weight:700; color:#0f172a;">v${escapeHtml(s.detected_version)}</span>
+      ${s.is_outdated ? `<span style="display:block; font-size:10px; color:#d97706;">Latest: v${escapeHtml(s.latest_safe_version)}</span>` : ''}
+    `;
+
+    return `
+      <tr>
+        <td>
+          <strong style="color:#0f172a; font-size:12.5px;">${escapeHtml(s.name)}</strong>
+          <div style="font-size:10.5px; color:#64748b; margin-top:2px;">${escapeHtml(s.category)} • <span style="color:#3b82f6;">${escapeHtml(s.license)}</span></div>
+        </td>
+        <td>
+          <code style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:#334155;">${escapeHtml(s.matched_signature)}</code>
+        </td>
+        <td>${versionHtml}</td>
+        <td>${cveBadge}</td>
+        <td>
+          <button type="button" class="btn btn-secondary" style="font-size:11px; padding:4px 8px;" onclick="openScaDetailModal(${idx})">
+            Solusi Fix
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+window.openScaDetailModal = function(sdkIdx) {
+  if (!scaState.currentData) return;
+  const sdk = scaState.currentData.sdks[sdkIdx];
+  if (!sdk) return;
+
+  const cvesHtml = (sdk.cves && sdk.cves.length > 0)
+    ? sdk.cves.map(c => `
+        <div style="background:#fef2f2; border:1px solid #fecdd3; border-radius:8px; padding:10px 14px; margin-bottom:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="color:#b91c1c;">${c.cve_id}: ${escapeHtml(c.title)}</strong>
+            <span class="badge badge-danger">CVSS ${c.cvss} (${c.severity})</span>
+          </div>
+          <div style="font-size:11.5px; color:#475569; margin:6px 0;">${escapeHtml(c.description)}</div>
+          <div style="font-size:11px; color:#991b1b; font-weight:600;">Affected: ${escapeHtml(c.affected_versions)}</div>
+        </div>
+      `).join("")
+    : `<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:10px 14px; color:#15803d; font-size:12px; margin-bottom:12px;">✓ Tidak ditemukan kerentanan CVE yang terdaftar pada versi ini.</div>`;
+
+  const gradleSnippet = `// build.gradle / build.gradle.kts (App Module)
+dependencies {
+    // Rekomendasi upgrade ${sdk.name}
+    implementation("${sdk.matched_signature.replace('/', '.')}:${sdk.latest_safe_version || sdk.detected_version}")
+}`;
+
+  const bodyHtml = `
+    <div style="margin-bottom:14px;">
+      <h4 style="margin:0 0 4px; font-size:15px; color:#0f172a;">${escapeHtml(sdk.name)}</h4>
+      <div style="font-size:12px; color:#64748b;">Kategori: ${escapeHtml(sdk.category)} | Lisensi: ${escapeHtml(sdk.license)}</div>
+    </div>
+    
+    ${cvesHtml}
+
+    <div class="remediation-box" style="margin-top:12px;">
+      <strong>🛠️ Panduan Remediasi &amp; Upgrade Dependensi:</strong>
+      <div style="margin:6px 0 10px; font-size:12px; color:#1e293b;">${escapeHtml(sdk.remediation)}</div>
+      <pre style="background:#0f172a; color:#f8fafc; padding:10px 12px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:11px; overflow-x:auto;"><code>${escapeHtml(gradleSnippet)}</code></pre>
+    </div>
+  `;
+
+  openMobsfDialog(
+    "DEPENDENCY SCA AUDIT",
+    `Audit Detail: ${sdk.name}`,
+    bodyHtml,
+    gradleSnippet
+  );
+};
+
 

@@ -6259,5 +6259,226 @@
         }
       }
     ]
+  },
+  "sca_analysis": {
+    "total_detected": 13,
+    "vulnerable_count": 2,
+    "outdated_count": 12,
+    "clean_count": 11,
+    "categories": {
+      "Networking & HTTP": 3,
+      "Analytics & Marketing": 2,
+      "Crash & Observability": 1,
+      "Mobile Framework": 1,
+      "Security & Crypto": 2,
+      "Push Notifications": 1,
+      "Media & UI": 1,
+      "Data & Storage": 1,
+      "Security & Anti-Tamper": 1
+    },
+    "sdks": [
+      {
+        "id": "bouncycastle",
+        "name": "Bouncy Castle Cryptography Provider",
+        "category": "Security & Crypto",
+        "matched_signature": "org/bouncycastle/crypto/",
+        "detected_version": "1.68",
+        "latest_safe_version": "1.78.1",
+        "is_vulnerable": true,
+        "is_outdated": true,
+        "license": "Bouncy Castle Licence (MIT variant)",
+        "website": "https://www.bouncycastle.org",
+        "cves": [
+          {
+            "cve_id": "CVE-2020-28052",
+            "severity": "HIGH",
+            "cvss": 7.4,
+            "affected_versions": "< 1.69",
+            "title": "OpenBSDBCrypt Password Validation Bypass",
+            "description": "Validasi password Bcrypt di Bouncy Castle sebelum 1.69 dapat memvalidasi hash yang tidak lengkap karena penanganan byte array tidak aman.",
+            "remediation": "Update Bouncy Castle (bcprov-jdk15on / bcprov-jdk18on) ke versi 1.78.1 atau gunakan Android Keystore native."
+          }
+        ],
+        "remediation": "Update Bouncy Castle (bcprov-jdk15on / bcprov-jdk18on) ke versi 1.78.1 atau gunakan Android Keystore native."
+      },
+      {
+        "id": "moengage",
+        "name": "MoEngage Customer Engagement SDK",
+        "category": "Analytics & Marketing",
+        "matched_signature": "com/moengage/core/",
+        "detected_version": "12.3.01",
+        "latest_safe_version": "13.0.01",
+        "is_vulnerable": true,
+        "is_outdated": true,
+        "license": "Commercial / Proprietary",
+        "website": "https://www.moengage.com",
+        "cves": [
+          {
+            "cve_id": "CVE-2023-MOE-01",
+            "severity": "CRITICAL",
+            "cvss": 8.8,
+            "affected_versions": "< 12.5.00",
+            "title": "Exported Debug Activity Information Disclosure",
+            "description": "MoEDebuggerActivity dapat dibuka oleh aplikasi pihak ketiga di perangkat tanpa izin, membocorkan attribute user dan campaign identifier.",
+            "remediation": "Update MoEngage SDK dan pastikan manifest override menetapkan android:exported='false' pada MoEDebuggerActivity."
+          }
+        ],
+        "remediation": "Update MoEngage SDK dan pastikan manifest override menetapkan android:exported='false' pada MoEDebuggerActivity."
+      },
+      {
+        "id": "room",
+        "name": "AndroidX Room Persistence Library (SQLite)",
+        "category": "Data & Storage",
+        "matched_signature": "androidx/room/Room",
+        "detected_version": "2.5.2",
+        "latest_safe_version": "2.6.1",
+        "is_vulnerable": false,
+        "is_outdated": true,
+        "license": "Apache 2.0",
+        "website": "https://developer.android.com/training/data-storage/room",
+        "cves": [],
+        "remediation": "Perbarui dependensi AndroidX Room Persistence Library (SQLite) ke versi terbaru 2.6.1."
+      },
+      {
+        "id": "glide",
+        "name": "Bumptech Glide Image Loader",
+        "category": "Media & UI",
+        "matched_signature": "com/bumptech/glide/Glide",
+        "detected_version": "4.14.2",
+        "latest_safe_version": "4.16.0",
+        "is_vulnerable": false,
+        "is_outdated": true,
+        "license": "BSD, MIT and Apache 2.0",
+        "website": "https://github.com/bumptech/glide",
+        "cves": [],
+        "remediation": "Perbarui dependensi Bumptech Glide Image Loader ke versi terbaru 4.16.0."
+      },
+      {
+        "id": "approov",
+        "name": "CriticalBlue Approov Mobile API Attestation",
+        "category": "Security & Crypto",
+        "matched_signature": "com/criticalblue/approovsdk/",
+        "detected_version": "3.1.2",
+        "latest_safe_version": "3.3.0",
+        "is_vulnerable": false,
+        "is_outdated": true,
+        "license": "Commercial / Proprietary",
+        "website": "https://approov.io",
+        "cves": [],
+        "remediation": "Perbarui dependensi CriticalBlue Approov Mobile API Attestation ke versi terbaru 3.3.0."
+      },
+      {
+        "id": "datadog",
+        "name": "Datadog Real User Monitoring (RUM) & Tracing",
+        "category": "Crash & Observability",
+        "matched_signature": "com/datadog/android/",
+        "detected_version": "1.18.0",
+        "latest_safe_version": "2.8.0",
+        "is_vulnerable": false,
+        "is_outdated": true,
+        "license": "Apache 2.0",
+        "website": "https://docs.datadoghq.com/real_user_monitoring/android/",
+        "cves": [],
+        "remediation": "Perbarui dependensi Datadog Real User Monitoring (RUM) & Tracing ke versi terbaru 2.8.0."
+      },
+      {
+        "id": "firebase_messaging",
+        "name": "Google Firebase Cloud Messaging (FCM)",
+        "category": "Push Notifications",
+        "matched_signature": "com/google/firebase/messaging/",
+        "detected_version": "23.4.0",
+        "latest_safe_version": "24.1.0",
+        "is_vulnerable": false,
+        "is_outdated": true,
+        "license": "Android Software Development Kit License",
+        "website": "https://firebase.google.com/docs/cloud-messaging",
+        "cves": [],
+        "remediation": "Perbarui dependensi Google Firebase Cloud Messaging (FCM) ke versi terbaru 24.1.0."
+      },
+      {
+        "id": "firebase_core",
+        "name": "Google Firebase Core / Analytics",
+        "category": "Analytics & Marketing",
+        "matched_signature": "com/google/firebase/",
+        "detected_version": "21.5.0",
+        "latest_safe_version": "22.1.2",
+        "is_vulnerable": false,
+        "is_outdated": true,
+        "license": "Android Software Development Kit License",
+        "website": "https://firebase.google.com",
+        "cves": [],
+        "remediation": "Perbarui dependensi Google Firebase Core / Analytics ke versi terbaru 22.1.2."
+      },
+      {
+        "id": "flutter_engine",
+        "name": "Google Flutter Engine & Framework",
+        "category": "Mobile Framework",
+        "matched_signature": "io/flutter/embedding/engine/",
+        "detected_version": "3.24.0",
+        "latest_safe_version": "3.24.4",
+        "is_vulnerable": false,
+        "is_outdated": true,
+        "license": "BSD 3-Clause",
+        "website": "https://flutter.dev",
+        "cves": [],
+        "remediation": "Perbarui dependensi Google Flutter Engine & Framework ke versi terbaru 3.24.4."
+      },
+      {
+        "id": "gson",
+        "name": "Google Gson JSON Parser",
+        "category": "Networking & HTTP",
+        "matched_signature": "com/google/gson/Gson",
+        "detected_version": "2.8.9",
+        "latest_safe_version": "2.11.0",
+        "is_vulnerable": false,
+        "is_outdated": true,
+        "license": "Apache 2.0",
+        "website": "https://github.com/google/gson",
+        "cves": [],
+        "remediation": "Perbarui dependensi Google Gson JSON Parser ke versi terbaru 2.11.0."
+      },
+      {
+        "id": "play_integrity",
+        "name": "Google Play Integrity API",
+        "category": "Security & Anti-Tamper",
+        "matched_signature": "com/google/android/play/core/integrity/",
+        "detected_version": "1.3.0",
+        "latest_safe_version": "1.4.0",
+        "is_vulnerable": false,
+        "is_outdated": true,
+        "license": "Android Software Development Kit License",
+        "website": "https://developer.android.com/google/play/integrity",
+        "cves": [],
+        "remediation": "Perbarui dependensi Google Play Integrity API ke versi terbaru 1.4.0."
+      },
+      {
+        "id": "retrofit",
+        "name": "Square Retrofit",
+        "category": "Networking & HTTP",
+        "matched_signature": "retrofit2/Retrofit",
+        "detected_version": "2.9.0",
+        "latest_safe_version": "2.11.0",
+        "is_vulnerable": false,
+        "is_outdated": true,
+        "license": "Apache 2.0",
+        "website": "https://square.github.io/retrofit/",
+        "cves": [],
+        "remediation": "Perbarui dependensi Square Retrofit ke versi terbaru 2.11.0."
+      },
+      {
+        "id": "okhttp",
+        "name": "Square OkHttp",
+        "category": "Networking & HTTP",
+        "matched_signature": "okhttp3/OkHttpClient",
+        "detected_version": "4.12.0",
+        "latest_safe_version": "4.12.0",
+        "is_vulnerable": false,
+        "is_outdated": false,
+        "license": "Apache 2.0",
+        "website": "https://square.github.io/okhttp/",
+        "cves": [],
+        "remediation": "Perbarui dependensi Square OkHttp ke versi terbaru 4.12.0."
+      }
+    ]
   }
 }

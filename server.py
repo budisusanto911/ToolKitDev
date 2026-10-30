@@ -21,6 +21,7 @@ import tempfile
 import datetime
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
+from typing import Dict, Any, List, Optional
 
 # Import engine modules
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -30,6 +31,8 @@ from engine.mcp_hub import McpHub
 from engine.context_qa import ContextQaEngine
 from engine.auth_manager import AuthManager
 from engine.pdf_reporter import ExecutivePdfReporter
+from engine.apk_comparator import ApkComparator
+from engine.sca_scanner import ScaScanner
 
 PORT = int(os.environ.get("PORT", 8080))
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
@@ -38,11 +41,13 @@ SAMPLES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "samples"
 
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
-# Initialize engines
+# Initialize engines & caches
 graph_engine = CorrelationGraphEngine(default_target="budisusanto911")
 mcp_hub = McpHub()
 qa_engine = ContextQaEngine()
 auth_manager = AuthManager()
+diff_cache: Dict[str, Any] = {}
+sca_cache: Dict[str, Any] = {}
 
 
 class ToolKitDevHandler(SimpleHTTPRequestHandler):
@@ -213,6 +218,86 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(pdf_bytes)
             except Exception as e:
                 self._send_json({"error": f"Failed to generate PDF: {str(e)}"}, status=500)
+        elif path == "/api/apk/diff-list":
+            files_list = []
+            if os.path.exists(PUBLIC_DIR):
+                for f in sorted(os.listdir(PUBLIC_DIR)):
+                    if f.endswith(".json") and "analysis" in f:
+                        p = os.path.join(PUBLIC_DIR, f)
+                        sz = os.path.getsize(p)
+                        files_list.append({
+                            "name": f"{f} (Pre-analyzed Baseline)",
+                            "path": f,
+                            "type": "JSON Analysis",
+                            "folder": "public",
+                            "size_fmt": f"{sz / (1024*1024):.2f} MB"
+                        })
+            if os.path.exists(UPLOADS_DIR):
+                for f in sorted(os.listdir(UPLOADS_DIR)):
+                    if f.endswith((".apk", ".aab")) and not f.startswith("."):
+                        p = os.path.join(UPLOADS_DIR, f)
+                        sz = os.path.getsize(p)
+                        files_list.append({
+                            "name": f,
+                            "path": f,
+                            "type": "AAB" if f.endswith(".aab") else "APK",
+                            "folder": "uploads",
+                            "size_fmt": f"{sz / (1024*1024):.2f} MB"
+                        })
+            if os.path.exists(SAMPLES_DIR):
+                for f in sorted(os.listdir(SAMPLES_DIR)):
+                    if f.endswith((".apk", ".aab")):
+                        p = os.path.join(SAMPLES_DIR, f)
+                        sz = os.path.getsize(p)
+                        files_list.append({
+                            "name": f,
+                            "path": f"samples/{f}",
+                            "type": "AAB" if f.endswith(".aab") else "APK",
+                            "folder": "samples",
+                            "size_fmt": f"{sz / (1024*1024):.2f} MB"
+                        })
+            self._send_json({"files": files_list})
+        elif path == "/api/apk/diff":
+            base_file = query.get("base", ["samples/sample-debug.apk"])[0]
+            target_file = query.get("target", ["uploads/base.apk"])[0]
+
+            cache_key = f"{base_file}:::_:::{target_file}"
+            if cache_key in diff_cache:
+                self._send_json(diff_cache[cache_key])
+                return
+
+            base_path = self._resolve_diff_target(base_file)
+            target_path = self._resolve_diff_target(target_file)
+
+            if not base_path or not target_path:
+                self._send_json({"error": f"Base ({base_file}) or Target ({target_file}) not found"}, status=404)
+                return
+
+            try:
+                comparator = ApkComparator(base_path, target_path)
+                result = comparator.compare()
+                diff_cache[cache_key] = result
+                self._send_json(result)
+            except Exception as e:
+                self._send_json({"error": f"Comparison failed: {str(e)}"}, status=500)
+        elif path == "/api/apk/sca":
+            file_name = query.get("file", ["base.apk"])[0]
+            resolved = self._resolve_diff_target(file_name)
+            if not resolved or not os.path.isfile(resolved):
+                resolved = os.path.join(UPLOADS_DIR, "base.apk")
+
+            cache_key = resolved
+            if cache_key in sca_cache:
+                self._send_json(sca_cache[cache_key])
+                return
+
+            try:
+                scanner = ScaScanner(resolved)
+                res = scanner.scan()
+                sca_cache[cache_key] = res
+                self._send_json(res)
+            except Exception as e:
+                self._send_json({"error": f"SCA scan failed: {str(e)}"}, status=500)
         elif path == "/api/mcp/oauth-url":
             conn = query.get("connector", ["github"])[0]
             cid = query.get("client_id", [""])[0]
@@ -376,6 +461,33 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._send_json({"error": str(e)}, status=500)
 
+        elif path == "/api/apk/diff":
+            content_len = int(self.headers.get("Content-Length", 0))
+            post_body = self.rfile.read(content_len).decode("utf-8")
+            try:
+                payload = json.loads(post_body) if post_body.strip().startswith("{") else {}
+                base_file = payload.get("base", "samples/sample-debug.apk")
+                target_file = payload.get("target", "uploads/base.apk")
+
+                cache_key = f"{base_file}:::_:::{target_file}"
+                if cache_key in diff_cache:
+                    self._send_json(diff_cache[cache_key])
+                    return
+
+                base_path = self._resolve_diff_target(base_file)
+                target_path = self._resolve_diff_target(target_file)
+
+                if not base_path or not target_path:
+                    self._send_json({"error": f"Base ({base_file}) or Target ({target_file}) not found"}, status=404)
+                    return
+
+                comparator = ApkComparator(base_path, target_path)
+                result = comparator.compare()
+                diff_cache[cache_key] = result
+                self._send_json(result)
+            except Exception as e:
+                self._send_json({"error": str(e)}, status=500)
+
         elif path == "/api/scan-apk":
             ctype, pdict = cgi.parse_header(self.headers.get("Content-Type", ""))
             if ctype == "multipart/form-data":
@@ -412,6 +524,26 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                 self._send_json({"error": "Invalid Content-Type, expected multipart/form-data"}, status=400)
         else:
             self._send_json({"error": "Not Found"}, status=404)
+
+    def _resolve_diff_target(self, file_param: str) -> str:
+        """Resolve a file path or filename to an absolute path for diff/SCA."""
+        if not file_param:
+            return ""
+        if os.path.isabs(file_param) and os.path.isfile(file_param):
+            return file_param
+        if os.path.isfile(file_param):
+            return os.path.abspath(file_param)
+        clean = os.path.basename(file_param)
+        candidates = [
+            os.path.join(PUBLIC_DIR, clean),
+            os.path.join(UPLOADS_DIR, clean),
+            os.path.join(SAMPLES_DIR, clean),
+            os.path.join(PUBLIC_DIR, "alfagift_analysis.json")
+        ]
+        for c in candidates:
+            if os.path.isfile(c):
+                return c
+        return ""
 
     def _resolve_apk_file(self, file_name: str) -> str:
         """Resolve an APK/AAB filename in uploads/ or samples/, falling back to base.apk or sample-debug.apk."""
