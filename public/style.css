@@ -5518,8 +5518,21 @@ body.dark-theme .android-api-page-btn.active {
   border: none;
 }
 
-/* Native Dialog Modal for MobSF Inspector */
+/* Native Dialog Modal for MobSF Inspector & Global Dialogs */
+dialog {
+  margin: auto !important;
+}
+
+dialog:modal {
+  position: fixed;
+  inset: 0;
+  margin: auto !important;
+}
+
 dialog.mobsf-native-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto !important;
   width: min(980px, 94vw);
   max-height: 86vh;
   border: 1px solid #cbd5e1;
@@ -5529,11 +5542,24 @@ dialog.mobsf-native-dialog {
   color: #0f172a;
   box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35);
   overflow: hidden;
+  z-index: 10000;
 }
 
 dialog.mobsf-native-dialog[open] {
   display: flex;
   flex-direction: column;
+  animation: mobsfModalScale 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes mobsfModalScale {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 dialog.mobsf-native-dialog::backdrop {
