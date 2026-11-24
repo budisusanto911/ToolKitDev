@@ -1733,8 +1733,15 @@
             <div class="card">
               <div class="findings-header">
                 <h4 class="card-title">Temuan Celah Keamanan (Vulnerabilities)</h4>
-                <span class="badge badge-danger" id="apkVulnCount">0 Temuan</span>
+                <div class="findings-header-actions">
+                  <span class="badge badge-danger" id="apkVulnCount">0 Temuan</span>
+                  <button type="button" class="btn-autofix-all hidden" id="btnAutoFixAllVulns" title="Otomatis patch APK untuk menutup seluruh celah keamanan yang didukung">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    Tutup Semua Celah Otomatis
+                  </button>
+                </div>
               </div>
+              <div class="autofix-banner hidden" id="apkAutoPatchBanner"></div>
               <div class="findings-list" id="apkFindingsList">
                 <!-- Dynamic findings -->
               </div>
@@ -2842,6 +2849,10 @@
       </div>
 
       <div class="apk-modal-footer">
+        <button type="button" class="btn-autofix-all hidden" id="btnModalAutoFixVuln">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          Tutup Celah Ini Otomatis
+        </button>
         <button class="btn btn-primary" id="btnOkFindingModal">Tutup Rincian</button>
       </div>
     </div>

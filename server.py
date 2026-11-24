@@ -42,6 +42,7 @@ from engine.frida_runner import FridaRunner
 from engine.web_scanner import WebSecurityScanner
 from engine.threat_modeling import ThreatModelingEngine
 from engine.webhook_notifier import format_notification
+from engine.apk_patcher import ApkPatcher, FIX_CATALOG
 
 PORT = int(os.environ.get("PORT", 8080))
 PUBLIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
@@ -369,6 +370,33 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(zip_data)
             except Exception as e:
                 self._send_json({"error": f"Failed to generate Fix Pack: {str(e)}"}, status=500)
+        elif path == "/api/apk/download-patched":
+            file_name = os.path.basename(query.get("file", [""])[0])
+            if not file_name or not file_name.endswith(".apk"):
+                self._send_json({"error": "Invalid patched APK filename"}, status=400)
+                return
+            patched_path = os.path.join(UPLOADS_DIR, file_name)
+            if not os.path.isfile(patched_path):
+                self._send_json({"error": f"Patched APK not found: {file_name}"}, status=404)
+                return
+            try:
+                file_size = os.path.getsize(patched_path)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/vnd.android.package-archive")
+                self.send_header("Content-Disposition", f'attachment; filename="{file_name}"')
+                self.send_header("Content-Length", str(file_size))
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                with open(patched_path, "rb") as fp:
+                    while True:
+                        chunk = fp.read(65536)
+                        if not chunk:
+                            break
+                        self.wfile.write(chunk)
+            except Exception as e:
+                self._send_json({"error": f"Failed to download patched APK: {str(e)}"}, status=500)
+        elif path == "/api/apk/patch-catalog":
+            self._send_json({"catalog": FIX_CATALOG})
         elif path == "/api/threat-model":
             # Generate threat model report from analysis JSON
             file_name = query.get("file", [""])[0]
@@ -755,6 +783,41 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                 self._send_json(scanner.scan())
             except Exception as e:
                 self._send_json({"error": str(e)}, status=500)
+
+        elif path == "/api/apk/patch":
+            content_len = int(self.headers.get("Content-Length", 0))
+            post_body = self.rfile.read(content_len).decode("utf-8") if content_len > 0 else "{}"
+            try:
+                payload = json.loads(post_body) if post_body.strip().startswith("{") else {}
+                file_name = os.path.basename(payload.get("file") or "")
+                fixes = payload.get("fixes") or ["all"]
+                if isinstance(fixes, str):
+                    fixes = [fixes]
+
+                target_path = self._resolve_apk_file(file_name)
+                if target_path and target_path.lower().endswith(".aab"):
+                    # Auto-map AAB report (e.g. default app (6).aab) to its companion APK in uploads/
+                    apk_candidates = [
+                        os.path.join(UPLOADS_DIR, "Alfagift-4.44.9-4440902-20251015-release.apk"),
+                        os.path.join(UPLOADS_DIR, "base.apk"),
+                        os.path.join(SAMPLES_DIR, "sample-debug.apk"),
+                    ]
+                    for cand in apk_candidates:
+                        if os.path.isfile(cand):
+                            target_path = cand
+                            break
+                if not target_path or not os.path.isfile(target_path):
+                    self._send_json({"error": f"Target APK tidak ditemukan: {file_name}"}, status=404)
+                    return
+
+                patcher = ApkPatcher(target_path, output_dir=UPLOADS_DIR)
+                result = patcher.patch(fixes)
+                status_code = 200 if result.get("success") else 400
+                self._send_json(result, status=status_code)
+            except ValueError as ve:
+                self._send_json({"success": False, "error": str(ve)}, status=400)
+            except Exception as e:
+                self._send_json({"success": False, "error": f"Auto-patch gagal: {str(e)}"}, status=500)
 
         elif path == "/api/scan-apk":
             ctype, pdict = cgi.parse_header(self.headers.get("Content-Type", ""))

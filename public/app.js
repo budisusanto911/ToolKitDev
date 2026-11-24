@@ -1200,20 +1200,65 @@ function renderApkReport(data) {
 
   // Findings list
   const findingsList = document.getElementById("apkFindingsList");
+  const btnAutoFixAll = document.getElementById("btnAutoFixAllVulns");
+  const isPatchableApk = (data.file_info?.format || "APK").toUpperCase() !== "IPA";
+  const fixableFindings = (data.findings || []).filter(f => Boolean(inferFindingFixId(f)));
+
   document.getElementById("apkVulnCount").innerText = `${data.findings.length} Temuan Risiko (Klik untuk detail)`;
-  findingsList.innerHTML = data.findings.map((f, idx) => `
-    <div class="finding-card ${f.severity}" data-finding-idx="${idx}" title="Klik kartu untuk rincian bukti forensik dan solusi perbaikan">
-      <div class="finding-title-row">
-        <strong>${f.title}</strong>
-        <span class="badge ${f.severity === 'CRITICAL' ? 'badge-danger' : f.severity === 'HIGH' ? 'badge-danger' : 'badge-warning'}">-${f.deduction} pts</span>
+  if (btnAutoFixAll) {
+    if (isPatchableApk && fixableFindings.length > 0) {
+      btnAutoFixAll.classList.remove("hidden");
+      btnAutoFixAll.disabled = false;
+      btnAutoFixAll.onclick = () => runApkAutoPatch(["all"], `Semua ${fixableFindings.length} Celah Keamanan`);
+    } else {
+      btnAutoFixAll.classList.add("hidden");
+    }
+  }
+
+  if (!data.findings || data.findings.length === 0) {
+    findingsList.innerHTML = `
+      <div style="padding:20px; text-align:center; color:#047857; font-size:13px; font-weight:600; background:#ecfdf5; border:1px solid #6ee7b7; border-radius:10px;">
+        ✅ Tidak ada celah keamanan terdeteksi! Semua pemeriksaan keamanan APK berstatus aman.
       </div>
-      <div class="finding-desc">${f.description}</div>
-      <div class="finding-card-hint">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 16 16 12 12 8"></polyline><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-        Buka Penjelasan &amp; Solusi Lengkap &rarr;
-      </div>
-    </div>
-  `).join("");
+    `;
+  } else {
+    findingsList.innerHTML = data.findings.map((f, idx) => {
+      const fixId = inferFindingFixId(f);
+      const fixBtnHtml = (isPatchableApk && fixId)
+        ? `<button type="button" class="btn-autofix-item" data-fix-id="${escapeHtml(fixId)}" data-fix-title="${escapeHtml(f.title)}" title="Patch APK otomatis untuk menutup celah ini">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            Tutup Celah Otomatis
+          </button>`
+        : `<span></span>`;
+      return `
+        <div class="finding-card ${f.severity}" data-finding-idx="${idx}" title="Klik kartu untuk rincian bukti forensik dan solusi perbaikan">
+          <div class="finding-title-row">
+            <strong>${escapeHtml(f.title)}</strong>
+            <span class="badge ${f.severity === 'CRITICAL' ? 'badge-danger' : f.severity === 'HIGH' ? 'badge-danger' : 'badge-warning'}">-${f.deduction} pts</span>
+          </div>
+          <div class="finding-desc">${escapeHtml(f.description)}</div>
+          <div class="finding-card-footer">
+            ${fixBtnHtml}
+            <div class="finding-card-hint" style="margin-top:0;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 16 16 12 12 8"></polyline><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+              Buka Penjelasan &amp; Solusi Lengkap &rarr;
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  findingsList.querySelectorAll(".btn-autofix-item").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const fixId = btn.getAttribute("data-fix-id");
+      const fixTitle = btn.getAttribute("data-fix-title") || fixId;
+      if (fixId) {
+        runApkAutoPatch([fixId], fixTitle);
+      }
+    });
+  });
 
   findingsList.querySelectorAll(".finding-card").forEach(card => {
     card.addEventListener("click", () => {
@@ -1253,15 +1298,26 @@ function renderApkReport(data) {
   // Secret Hunter
   const secretList = document.getElementById("apkSecretList");
   if (data.secrets_found && data.secrets_found.length > 0) {
-    secretList.innerHTML = data.secrets_found.map(s => `
+    const secretFixHeader = isPatchableApk
+      ? `<div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+           <button type="button" class="btn-autofix-item" id="btnAutoFixSecretsCard" title="Redaksi seluruh hardcoded API key, token, dan private key pada binary">
+             ⚡ Redaksi Semua Secret Otomatis (${data.secrets_found.length})
+           </button>
+         </div>`
+      : "";
+    secretList.innerHTML = secretFixHeader + data.secrets_found.map(s => `
       <div class="finding-card CRITICAL" style="margin-bottom:8px;">
         <div class="finding-title-row">
-          <strong>${s.type}</strong>
+          <strong>${escapeHtml(s.type)}</strong>
           <span class="badge badge-danger">CRITICAL</span>
         </div>
-        <div class="finding-desc">Value: <code>${s.masked_value}</code> in <code>${s.file_source}</code></div>
+        <div class="finding-desc">Value: <code>${escapeHtml(s.masked_value)}</code> in <code>${escapeHtml(s.file_source)}</code></div>
       </div>
     `).join("");
+    const btnFixSecrets = document.getElementById("btnAutoFixSecretsCard");
+    if (btnFixSecrets) {
+      btnFixSecrets.addEventListener("click", () => runApkAutoPatch(["hardcoded_secrets"], `${data.secrets_found.length} Hardcoded Secrets / Tokens`));
+    }
   } else {
     secretList.innerHTML = `
       <div style="padding:16px; text-align:center; color:#10b981; font-size:12.5px; background:rgba(16,185,129,0.06); border-radius:8px;">
@@ -1273,13 +1329,25 @@ function renderApkReport(data) {
   // Permissions Table
   const permsTable = document.getElementById("apkPermsTable").querySelector("tbody");
   const summaryBox = document.getElementById("apkPermsSummary");
+  const permFixBtnHtml = (isPatchableApk && data.permissions.dangerous_count > 5)
+    ? `<button type="button" class="btn-autofix-item" id="btnAutoFixPermsCard" title="Pangkas dangerous permissions berlebih dari AndroidManifest.xml hingga <= 5">
+         ⚡ Pangkas Dangerous Permissions (${data.permissions.dangerous_count} &rarr; 5)
+       </button>`
+    : "";
   summaryBox.innerHTML = `
-    <div style="font-size:12.5px; color:#9ca3af; margin-bottom:12px;">
-      Total: <strong>${data.permissions.total_count}</strong> | 
-      Dangerous: <strong style="color:#ef4444;">${data.permissions.dangerous_count}</strong> | 
-      Normal: <strong style="color:#10b981;">${data.permissions.normal_count}</strong>
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:12.5px; color:#9ca3af; margin-bottom:12px;">
+      <div>
+        Total: <strong>${data.permissions.total_count}</strong> | 
+        Dangerous: <strong style="color:#ef4444;">${data.permissions.dangerous_count}</strong> | 
+        Normal: <strong style="color:#10b981;">${data.permissions.normal_count}</strong>
+      </div>
+      ${permFixBtnHtml}
     </div>
   `;
+  const btnFixPerms = document.getElementById("btnAutoFixPermsCard");
+  if (btnFixPerms) {
+    btnFixPerms.addEventListener("click", () => runApkAutoPatch(["dangerous_permissions"], `High Number of Dangerous Permissions (${data.permissions.dangerous_count})`));
+  }
 
   let rows = "";
   data.permissions.dangerous_list.forEach(p => {
@@ -3259,7 +3327,137 @@ function openFindingDetailModal(f, apkData) {
     });
   });
 
+  // Bind modal auto-fix button if finding is patchable
+  const modalFixBtn = document.getElementById("btnModalAutoFixVuln");
+  if (modalFixBtn) {
+    const fixId = inferFindingFixId(f);
+    const isPatchableApk = ((apkData || activeApkData)?.file_info?.format || "APK").toUpperCase() !== "IPA";
+    if (fixId && isPatchableApk) {
+      modalFixBtn.classList.remove("hidden");
+      modalFixBtn.disabled = false;
+      modalFixBtn.onclick = () => {
+        modal.classList.add("hidden");
+        runApkAutoPatch([fixId], f.title);
+      };
+    } else {
+      modalFixBtn.classList.add("hidden");
+      modalFixBtn.onclick = null;
+    }
+  }
+
   modal.classList.remove("hidden");
+}
+
+function inferFindingFixId(f) {
+  if (!f) return null;
+  if (f.fix_id && f.auto_fixable !== false) return f.fix_id;
+  if (f.auto_fixable === false) return null;
+  const t = (f.title || "").toLowerCase();
+  if (t.includes("debuggable")) return "debuggable";
+  if (t.includes("debug certificate") || t.includes("debug signed")) return "debug_signed";
+  if (t.includes("cleartext http traffic allowed globally") || t.includes("usescleartexttraffic")) return "uses_cleartext_traffic";
+  if (t.includes("cleartext traffic allowed for") || t.includes("staging/target domains")) return "cleartext_domains";
+  if (t.includes("user-installed ca") || t.includes("user root ca")) return "trusts_user_certs";
+  if (t.includes("debug activity") || t.includes("moedebugger")) return "debug_activities";
+  if (t.includes("sensitive activities") || t.includes("unauthenticated access to sensitive")) return "sensitive_activities";
+  if (t.includes("weak cryptography") || t.includes("insecure cipher") || t.includes("blowfish") || t.includes("ecb")) return "weak_crypto";
+  if (t.includes("hardcoded secrets") || t.includes("tokens detected")) return "hardcoded_secrets";
+  if (t.includes("spring boot actuator") || t.includes("staging endpoints")) return "staging_endpoints";
+  if (t.includes("backup enabled") || t.includes("allowbackup")) return "allow_backup";
+  if (t.includes("exported components without permissions")) return "exported_components";
+  if (t.includes("dangerous permissions")) return "dangerous_permissions";
+  if (t.includes("anti-tamper") || t.includes("root, frida") || t.includes("missing root")) return "missing_anti_tamper";
+  return null;
+}
+
+async function runApkAutoPatch(fixIds, label) {
+  const banner = document.getElementById("apkAutoPatchBanner");
+  const allBtns = document.querySelectorAll(".btn-autofix-all, .btn-autofix-item");
+  const targetFile = activeApkData?.file_info?.file_name || "";
+
+  if (!targetFile) {
+    if (banner) {
+      banner.className = "autofix-banner error";
+      banner.innerHTML = `<strong>Gagal Auto-Patch:</strong> File APK target tidak ditemukan. Silakan upload atau pilih APK terlebih dahulu.`;
+    }
+    return;
+  }
+
+  allBtns.forEach(b => { b.disabled = true; });
+  if (banner) {
+    banner.className = "autofix-banner loading";
+    banner.innerHTML = `
+      <div class="autofix-banner-top">
+        <div>
+          <strong>⚡ Sedang Menutup Celah Otomatis:</strong> ${escapeHtml(label)}
+          <div style="font-size:11.5px; opacity:0.85; margin-top:3px;">
+            Menjalankan pipeline <code>apktool decode &rarr; XML/Smali patch &rarr; apktool build &rarr; zipalign &rarr; apksigner &rarr; re-scan</code> pada <code>${escapeHtml(targetFile)}</code>...
+          </div>
+        </div>
+      </div>
+    `;
+    banner.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  try {
+    const res = await fetch("/api/apk/patch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ file: targetFile, fixes: fixIds })
+    });
+    const result = await res.json();
+
+    if (!res.ok || !result.success) {
+      throw new Error(result.error || "Auto-patch gagal dijalankan.");
+    }
+
+    // Re-render APK Inspector with the freshly verified patched APK report
+    if (result.new_analysis) {
+      renderApkReport(result.new_analysis);
+    }
+
+    // Display success summary + Download Patched APK button
+    const updatedBanner = document.getElementById("apkAutoPatchBanner");
+    if (updatedBanner) {
+      const deltaSign = result.score_delta >= 0 ? `+${result.score_delta}` : `${result.score_delta}`;
+      const patchesHtml = (result.patches_applied || []).map(p =>
+        `<li><strong>[${escapeHtml(p.file)}]</strong> ${escapeHtml(p.detail)}</li>`
+      ).join("");
+      const logsText = (result.logs || []).join("\n");
+
+      updatedBanner.className = "autofix-banner success";
+      updatedBanner.innerHTML = `
+        <div class="autofix-banner-top">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <strong>✅ Celah Berhasil Ditutup &amp; Diverifikasi!</strong>
+              <span class="autofix-score-pill">Security Score: ${result.before_score} &rarr; ${result.after_score} (${deltaSign} pts)</span>
+              <span class="badge badge-success">Signed &amp; Verified (v1/v2/v3)</span>
+            </div>
+            <div style="font-size:11.5px; margin-top:4px; color:#047857;">
+              Temuan risiko berkurang: <strong>${result.before_findings_count} &rarr; ${result.after_findings_count}</strong> &bull; Output: <code>${escapeHtml(result.patched_file)}</code>
+            </div>
+          </div>
+          <a href="${escapeHtml(result.download_url)}" class="btn-download-patched" download="${escapeHtml(result.patched_file)}">
+            ⬇️ Download Patched APK
+          </a>
+        </div>
+        ${patchesHtml ? `<ul class="autofix-changes-list">${patchesHtml}</ul>` : ""}
+        <details class="autofix-log-details">
+          <summary>Lihat Log Pipeline Patching (${(result.logs || []).length} baris)</summary>
+          <pre class="autofix-log-box">${escapeHtml(logsText)}</pre>
+        </details>
+      `;
+      updatedBanner.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  } catch (err) {
+    if (banner) {
+      banner.className = "autofix-banner error";
+      banner.innerHTML = `<strong>❌ Auto-Patch Gagal:</strong> ${escapeHtml(err.message || String(err))}`;
+    }
+  } finally {
+    document.querySelectorAll(".btn-autofix-all, .btn-autofix-item").forEach(b => { b.disabled = false; });
+  }
 }
 
 function getFindingDetail(f, apkData) {
@@ -3832,6 +4030,38 @@ function openAuditItemModal(key, data) {
       </div>
     </div>
   `;
+
+  // Bind modal auto-fix button if audit item is vulnerable and patchable
+  const modalFixBtn = document.getElementById("btnModalAutoFixVuln");
+  if (modalFixBtn) {
+    const auditKeyToFixId = {
+      debuggable: "debuggable",
+      allow_backup: "allow_backup",
+      uses_cleartext_traffic: "uses_cleartext_traffic",
+      exported_components: "exported_components",
+      crypto_ciphers: "weak_crypto",
+      netsec_cleartext: "cleartext_domains",
+      cleartext_domains: "cleartext_domains",
+      debug_activities: "debug_activities",
+      spring_actuator: "staging_endpoints",
+      user_root_ca: "trusts_user_certs",
+      anti_tamper: "missing_anti_tamper"
+    };
+    const fixId = auditKeyToFixId[key] || null;
+    const isVulnerable = (detail.severity && detail.severity !== "SECURE" && detail.severity !== "INFO") || key === "anti_tamper";
+    const isPatchableApk = ((data || activeApkData)?.file_info?.format || "APK").toUpperCase() !== "IPA";
+    if (fixId && isVulnerable && isPatchableApk) {
+      modalFixBtn.classList.remove("hidden");
+      modalFixBtn.disabled = false;
+      modalFixBtn.onclick = () => {
+        modal.classList.add("hidden");
+        runApkAutoPatch([fixId], detail.title);
+      };
+    } else {
+      modalFixBtn.classList.add("hidden");
+      modalFixBtn.onclick = null;
+    }
+  }
 
   modal.classList.remove("hidden");
 }

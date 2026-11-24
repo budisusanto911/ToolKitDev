@@ -3035,6 +3035,8 @@ SecurityContext context = SecurityContext(withTrustedRoots: false);
             deduct = 30
             score -= deduct
             findings.append({
+                "fix_id": "debuggable",
+                "auto_fixable": True,
                 "severity": "CRITICAL",
                 "title": "Application is Marked as Debuggable",
                 "deduction": deduct,
@@ -3046,6 +3048,8 @@ SecurityContext context = SecurityContext(withTrustedRoots: false);
             deduct = 20
             score -= deduct
             findings.append({
+                "fix_id": "debug_signed",
+                "auto_fixable": True,
                 "severity": "CRITICAL",
                 "title": "Signed with Android Debug Certificate",
                 "deduction": deduct,
@@ -3057,6 +3061,8 @@ SecurityContext context = SecurityContext(withTrustedRoots: false);
             deduct = 15
             score -= deduct
             findings.append({
+                "fix_id": "uses_cleartext_traffic",
+                "auto_fixable": True,
                 "severity": "HIGH",
                 "title": "Cleartext HTTP Traffic Allowed Globally",
                 "deduction": deduct,
@@ -3069,6 +3075,8 @@ SecurityContext context = SecurityContext(withTrustedRoots: false);
             deduct = 15
             score -= deduct
             findings.append({
+                "fix_id": "cleartext_domains",
+                "auto_fixable": True,
                 "severity": "HIGH",
                 "title": f"Cleartext Traffic Allowed for {len(domains)} Staging/Target Domains",
                 "deduction": deduct,
@@ -3080,6 +3088,8 @@ SecurityContext context = SecurityContext(withTrustedRoots: false);
             deduct = 15
             score -= deduct
             findings.append({
+                "fix_id": "trusts_user_certs",
+                "auto_fixable": True,
                 "severity": "HIGH",
                 "title": "Network Security Config Trusts User-Installed CA Certificates",
                 "deduction": deduct,
@@ -3092,6 +3102,8 @@ SecurityContext context = SecurityContext(withTrustedRoots: false);
             deduct = 20
             score -= deduct
             findings.append({
+                "fix_id": "debug_activities",
+                "auto_fixable": True,
                 "severity": "CRITICAL",
                 "title": f"Exported Third-Party Debug Activity ({', '.join(acts[:2])})",
                 "deduction": deduct,
@@ -3104,6 +3116,8 @@ SecurityContext context = SecurityContext(withTrustedRoots: false);
             deduct = 20
             score -= deduct
             findings.append({
+                "fix_id": "sensitive_activities",
+                "auto_fixable": True,
                 "severity": "CRITICAL",
                 "title": f"Unauthenticated Access to Sensitive Activities ({', '.join(acts[:2])})",
                 "deduction": deduct,
@@ -3116,6 +3130,8 @@ SecurityContext context = SecurityContext(withTrustedRoots: false);
             deduct = 20
             score -= deduct
             findings.append({
+                "fix_id": "weak_crypto",
+                "auto_fixable": True,
                 "severity": "CRITICAL",
                 "title": f"Weak Cryptography: Insecure Cipher ({algos})",
                 "deduction": deduct,
@@ -3127,6 +3143,8 @@ SecurityContext context = SecurityContext(withTrustedRoots: false);
             deduct = 15
             score -= deduct
             findings.append({
+                "fix_id": "static_keys",
+                "auto_fixable": False,
                 "severity": "HIGH",
                 "title": "Static Hardcoded Encryption Key / IV Detected",
                 "deduction": deduct,
@@ -3138,6 +3156,8 @@ SecurityContext context = SecurityContext(withTrustedRoots: false);
             deduct = 15
             score -= deduct
             findings.append({
+                "fix_id": "weak_biometric",
+                "auto_fixable": False,
                 "severity": "HIGH",
                 "title": "Weak Biometric Auth Without CryptoObject",
                 "deduction": deduct,
@@ -3149,6 +3169,8 @@ SecurityContext context = SecurityContext(withTrustedRoots: false);
             deduct = 10
             score -= deduct
             findings.append({
+                "fix_id": "missing_anti_tamper",
+                "auto_fixable": True,
                 "severity": "MEDIUM",
                 "title": "Missing Root, Frida, & Anti-Tamper Protections",
                 "deduction": deduct,
@@ -3161,6 +3183,8 @@ SecurityContext context = SecurityContext(withTrustedRoots: false);
             deduct = 15
             score -= deduct
             findings.append({
+                "fix_id": "staging_endpoints",
+                "auto_fixable": True,
                 "severity": "HIGH",
                 "title": "Hardcoded Spring Boot Actuator / Staging Endpoints",
                 "deduction": deduct,
@@ -3172,6 +3196,8 @@ SecurityContext context = SecurityContext(withTrustedRoots: false);
             deduct = min(25, len(secrets) * 15)
             score -= deduct
             findings.append({
+                "fix_id": "hardcoded_secrets",
+                "auto_fixable": True,
                 "severity": "CRITICAL",
                 "title": f"{len(secrets)} Hardcoded Secrets / Tokens Detected",
                 "deduction": deduct,
@@ -3183,6 +3209,8 @@ SecurityContext context = SecurityContext(withTrustedRoots: false);
             deduct = 10
             score -= deduct
             findings.append({
+                "fix_id": "allow_backup",
+                "auto_fixable": True,
                 "severity": "MEDIUM",
                 "title": "Application Backup Enabled",
                 "deduction": deduct,
@@ -3202,6 +3230,8 @@ SecurityContext context = SecurityContext(withTrustedRoots: false);
             deduct = min(15, len(unprotected_exported) * 2)
             score -= deduct
             findings.append({
+                "fix_id": "exported_components",
+                "auto_fixable": True,
                 "severity": "HIGH",
                 "title": f"{len(unprotected_exported)} Exported Components Without Permissions",
                 "deduction": deduct,
@@ -3214,6 +3244,8 @@ SecurityContext context = SecurityContext(withTrustedRoots: false);
             deduct = min(15, (len(dangerous_perms) - 5) * 2)
             score -= deduct
             findings.append({
+                "fix_id": "dangerous_permissions",
+                "auto_fixable": True,
                 "severity": "LOW",
                 "title": f"High Number of Dangerous Permissions ({len(dangerous_perms)})",
                 "deduction": deduct,
