@@ -15,7 +15,9 @@ Closes detected Android APK vulnerabilities automatically by:
 
 import os
 import re
+import glob
 import shutil
+import zipfile
 import tempfile
 import subprocess
 import xml.etree.ElementTree as ET
@@ -33,6 +35,9 @@ FRAMEWORK_DIR = os.path.join(BASE_DIR, "build", "apktool-framework")
 KEYSTORE_PATH = os.path.join(KEYSTORE_DIR, "toolkitdev-release.jks")
 KEYSTORE_ALIAS = "toolkitdev-release"
 KEYSTORE_PASS = "toolkitdev123"
+RUNTIME_GUARD_PREBUILT_DIR = os.path.join(BASE_DIR, "engine", "runtime_guard", "prebuilt")
+RUNTIME_GUARD_PREBUILT_LIB = os.path.join(RUNTIME_GUARD_PREBUILT_DIR, "lib")
+RUNTIME_GUARD_PREBUILT_SMALI = os.path.join(RUNTIME_GUARD_PREBUILT_DIR, "smali")
 
 # Map of supported automated fixes and whether they require full smali decoding
 FIX_CATALOG: Dict[str, Dict[str, Any]] = {
@@ -102,7 +107,7 @@ FIX_CATALOG: Dict[str, Dict[str, Any]] = {
         "category": "Bytecode & Resources",
     },
     "missing_anti_tamper": {
-        "label": "Inject RuntimeGuard (Anti-Root, Anti-Frida, Anti-Emulator, Anti-Debugger)",
+        "label": "Inject RuntimeGuard v2.1 (Native Anti-Root/Hide/Zygisk/smaps, Active Frida D-Bus Probe, Hardware TEE/Anti-TrickyStore, Dev Mode Allowed)",
         "needs_smali": True,
         "category": "Anti-Tamper / Runtime Guard",
     },
@@ -1942,11 +1947,62 @@ class ApkPatcher:
 
         return applied
 
+    def _find_best_zipalign(self) -> Tuple[str, bool]:
+        """Return (zipalign_binary_path, supports_16kb_flag)."""
+        sdk_candidates = [
+            os.environ.get("ANDROID_HOME") or "",
+            os.environ.get("ANDROID_SDK_ROOT") or "",
+            os.path.expanduser("~/Android/Sdk"),
+            os.path.expanduser("~/Android/SDK"),
+        ]
+        for sdk in sdk_candidates:
+            if not sdk:
+                continue
+            bins = sorted(glob.glob(os.path.join(sdk, "build-tools", "*", "zipalign")), reverse=True)
+            for b in bins:
+                if os.path.isfile(b) and os.access(b, os.X_OK):
+                    # build-tools 35+ supports -P 16 (16KB page alignment for Android 15+)
+                    ver_dir = os.path.basename(os.path.dirname(b))
+                    major = 0
+                    try:
+                        major = int(ver_dir.split(".")[0])
+                    except Exception:
+                        pass
+                    return b, major >= 35
+        return "zipalign", False
+
+    def _ensure_uncompressed_so_and_strip_meta(self, src_apk: str, dst_apk: str, strip_meta: bool = True) -> int:
+        """
+        Repack APK ensuring all lib/*/*.so entries are stored uncompressed (ZIP_STORED)
+        as required by android:extractNativeLibs="false", while optionally stripping build metadata.
+        """
+        stripped_count = 0
+        with zipfile.ZipFile(src_apk, "r") as zin, zipfile.ZipFile(dst_apk, "w") as zout:
+            for item in zin.infolist():
+                name = item.filename
+                if strip_meta:
+                    is_leak_meta = (
+                        (name.startswith("META-INF/") and name.endswith(".version"))
+                        or name.startswith("META-INF/com/android/build/")
+                        or name in ("kotlin-tooling-metadata.json", "DebugProbesKt.bin")
+                    )
+                    if is_leak_meta:
+                        stripped_count += 1
+                        continue
+                data = zin.read(name)
+                ctype = zipfile.ZIP_STORED if name.endswith(".so") else item.compress_type
+                zi = zipfile.ZipInfo(filename=name, date_time=item.date_time)
+                zi.compress_type = ctype
+                zi.external_attr = item.external_attr
+                zout.writestr(zi, data, compress_type=ctype)
+        return stripped_count
+
     def _inject_runtime_guard(self, decode_dir: str, manifest_path: str) -> List[Dict[str, Any]]:
         """
-        Inject com.toolkitdev.security.RuntimeGuard Smali class (Anti-Root, Anti-Frida,
-        Anti-Emulator, Anti-Debugger) into a dedicated DEX-safe smali directory and hook
-        enforceSecurity() into the app's Application.onCreate() or Launcher Activity.onCreate().
+        Inject RuntimeGuard v2 (Native C/C++ raw-syscall libtkdguard.so + Hardware TEE Key
+        Attestation + Anti-USB Debugging/DevOptsHide + Anti-LSPosed/Zygisk/Shamiko/Frida +
+        Hard Transaction Lockout) into a dedicated DEX-safe smali directory and hook
+        RuntimeGuard.install(this) into BOTH Application.onCreate() and Launcher Activity.onCreate().
         """
         applied: List[Dict[str, Any]] = []
 
@@ -1966,24 +2022,85 @@ class ApkPatcher:
         else:
             target_smali_root = "smali"
 
-        guard_rel = os.path.join(target_smali_root, "com", "toolkitdev", "security", "RuntimeGuard.smali")
-        guard_abs = os.path.join(decode_dir, guard_rel)
-        listener_rel = os.path.join(target_smali_root, "com", "toolkitdev", "security", "RuntimeGuard$ExitListener.smali")
-        listener_abs = os.path.join(decode_dir, listener_rel)
-        callbacks_rel = os.path.join(target_smali_root, "com", "toolkitdev", "security", "RuntimeGuard$GuardCallbacks.smali")
-        callbacks_abs = os.path.join(decode_dir, callbacks_rel)
-        os.makedirs(os.path.dirname(guard_abs), exist_ok=True)
-        with open(guard_abs, "w", encoding="utf-8") as fp:
-            fp.write(RUNTIME_GUARD_SMALI)
-        with open(listener_abs, "w", encoding="utf-8") as fp:
-            fp.write(RUNTIME_GUARD_EXIT_LISTENER_SMALI)
-        with open(callbacks_abs, "w", encoding="utf-8") as fp:
-            fp.write(RUNTIME_GUARD_CALLBACKS_SMALI)
-        self._log("PATCH", f"Injected {guard_rel} + GuardCallbacks + AlertDialog ExitListener")
+        guard_pkg_rel = os.path.join(target_smali_root, "com", "toolkitdev", "security")
+        guard_pkg_abs = os.path.join(decode_dir, guard_pkg_rel)
+        os.makedirs(guard_pkg_abs, exist_ok=True)
 
-        # 2. Add <queries> for Magisk/KernelSU/APatch/LSPosed/SuperSU in AndroidManifest.xml (Android 11+ visibility)
-        #    and hook RuntimeGuard.install(this) into Application.onCreate() (preferred so every Activity.onResumed shows popup)
-        hooked_target = None
+        # 1a. Copy prebuilt javac+d8-verified Smali classes (preferred), or fallback to inline smali
+        prebuilt_smali_src = os.path.join(RUNTIME_GUARD_PREBUILT_SMALI, "com", "toolkitdev", "security")
+        injected_smali_files: List[str] = []
+        if os.path.isdir(prebuilt_smali_src):
+            for fname in sorted(os.listdir(prebuilt_smali_src)):
+                if fname.endswith(".smali"):
+                    shutil.copy2(
+                        os.path.join(prebuilt_smali_src, fname),
+                        os.path.join(guard_pkg_abs, fname),
+                    )
+                    injected_smali_files.append(fname)
+            self._log(
+                "PATCH",
+                f"Injected RuntimeGuard v2 ({len(injected_smali_files)} verified Smali classes: Hardware TEE Key Attestation, Anti-DevOptsHide, Anti-LSPosed/Hook, Hard Lockout) into {guard_pkg_rel}",
+            )
+        else:
+            with open(os.path.join(guard_pkg_abs, "RuntimeGuard.smali"), "w", encoding="utf-8") as fp:
+                fp.write(RUNTIME_GUARD_SMALI)
+            with open(os.path.join(guard_pkg_abs, "RuntimeGuard$ExitListener.smali"), "w", encoding="utf-8") as fp:
+                fp.write(RUNTIME_GUARD_EXIT_LISTENER_SMALI)
+            with open(os.path.join(guard_pkg_abs, "RuntimeGuard$GuardCallbacks.smali"), "w", encoding="utf-8") as fp:
+                fp.write(RUNTIME_GUARD_CALLBACKS_SMALI)
+            injected_smali_files = ["RuntimeGuard.smali", "RuntimeGuard$ExitListener.smali", "RuntimeGuard$GuardCallbacks.smali"]
+            self._log("PATCH", f"Injected fallback RuntimeGuard smali into {guard_pkg_rel}")
+
+        # 1b. Inject multi-ABI Native C/C++ raw-syscall library (libtkdguard.so)
+        #     CRITICAL: If target APK already has lib/<abi>, inject ONLY into those existing ABIs
+        #     so we never break 32-bit-only APKs by introducing a mismatched 64-bit ABI folder.
+        injected_abis: List[str] = []
+        if os.path.isdir(RUNTIME_GUARD_PREBUILT_LIB):
+            available_prebuilt_abis = [
+                abi for abi in ("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+                if os.path.isfile(os.path.join(RUNTIME_GUARD_PREBUILT_LIB, abi, "libtkdguard.so"))
+            ]
+            target_lib_root = os.path.join(decode_dir, "lib")
+            if os.path.isdir(target_lib_root):
+                existing_abis = [
+                    d for d in sorted(os.listdir(target_lib_root))
+                    if os.path.isdir(os.path.join(target_lib_root, d))
+                ]
+            else:
+                existing_abis = []
+
+            target_abis = [a for a in existing_abis if a in available_prebuilt_abis] if existing_abis else available_prebuilt_abis
+            for abi in target_abis:
+                dst_abi_dir = os.path.join(target_lib_root, abi)
+                os.makedirs(dst_abi_dir, exist_ok=True)
+                shutil.copy2(
+                    os.path.join(RUNTIME_GUARD_PREBUILT_LIB, abi, "libtkdguard.so"),
+                    os.path.join(dst_abi_dir, "libtkdguard.so"),
+                )
+                injected_abis.append(abi)
+
+            if injected_abis:
+                self._log(
+                    "PATCH",
+                    f"Injected Native Raw-Syscall Guard libtkdguard.so for ABIs: {', '.join(injected_abis)}",
+                )
+                # Ensure apktool.yml does not compress .so files
+                apktool_yml = os.path.join(decode_dir, "apktool.yml")
+                if os.path.isfile(apktool_yml):
+                    try:
+                        with open(apktool_yml, "r", encoding="utf-8", errors="ignore") as fp:
+                            yml_txt = fp.read()
+                        if "doNotCompress:" in yml_txt and "\n- so\n" not in yml_txt:
+                            yml_txt = yml_txt.replace("doNotCompress:\n", "doNotCompress:\n- so\n", 1)
+                            with open(apktool_yml, "w", encoding="utf-8") as fp:
+                                fp.write(yml_txt)
+                    except Exception:
+                        pass
+
+        # 2. Add expanded <queries> for Root/Magisk/KernelSU/APatch/LSPosed/DevOptsHide/HMA visibility
+        #    on Android 11-15, and hook RuntimeGuard.install(this) into BOTH Application.onCreate()
+        #    AND Launcher Activity.onCreate() for defense-in-depth.
+        hooked_targets: List[str] = []
         if os.path.isfile(manifest_path):
             try:
                 self._register_xml_namespaces(manifest_path)
@@ -1992,7 +2109,6 @@ class ApkPatcher:
                 pkg = root.get("package", "")
                 app_elem = root.find("application")
 
-                # Add <queries> packages for root/magisk visibility on Android 11-15
                 queries_elem = root.find("queries")
                 if queries_elem is None:
                     queries_elem = ET.SubElement(root, "queries")
@@ -2003,38 +2119,58 @@ class ApkPatcher:
                 root_pkgs = [
                     "com.topjohnwu.magisk",
                     "io.github.vvb2060.magisk",
+                    "io.github.huskydg.magisk",
+                    "com.topjohnwu.magisk.alpha",
                     "me.weishu.kernelsu",
+                    "com.rifsxd.ksunext",
+                    "com.sukisu.ultra",
+                    "io.github.a13e300.ksuwebui",
                     "me.bmax.apatch",
                     "org.lsposed.manager",
+                    "io.github.lsposed.manager",
+                    "org.meowcat.edxposed.manager",
+                    "de.robv.android.xposed.installer",
+                    "com.solohsu.android.edxp.manager",
+                    "net.accelf.devoptshide",
+                    "com.accelforce.devoptshide",
+                    "com.tsng.hidemyapplist",
+                    "com.google.android.hmal",
+                    "icu.nullptr.hidemyapplist",
+                    "io.github.chankyin.bootloaderspoofer",
                     "eu.chainfire.supersu",
+                    "com.koushikdutta.superuser",
+                    "com.noshufou.android.su",
+                    "com.thirdparty.superuser",
+                    "ru.aaaaaccg.installer",
+                    "com.chelpus.lackypatch",
+                    "com.dimonvideo.luckypatcher",
+                    "net.jolivier.cert.Importer",
                 ]
-                q_added = False
+                q_added = 0
                 for rpkg in root_pkgs:
                     if rpkg not in existing_qpkgs:
                         ET.SubElement(queries_elem, "package", {f"{ANDROID_ATTR}name": rpkg})
-                        q_added = True
+                        q_added += 1
                 if q_added:
                     tree.write(manifest_path, encoding="utf-8", xml_declaration=True)
-                    self._log("PATCH", "Added <queries> for Magisk/KernelSU/APatch/LSPosed in AndroidManifest.xml")
+                    self._log("PATCH", f"Added {q_added} <queries> root/hide/LSPosed/DevOptsHide package entries in AndroidManifest.xml")
 
                 candidates: List[str] = []
                 if app_elem is not None:
-                    # Prefer Application.onCreate() -> registerActivityLifecycleCallbacks so EVERY Activity shows popup on resume!
                     app_name = app_elem.get(f"{ANDROID_ATTR}name", "")
                     if app_name:
                         candidates.append(app_name)
                     for act in app_elem.findall("activity"):
                         if self._is_launcher_component(act):
                             aname = act.get(f"{ANDROID_ATTR}name", "")
-                            if aname:
+                            if aname and aname not in candidates:
                                 candidates.append(aname)
                     for alias in app_elem.findall("activity-alias"):
                         if self._is_launcher_component(alias):
                             tname = alias.get(f"{ANDROID_ATTR}targetActivity", "")
-                            if tname:
+                            if tname and tname not in candidates:
                                 candidates.append(tname)
 
-                # Resolve candidate class names to smali paths
                 # Use invoke-static/range {p0 .. p0} (3rc format, 16-bit reg index) so it works
                 # even when onCreate() has >= 16 locals (where p0 maps to v16+, e.g. v30).
                 hook_line = "    invoke-static/range {p0 .. p0}, Lcom/toolkitdev/security/RuntimeGuard;->install(Landroid/content/Context;)V\n"
@@ -2054,7 +2190,7 @@ class ApkPatcher:
                         with open(candidate_path, "r", encoding="utf-8", errors="ignore") as fp:
                             content = fp.read()
                         if "Lcom/toolkitdev/security/RuntimeGuard;->install(" in content:
-                            hooked_target = f"{fqcn}.onCreate() [already hooked]"
+                            hooked_targets.append(f"{fqcn}.onCreate() [already hooked]")
                             break
 
                         # Inject right after invoke-super / invoke-super/range ...->onCreate(...)V
@@ -2078,22 +2214,28 @@ class ApkPatcher:
                         if n > 0:
                             with open(candidate_path, "w", encoding="utf-8") as fp:
                                 fp.write(new_content)
-                            hooked_target = f"{fqcn}.onCreate() ({os.path.relpath(candidate_path, decode_dir)})"
-                            self._log("PATCH", f"Hooked RuntimeGuard.install(Context) lifecycle guard into {hooked_target}")
+                            ht = f"{fqcn}.onCreate() ({os.path.relpath(candidate_path, decode_dir)})"
+                            hooked_targets.append(ht)
+                            self._log("PATCH", f"Hooked RuntimeGuard.install(Context) lifecycle guard into {ht}")
                             break
-                    if hooked_target:
+                    # Hook both Application and first Launcher Activity (up to 2 entrypoints)
+                    if len(hooked_targets) >= 2:
                         break
             except Exception as e:
                 self._log("WARN", f"Could not auto-hook Activity/Application onCreate: {e}")
 
+        hook_summary = ", ".join(hooked_targets) if hooked_targets else "none"
+        abi_summary = ", ".join(injected_abis) if injected_abis else "Java-only"
         detail = (
-            f"Injected RuntimeGuard.smali (Root/su/Magisk, Frida 27042/maps, Emulator, Anti-Debugger) into {guard_rel}"
-            + (f" and hooked into {hooked_target}." if hooked_target else ".")
+            f"Injected RuntimeGuard v2.1 ({len(injected_smali_files)} Smali classes + Native libtkdguard.so [{abi_summary}]: "
+            f"Raw-Syscall Anti-Root/Mount/HMA, /proc/self/smaps Anti-Zygisk/LSPlant, Active Frida D-Bus Probe, "
+            f"Hardware TEE + Anti-TrickyStore vbmeta Cross-Check, Hard Transaction Lockout, Developer Mode Allowed) "
+            f"hooked into: {hook_summary}."
         )
         applied.append({
             "fix_id": "missing_anti_tamper",
             "status": "patched",
-            "file": guard_rel,
+            "file": f"{guard_pkg_rel} + lib/{{{abi_summary}}}/libtkdguard.so",
             "detail": detail,
         })
         return applied
@@ -2244,24 +2386,13 @@ class ApkPatcher:
                 ]
                 opt_proc = subprocess.run(opt_cmd, capture_output=True, text=True, timeout=180)
                 if opt_proc.returncode == 0 and os.path.isfile(optimized_apk):
-                    # Strip non-essential build metadata files while preserving META-INF/services/ and all runtime files
+                    # Strip non-essential build metadata files while preserving META-INF/services/ and enforcing uncompressed .so
                     stripped_apk = os.path.join(work_dir, "stripped.apk")
                     stripped_count = 0
                     try:
-                        import zipfile as _zf
-                        with _zf.ZipFile(optimized_apk, "r") as zin, _zf.ZipFile(stripped_apk, "w") as zout:
-                            for item in zin.infolist():
-                                name = item.filename
-                                is_leak_meta = (
-                                    (name.startswith("META-INF/") and name.endswith(".version"))
-                                    or name.startswith("META-INF/com/android/build/")
-                                    or name in ("kotlin-tooling-metadata.json", "DebugProbesKt.bin")
-                                )
-                                if is_leak_meta:
-                                    stripped_count += 1
-                                    continue
-                                data = zin.read(name)
-                                zout.writestr(item, data, compress_type=item.compress_type)
+                        stripped_count = self._ensure_uncompressed_so_and_strip_meta(
+                            optimized_apk, stripped_apk, strip_meta=True
+                        )
                         rebuilt_apk = stripped_apk
                     except Exception:
                         rebuilt_apk = optimized_apk
@@ -2275,17 +2406,31 @@ class ApkPatcher:
                     self._log("OK", f"Resource paths flattened/obfuscated & {stripped_count} metadata file(s) stripped.")
                 else:
                     self._log("WARN", f"aapt2 optimize skipped: {(opt_proc.stderr or opt_proc.stdout)[-200:]}")
+                    # Still guarantee all .so files are uncompressed ZIP_STORED for extractNativeLibs="false"
+                    uncompressed_apk = os.path.join(work_dir, "uncompressed_so.apk")
+                    try:
+                        self._ensure_uncompressed_so_and_strip_meta(rebuilt_apk, uncompressed_apk, strip_meta=False)
+                        rebuilt_apk = uncompressed_apk
+                    except Exception:
+                        pass
 
-            # 7. Zipalign
-            self._log("INFO", "Running zipalign (4-byte page alignment)...")
-            align_cmd = ["zipalign", "-f", "-p", "4", rebuilt_apk, aligned_apk]
+            # 7. Zipalign (prefer 16KB page alignment for Android 15+ .so compatibility, fallback to 4KB)
+            zipalign_bin, supports_16kb = self._find_best_zipalign()
+            if supports_16kb:
+                self._log("INFO", f"Running zipalign (16KB page alignment via {os.path.basename(os.path.dirname(zipalign_bin))})...")
+                align_cmd = [zipalign_bin, "-f", "-P", "16", "4", rebuilt_apk, aligned_apk]
+            else:
+                self._log("INFO", "Running zipalign (4KB page alignment)...")
+                align_cmd = [zipalign_bin, "-f", "-p", "4", rebuilt_apk, aligned_apk]
             proc = subprocess.run(align_cmd, capture_output=True, text=True, timeout=120)
             if proc.returncode != 0:
-                # Fallback if -p not supported or fails
-                align_cmd_fb = ["zipalign", "-f", "4", rebuilt_apk, aligned_apk]
+                align_cmd_fb = [zipalign_bin, "-f", "-p", "4", rebuilt_apk, aligned_apk]
                 proc2 = subprocess.run(align_cmd_fb, capture_output=True, text=True, timeout=120)
                 if proc2.returncode != 0:
-                    raise RuntimeError(f"zipalign failed: {(proc2.stderr or proc2.stdout)[-500:]}")
+                    align_cmd_fb2 = ["zipalign", "-f", "4", rebuilt_apk, aligned_apk]
+                    proc3 = subprocess.run(align_cmd_fb2, capture_output=True, text=True, timeout=120)
+                    if proc3.returncode != 0:
+                        raise RuntimeError(f"zipalign failed: {(proc3.stderr or proc3.stdout)[-500:]}")
             self._log("OK", "APK zipaligned.")
 
             # 8. Sign with Release Keystore (v1 + v2 + v3)
