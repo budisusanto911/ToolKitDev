@@ -255,27 +255,35 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                         })
             if os.path.exists(UPLOADS_DIR):
                 for f in sorted(os.listdir(UPLOADS_DIR)):
-                    if f.endswith((".apk", ".aab", ".ipa")) and not f.startswith("."):
+                    if f.endswith((".apk", ".aab", ".ipa", ".zip")) and not f.startswith("."):
                         p = os.path.join(UPLOADS_DIR, f)
+                        if f.endswith(".zip") and not self._is_ios_archive(p):
+                            continue
                         sz = os.path.getsize(p)
-                        ftype = "IPA (iOS)" if f.endswith(".ipa") else ("AAB" if f.endswith(".aab") else "APK")
+                        is_ios = f.endswith(".ipa") or f.endswith(".zip")
+                        ftype = "IPA/ZIP (iOS)" if f.endswith(".zip") else ("IPA (iOS)" if f.endswith(".ipa") else ("AAB" if f.endswith(".aab") else "APK"))
                         files_list.append({
                             "name": f,
                             "path": f"uploads/{f}",
                             "type": ftype,
+                            "is_ios": is_ios,
                             "folder": "uploads",
                             "size_fmt": f"{sz / (1024*1024):.2f} MB"
                         })
             if os.path.exists(SAMPLES_DIR):
                 for f in sorted(os.listdir(SAMPLES_DIR)):
-                    if f.endswith((".apk", ".aab", ".ipa")):
+                    if f.endswith((".apk", ".aab", ".ipa", ".zip")):
                         p = os.path.join(SAMPLES_DIR, f)
+                        if f.endswith(".zip") and not self._is_ios_archive(p):
+                            continue
                         sz = os.path.getsize(p)
-                        ftype = "IPA (iOS)" if f.endswith(".ipa") else ("AAB" if f.endswith(".aab") else "APK")
+                        is_ios = f.endswith(".ipa") or f.endswith(".zip")
+                        ftype = "IPA/ZIP (iOS)" if f.endswith(".zip") else ("IPA (iOS)" if f.endswith(".ipa") else ("AAB" if f.endswith(".aab") else "APK"))
                         files_list.append({
                             "name": f,
                             "path": f"samples/{f}",
                             "type": ftype,
+                            "is_ios": is_ios,
                             "folder": "samples",
                             "size_fmt": f"{sz / (1024*1024):.2f} MB"
                         })
@@ -336,7 +344,7 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                 target_path = self._resolve_apk_file(os.path.basename(file_name) if file_name else "")
                 if target_path and os.path.isfile(target_path):
                     try:
-                        if target_path.endswith(".ipa"):
+                        if target_path.lower().endswith(".ipa") or (target_path.lower().endswith(".zip") and self._is_ios_archive(target_path)):
                             analyzer = IpaAnalyzer(target_path)
                         else:
                             analyzer = ApkAnalyzer(target_path)
@@ -478,14 +486,23 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
             if not resolved or not os.path.isfile(resolved):
                 resolved = os.path.join(SAMPLES_DIR, "sample-ios.ipa")
             if not os.path.isfile(resolved):
-                self._send_json({"error": "IPA sample or target file not found"}, status=404)
+                self._send_json({"error": "IPA/ZIP sample or target file not found"}, status=404)
                 return
             try:
                 analyzer = IpaAnalyzer(resolved)
                 result = analyzer.analyze()
                 self._send_json(result)
+            except ValueError as ve:
+                self._send_json({
+                    "error": str(ve),
+                    "suggestions": [
+                        "Pastikan arsip .zip berisi folder Payload/<NamaApp>.app/, <NamaApp>.app/, file .ipa, atau .xcarchive.",
+                        "Jika file tersebut adalah Android APK/AAB, gunakan tab APK Inspector.",
+                        "Cek integritas ZIP dengan `unzip -t <file.zip>` sebelum upload ulang."
+                    ]
+                }, status=400)
             except Exception as e:
-                self._send_json({"error": f"Failed to analyze IPA: {str(e)}"}, status=500)
+                self._send_json({"error": f"Failed to analyze IPA/ZIP: {str(e)}"}, status=500)
         elif path == "/api/frida/scripts":
             self._send_json({"scripts": frida_runner.get_available_scripts()})
         elif path == "/api/billing/status":
@@ -819,6 +836,78 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._send_json({"success": False, "error": f"Auto-patch gagal: {str(e)}"}, status=500)
 
+        elif path == "/api/ipa/upload":
+            ctype, pdict = cgi.parse_header(self.headers.get("Content-Type", ""))
+            if ctype != "multipart/form-data":
+                self._send_json({"error": "Invalid Content-Type, expected multipart/form-data"}, status=400)
+                return
+            pdict["boundary"] = bytes(pdict["boundary"], "utf-8")
+            pdict["CONTENT-LENGTH"] = int(self.headers.get("Content-Length", 0))
+            form = cgi.FieldStorage(
+                fp=self.rfile,
+                headers=self.headers,
+                environ={
+                    "REQUEST_METHOD": "POST",
+                    "CONTENT_TYPE": self.headers.get("Content-Type"),
+                    "CONTENT_LENGTH": self.headers.get("Content-Length"),
+                }
+            )
+            file_item = None
+            for key in ("ipa", "file", "apk"):
+                if key in form:
+                    file_item = form[key]
+                    break
+            if file_item is None or not getattr(file_item, "file", None):
+                self._send_json({
+                    "error": "Tidak ada file .ipa atau .zip yang diunggah.",
+                    "suggestions": ["Pilih file berformat .ipa atau .zip berisi bundle iOS (Payload/*.app/)."]
+                }, status=400)
+                return
+
+            raw_name = file_item.filename or "uploaded_ios.ipa"
+            clean_name = re.sub(r"[^A-Za-z0-9._\- ()]", "_", os.path.basename(raw_name)).strip() or "uploaded_ios.ipa"
+            if not clean_name.lower().endswith((".ipa", ".zip")):
+                self._send_json({
+                    "error": f"Ekstensi file tidak didukung untuk iOS Inspector: '{clean_name}'.",
+                    "suggestions": [
+                        "Unggah file berformat .ipa atau .zip (Payload/*.app/, *.app/, *.xcarchive.zip, atau .zip berisi .ipa).",
+                        "Untuk aplikasi Android (.apk / .aab), gunakan tab APK Inspector."
+                    ]
+                }, status=400)
+                return
+
+            dest_path = os.path.join(UPLOADS_DIR, clean_name)
+            try:
+                with open(dest_path, "wb") as out_f:
+                    while True:
+                        chunk = file_item.file.read(1024 * 1024)
+                        if not chunk:
+                            break
+                        out_f.write(chunk)
+                analyzer = IpaAnalyzer(dest_path)
+                result = analyzer.analyze()
+                result["saved_path"] = f"uploads/{clean_name}"
+                self._send_json(result)
+            except ValueError as ve:
+                try:
+                    if os.path.isfile(dest_path):
+                        os.unlink(dest_path)
+                except Exception:
+                    pass
+                self._send_json({
+                    "error": str(ve),
+                    "suggestions": [
+                        "Pastikan arsip .zip berisi folder 'Payload/<NamaApp>.app/' atau '<NamaApp>.app/' beserta 'Info.plist'.",
+                        "Untuk hasil Archive Xcode, kompres folder '.xcarchive' atau ekspor sebagai '.ipa'.",
+                        "Jika file berisi AndroidManifest.xml / .dex, silakan pindai di tab APK Inspector."
+                    ]
+                }, status=400)
+            except Exception as e:
+                self._send_json({
+                    "error": f"Gagal menganalisis paket iOS ({clean_name}): {str(e)}",
+                    "suggestions": ["Periksa apakah file tidak korup saat proses transfer/download (misal Telegram/Slack)."]
+                }, status=500)
+
         elif path == "/api/scan-apk":
             ctype, pdict = cgi.parse_header(self.headers.get("Content-Type", ""))
             if ctype == "multipart/form-data":
@@ -844,7 +933,7 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                         f.write(apk_item.file.read())
 
                     try:
-                        if clean_name.lower().endswith(".ipa"):
+                        if clean_name.lower().endswith(".ipa") or (clean_name.lower().endswith(".zip") and self._is_ios_archive(dest_path)):
                             analyzer = IpaAnalyzer(dest_path)
                         else:
                             analyzer = ApkAnalyzer(dest_path)
@@ -858,6 +947,23 @@ class ToolKitDevHandler(SimpleHTTPRequestHandler):
                 self._send_json({"error": "Invalid Content-Type, expected multipart/form-data"}, status=400)
         else:
             self._send_json({"error": "Not Found"}, status=404)
+
+    def _is_ios_archive(self, file_path: str) -> bool:
+        """Fast check whether a .ipa or .zip file contains an iOS .app bundle or nested .ipa."""
+        if not file_path or not os.path.isfile(file_path):
+            return False
+        if file_path.lower().endswith(".ipa"):
+            return True
+        if not file_path.lower().endswith(".zip"):
+            return False
+        try:
+            with zipfile.ZipFile(file_path, "r") as z:
+                for n in z.namelist()[:200]:
+                    if ".app/" in n or n.lower().endswith(".ipa"):
+                        return True
+        except Exception:
+            return False
+        return False
 
     def _resolve_diff_target(self, file_param: str) -> str:
         """Resolve a file path or filename to an absolute path for diff/SCA."""

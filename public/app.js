@@ -5080,21 +5080,38 @@ async function sendChatMessage() {
 /* =========================================================================
    7. SHOPEERS DASHBOARD INTERACTIONS & WIDGET DRAWER
    ========================================================================= */
+function showToast(message, type = "info") {
+  const container = document.getElementById("topbarToastContainer");
+  if (!container) {
+    console.log(`[Toast:${type}]`, message);
+    return;
+  }
+  const toast = document.createElement("div");
+  toast.className = "topbar-toast";
+  if (type === "error") {
+    toast.style.borderLeft = "4px solid #ef4444";
+  } else if (type === "success") {
+    toast.style.borderLeft = "4px solid #10b981";
+  } else if (type === "warning") {
+    toast.style.borderLeft = "4px solid #f59e0b";
+  } else {
+    toast.style.borderLeft = "4px solid #38bdf8";
+  }
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transition = "opacity 0.2s ease";
+    setTimeout(() => toast.remove(), 220);
+  }, 3200);
+}
+window.showToast = showToast;
+window.showTopbarToast = (message) => showToast(message, "info");
+
 function initShopeersInteractions() {
-  // Global Toast Helper
-  window.showTopbarToast = (message) => {
-    const container = document.getElementById("topbarToastContainer");
-    if (!container) return;
-    const toast = document.createElement("div");
-    toast.className = "topbar-toast";
-    toast.textContent = message;
-    container.appendChild(toast);
-    setTimeout(() => {
-      toast.style.opacity = "0";
-      toast.style.transition = "opacity 0.2s ease";
-      setTimeout(() => toast.remove(), 220);
-    }, 2800);
-  };
+  // Global Toast Helper (also bound at top-level so early callers never throw ReferenceError)
+  window.showToast = showToast;
+  window.showTopbarToast = (message) => showToast(message, "info");
 
   // Helper to close all topbar pop-menus
   const closeAllTopbarMenus = (exceptId = null) => {
@@ -6335,7 +6352,7 @@ function initAiFixPackGenerator() {
 }
 
 /* =========================================================================
-   iOS (.ipa) TEARDOWN & SECURITY INSPECTOR
+   iOS (.ipa / .zip) TEARDOWN & SECURITY INSPECTOR
    ========================================================================= */
 let iosState = {
   currentData: null,
@@ -6346,12 +6363,45 @@ function initIpaInspector() {
   const btnScan = document.getElementById("btnRunIpaScan");
   const selectFile = document.getElementById("iosTargetFileSelect");
   const subTabBtns = document.querySelectorAll("[data-iostab]");
+  const dropZone = document.getElementById("iosDropZone");
+  const fileInput = document.getElementById("iosFileInput");
+  const btnChoose = document.getElementById("btnChooseIosFile");
 
   loadIpaFilesList();
 
   btnScan?.addEventListener("click", () => {
     const file = selectFile?.value || "samples/sample-ios.ipa";
     runIpaInspection(file);
+  });
+
+  // Upload handlers for .ipa and .zip
+  btnChoose?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    fileInput?.click();
+  });
+  dropZone?.addEventListener("click", () => fileInput?.click());
+  dropZone?.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = "#0284c7";
+    dropZone.style.background = "rgba(2,132,199,0.10)";
+  });
+  dropZone?.addEventListener("dragleave", () => {
+    dropZone.style.borderColor = "#94a3b8";
+    dropZone.style.background = "rgba(2,132,199,0.04)";
+  });
+  dropZone?.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = "#94a3b8";
+    dropZone.style.background = "rgba(2,132,199,0.04)";
+    const dropped = e.dataTransfer?.files?.[0];
+    if (dropped) uploadAndInspectIpa(dropped);
+  });
+  fileInput?.addEventListener("change", () => {
+    const chosen = fileInput.files?.[0];
+    if (chosen) {
+      uploadAndInspectIpa(chosen);
+      fileInput.value = "";
+    }
   });
 
   subTabBtns.forEach(btn => {
@@ -6364,11 +6414,92 @@ function initIpaInspector() {
     });
   });
 
-  // Automatically analyze initial sample
+  // Automatically analyze initial sample (or Alfagift.zip if available)
   runIpaInspection("samples/sample-ios.ipa");
 }
 
-async function loadIpaFilesList() {
+function showIosUploadError(errorMsg, suggestions = []) {
+  const alertEl = document.getElementById("iosUploadAlert");
+  if (!alertEl) return;
+  const suggHtml = suggestions.length > 0
+    ? `<ul style="margin:6px 0 0 18px; padding:0;">${suggestions.map(s => `<li style="margin-bottom:3px;">${escapeHtml(s)}</li>`).join("")}</ul>`
+    : "";
+  alertEl.innerHTML = `
+    <div style="font-weight:700; margin-bottom:4px;">⚠️ Gagal Memindai Arsip iOS</div>
+    <div>${escapeHtml(errorMsg)}</div>
+    ${suggHtml}
+  `;
+  alertEl.style.display = "block";
+}
+
+function hideIosUploadError() {
+  const alertEl = document.getElementById("iosUploadAlert");
+  if (alertEl) alertEl.style.display = "none";
+}
+
+async function uploadAndInspectIpa(file) {
+  const statusEl = document.getElementById("iosUploadStatus");
+  const btnChoose = document.getElementById("btnChooseIosFile");
+  hideIosUploadError();
+
+  if (!file.name.toLowerCase().endsWith(".ipa") && !file.name.toLowerCase().endsWith(".zip")) {
+    showIosUploadError(
+      `Format '${file.name}' tidak didukung di iOS Inspector.`,
+      [
+        "Gunakan file berekstensi .ipa atau .zip (berisi Payload/*.app/, *.app/, atau .xcarchive).",
+        "Jika itu aplikasi Android (.apk / .aab), silakan buka tab APK Inspector."
+      ]
+    );
+    return;
+  }
+
+  const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+  if (statusEl) statusEl.innerHTML = `⏳ Mengunggah & membedah <strong>${escapeHtml(file.name)}</strong> (${sizeMb} MB)... Mohon tunggu untuk file berukuran besar.`;
+  if (btnChoose) btnChoose.disabled = true;
+
+  try {
+    showToast(`Mengunggah ${file.name} (${sizeMb} MB) untuk audit iOS mendalam...`, "info");
+    const fd = new FormData();
+    fd.append("ipa", file);
+
+    const res = await fetch("/api/ipa/upload", {
+      method: "POST",
+      body: fd
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showIosUploadError(data.error || "Gagal memproses arsip iOS.", data.suggestions || []);
+      if (statusEl) statusEl.textContent = "Upload gagal — periksa pesan error & saran di bawah.";
+      showToast(`Error: ${data.error || "Upload gagal"}`, "error");
+      return;
+    }
+
+    iosState.currentData = data;
+    await loadIpaFilesList(data.saved_path);
+    // Auto-switch to Issues & Suggestions tab so issues are immediately visible
+    iosState.activeSubTab = "findings";
+    document.querySelectorAll("[data-iostab]").forEach(b => {
+      b.classList.toggle("active", b.getAttribute("data-iostab") === "findings");
+    });
+    renderIpaResults(data);
+
+    if (statusEl) {
+      statusEl.innerHTML = `✓ Berhasil memindai <strong>${escapeHtml(file.name)}</strong> (${sizeMb} MB • ${escapeHtml(data.file_info?.archive_format || "iOS")}) — ditemukan <strong>${(data.findings || []).length} issue &amp; saran perbaikan</strong>.`;
+    }
+    showToast(`✓ Audit iOS ${file.name} selesai (${(data.findings || []).length} temuan)!`, "success");
+  } catch (err) {
+    console.error("IPA upload error:", err);
+    showIosUploadError(`Terjadi kesalahan jaringan saat mengunggah: ${err.message}`, [
+      "Pastikan server ToolKitDev sedang berjalan dan ukuran file tidak terputus."
+    ]);
+    if (statusEl) statusEl.textContent = "Upload terputus — silakan coba lagi.";
+    showToast(`Error upload iOS: ${err.message}`, "error");
+  } finally {
+    if (btnChoose) btnChoose.disabled = false;
+  }
+}
+
+async function loadIpaFilesList(selectedPath = null) {
   try {
     const res = await fetch("/api/apk/diff-list");
     if (!res.ok) return;
@@ -6376,29 +6507,38 @@ async function loadIpaFilesList() {
     const select = document.getElementById("iosTargetFileSelect");
     if (!select || !data.files) return;
 
-    const ipaFiles = data.files.filter(f => f.name.endsWith(".ipa"));
+    const ipaFiles = data.files.filter(f =>
+      f.is_ios || f.name.toLowerCase().endsWith(".ipa") || (f.type && f.type.includes("iOS"))
+    );
     if (ipaFiles.length > 0) {
       select.innerHTML = ipaFiles.map(f => `
-        <option value="${f.path}">${f.name} (${f.size_fmt || 'IPA'})</option>
+        <option value="${escapeHtml(f.path)}">${escapeHtml(f.name)} (${escapeHtml(f.type || 'IPA')} • ${escapeHtml(f.size_fmt || '')})</option>
       `).join("");
+      if (selectedPath) {
+        select.value = selectedPath;
+      }
     }
   } catch (err) {
-    console.warn("Could not load IPA files list:", err);
+    console.warn("Could not load IPA/ZIP files list:", err);
   }
 }
 
 async function runIpaInspection(filePath) {
+  hideIosUploadError();
   try {
-    showToast("Menganalisis biner Mach-O, ATS, dan Entitlements iOS...", "info");
+    showToast("Menganalisis biner Mach-O, Sertifikat, ATS, dan Entitlements iOS...", "info");
     const res = await fetch(`/api/ipa/inspect?file=${encodeURIComponent(filePath)}`);
-    if (!res.ok) throw new Error("Gagal menganalisis file IPA.");
     const data = await res.json();
+    if (!res.ok) {
+      showIosUploadError(data.error || "Gagal menganalisis file IPA/ZIP.", data.suggestions || []);
+      throw new Error(data.error || "Gagal menganalisis file IPA/ZIP.");
+    }
     iosState.currentData = data;
     renderIpaResults(data);
-    showToast("✓ Analisis keamanan iOS IPA selesai!", "success");
+    showToast(`✓ Analisis keamanan iOS (${data.file_info?.name || filePath}) selesai!`, "success");
   } catch (err) {
     console.error("IPA inspection error:", err);
-    showToast(`Error analisis IPA: ${err.message}`, "error");
+    showToast(`Error analisis IPA/ZIP: ${err.message}`, "error");
   }
 }
 
@@ -6408,13 +6548,16 @@ function renderIpaResults(data) {
   const entitlements = data.entitlements || {};
   const macho = data.macho_protections || {};
   const findings = data.findings || [];
+  const owasp = data.owasp_summary || {};
+  const diag = data.bundle_diagnostics || {};
 
   const appNameEl = document.getElementById("iosAppName");
   const bundleIdEl = document.getElementById("iosBundleId");
   const verEl = document.getElementById("iosVersion");
   const minOsEl = document.getElementById("iosMinOs");
 
-  if (appNameEl) appNameEl.textContent = meta.app_name || "iOS App";
+  const fmtTag = data.file_info?.archive_format ? ` [${data.file_info.archive_format}]` : "";
+  if (appNameEl) appNameEl.textContent = `${meta.app_name || "iOS App"}${fmtTag}`;
   if (bundleIdEl) bundleIdEl.textContent = meta.bundle_id || "unknown.bundle";
   if (verEl) verEl.textContent = `${meta.version_name || '1.0'} (${meta.build_number || '1'})`;
   if (minOsEl) minOsEl.textContent = `iOS ${meta.min_os_version || '14.0'}+`;
@@ -6450,6 +6593,8 @@ function renderIpaResults(data) {
       kpiAts.textContent = "SECURE (HTTPS Enforced)";
       kpiAts.style.color = "#10b981";
     }
+    const sub = kpiAts.nextElementSibling;
+    if (sub) sub.textContent = `NSAllowsArbitraryLoads: ${Boolean(ats.allows_arbitrary_loads)}`;
   }
 
   const kpiDebug = document.getElementById("iosKpiDebug");
@@ -6461,18 +6606,29 @@ function renderIpaResults(data) {
       kpiDebug.textContent = "get-task-allow: FALSE (Secure)";
       kpiDebug.style.color = "#10b981";
     }
+    const sub = kpiDebug.nextElementSibling;
+    if (sub) sub.textContent = entitlements["get-task-allow"] ? `Profile: ${data.provisioning?.profile_name || 'Development'}` : "Production / non-debuggable";
   }
 
   const kpiMacho = document.getElementById("iosKpiMacho");
   if (kpiMacho) {
     const protectionsOn = [macho.has_pie && "PIE", macho.has_stack_canaries && "Canaries", macho.has_arc && "ARC"].filter(Boolean);
+    const expiredCerts = (diag.bundled_certificates || []).filter(c => c.is_expired).length;
     kpiMacho.textContent = protectionsOn.join(", ") || "None Active";
-    kpiMacho.style.color = protectionsOn.length >= 2 ? "#10b981" : "#ef4444";
+    kpiMacho.style.color = (protectionsOn.length >= 2 && expiredCerts === 0) ? "#10b981" : "#f59e0b";
+    const sub = kpiMacho.nextElementSibling;
+    if (sub) {
+      sub.textContent = expiredCerts > 0
+        ? `⚠️ ${expiredCerts} SSL Pin Cert EXPIRED!`
+        : `${macho.binary_size_mb ? macho.binary_size_mb + ' MB • ' : ''}${(diag.embedded_frameworks || []).length} embedded frameworks`;
+    }
   }
 
   const kpiFind = document.getElementById("iosKpiFindings");
   if (kpiFind) {
     kpiFind.textContent = `${findings.length} Celah Teridentifikasi`;
+    const sub = kpiFind.nextElementSibling;
+    if (sub) sub.textContent = `${owasp.CRITICAL || 0} Critical, ${owasp.HIGH || 0} High, ${owasp.MEDIUM || 0} Medium`;
   }
 
   renderIpaSubPanels(iosState.activeSubTab);
@@ -6492,9 +6648,11 @@ function renderIpaSubPanels(tabId) {
 
   const data = iosState.currentData;
   if (!data) return;
+  const diag = data.bundle_diagnostics || {};
 
   if (tabId === "ats") {
     const ats = data.app_transport_security || {};
+    const prov = data.provisioning || {};
     const atsEl = document.getElementById("iosAtsDetails");
     if (atsEl) {
       atsEl.innerHTML = `
@@ -6504,8 +6662,16 @@ function renderIpaSubPanels(tabId) {
             <span class="badge ${ats.allows_arbitrary_loads ? 'badge-danger' : 'badge-success'}">${ats.allows_arbitrary_loads ? 'true (VULNERABLE)' : 'false (SECURE)'}</span>
           </div>
           <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f1f5f9;">
-            <strong>NSAllowsArbitraryLoadsInWebContent:</strong>
-            <span class="badge ${ats.allows_arbitrary_loads_in_web ? 'badge-warning' : 'badge-success'}">${ats.allows_arbitrary_loads_in_web ? 'true (Active)' : 'false'}</span>
+            <strong>UIFileSharingEnabled (iTunes/Files):</strong>
+            <span class="badge ${diag.file_sharing_enabled ? 'badge-danger' : 'badge-success'}">${diag.file_sharing_enabled ? 'true (EXPOSED)' : 'false (SECURE)'}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f1f5f9;">
+            <strong>Provisioning Profile:</strong>
+            <span style="font-size:12px; font-weight:600;">${escapeHtml(prov.profile_name || 'N/A')} ${prov.is_expired ? '<span class="badge badge-danger">EXPIRED</span>' : ''}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f1f5f9;">
+            <strong>Team / Expiry:</strong>
+            <span style="font-size:12px;">${escapeHtml(prov.team_name || 'N/A')} • Exp: ${escapeHtml(prov.expiration_date || 'N/A')}</span>
           </div>
           <div style="display:flex; justify-content:space-between; padding:8px 0;">
             <strong>Exception Domains Configured:</strong>
@@ -6513,7 +6679,7 @@ function renderIpaSubPanels(tabId) {
           </div>
         </div>
         <div style="background:#f8fafc; border-radius:6px; padding:10px 12px; font-size:12px; color:#475569;">
-          ${ats.allows_arbitrary_loads 
+          ${ats.allows_arbitrary_loads
             ? '⚠️ <strong>Peringatan Keamanan Kritis:</strong> Flag <code>NSAllowsArbitraryLoads: true</code> mengizinkan seluruh koneksi HTTP plaintext tanpa enkripsi TLS, memaparkan kredensial pengguna ke serangan Man-in-the-Middle (MITM).'
             : '✓ Konfigurasi ATS telah mengamankan lalu lintas data dengan mewajibkan enkripsi TLS 1.2+ untuk seluruh network calls.'}
         </div>
@@ -6528,24 +6694,67 @@ function renderIpaSubPanels(tabId) {
         <table class="data-table" style="font-size:12px; width:100%;">
           <thead><tr><th>Entitlement Key</th><th>Nilai Terkonfigurasi</th></tr></thead>
           <tbody>
-            ${entEntries.map(([k, v]) => `
-              <tr>
-                <td><code>${escapeHtml(k)}</code></td>
-                <td><span style="font-family:monospace; color:${k === 'get-task-allow' && v === true ? '#b91c1c; font-weight:700;' : 'inherit'};">${escapeHtml(String(v))}</span></td>
-              </tr>
-            `).join("")}
+            ${entEntries.map(([k, v]) => {
+              const strV = Array.isArray(v) ? v.join(", ") : String(v);
+              const isRisk = (k === "get-task-allow" && v === true)
+                || (k === "aps-environment" && v === "development")
+                || strV === "*"
+                || strV.includes(".*");
+              return `
+                <tr>
+                  <td><code>${escapeHtml(k)}</code></td>
+                  <td><span style="font-family:monospace; color:${isRisk ? '#b91c1c; font-weight:700;' : 'inherit'};">${escapeHtml(strV)}</span></td>
+                </tr>
+              `;
+            }).join("")}
           </tbody>
         </table>
-      ` : `<div style="color:#64748b;">Tidak ada data entitlements khusus.</div>`;
+      ` : `<div style="color:#64748b;">Tidak ada data entitlements khusus (embedded.mobileprovision tidak tersedia).</div>`;
     }
   } else if (tabId === "macho") {
     const macho = data.macho_protections || {};
     const machoGrid = document.getElementById("iosMachoGrid");
     if (machoGrid) {
       const frameworks = (macho.linked_frameworks || []).map(f => `<span class="sca-chip">${escapeHtml(f)}.framework</span>`).join(" ");
+      const embeddedFws = (diag.embedded_frameworks || []).map(f => `<span class="sca-chip" style="background:#f0fdf4; border-color:#bbf7d0; color:#166534;">${escapeHtml(f)}</span>`).join(" ");
+      const certs = diag.bundled_certificates || [];
+      const envConfigs = diag.env_config_files || [];
+      const weakCrypto = diag.weak_crypto_apis || [];
+      const jbChecks = diag.jailbreak_checks_detected || [];
+
+      const certsHtml = certs.length > 0 ? `
+        <div style="margin-top:16px;">
+          <h5 style="margin:0 0 8px 0; font-size:13px; color:#0f172a;">🔐 Sertifikat SSL Pinning Terbundel (${certs.length}):</h5>
+          <table class="data-table" style="font-size:12px; width:100%;">
+            <thead><tr><th>File</th><th>Subject</th><th>Expired Date</th><th>Status</th></tr></thead>
+            <tbody>
+              ${certs.map(c => `
+                <tr>
+                  <td><code>${escapeHtml(c.file)}</code></td>
+                  <td style="font-size:11px;">${escapeHtml(c.subject)}</td>
+                  <td style="font-family:monospace; font-size:11px;">${escapeHtml(c.not_after || 'N/A')}</td>
+                  <td><span class="badge ${c.is_expired ? 'badge-danger' : 'badge-success'}">${c.is_expired ? 'EXPIRED' : 'VALID'}</span></td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      ` : "";
+
+      const envHtml = envConfigs.length > 0 ? `
+        <div style="margin-top:16px;">
+          <h5 style="margin:0 0 8px 0; font-size:13px; color:#0f172a;">📄 File Konfigurasi Environment / Firebase (${envConfigs.length}):</h5>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            ${envConfigs.map(c => {
+              const isNonProd = c.environment !== "production";
+              return `<span class="sca-chip" style="${isNonProd ? 'background:#fef2f2; border-color:#fecaca; color:#b91c1c; font-weight:600;' : ''}">${escapeHtml(c.file)} (${escapeHtml(c.environment.toUpperCase())})</span>`;
+            }).join("")}
+          </div>
+        </div>
+      ` : "";
 
       machoGrid.innerHTML = `
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:18px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:14px; margin-bottom:18px;">
           <div style="border:1px solid #e2e8f0; border-radius:8px; padding:12px; background:#f8fafc;">
             <div style="font-size:12px; color:#64748b;">PIE (ASLR)</div>
             <div style="font-size:16px; font-weight:700; color:${macho.has_pie ? '#10b981' : '#ef4444'}; margin:4px 0;">${macho.has_pie ? '✓ MH_PIE ACTIVE' : '✗ PIE DISABLED'}</div>
@@ -6569,10 +6778,32 @@ function renderIpaSubPanels(tabId) {
             <div style="font-size:16px; font-weight:700; color:${macho.is_encrypted ? '#10b981' : '#f59e0b'}; margin:4px 0;">CryptID: ${macho.crypt_id || 0} (${macho.is_encrypted ? 'Encrypted' : 'Decrypted/Dev'})</div>
             <div style="font-size:11px; opacity:0.8;">App Store binary encryption status</div>
           </div>
+
+          <div style="border:1px solid #e2e8f0; border-radius:8px; padding:12px; background:#f8fafc;">
+            <div style="font-size:12px; color:#64748b;">Weak Crypto APIs</div>
+            <div style="font-size:15px; font-weight:700; color:${weakCrypto.length > 0 ? '#f59e0b' : '#10b981'}; margin:4px 0;">${weakCrypto.length > 0 ? `⚠️ ${weakCrypto.join(', ')}` : '✓ Clean'}</div>
+            <div style="font-size:11px; opacity:0.8;">MD5 / SHA1 / DES / ECB scan</div>
+          </div>
+
+          <div style="border:1px solid #e2e8f0; border-radius:8px; padding:12px; background:#f8fafc;">
+            <div style="font-size:12px; color:#64748b;">Anti-Jailbreak / Frida</div>
+            <div style="font-size:14px; font-weight:700; color:${jbChecks.length > 0 ? '#0284c7' : '#ef4444'}; margin:4px 0;">${jbChecks.length > 0 ? jbChecks.join(', ') : '✗ Tidak Terdeteksi'}</div>
+            <div style="font-size:11px; opacity:0.8;">Runtime resilience footprints</div>
+          </div>
         </div>
 
-        <div>
-          <h5 style="margin:0 0 8px 0; font-size:13px; color:#0f172a;">Frameworks yang Terhubung (${macho.linked_frameworks?.length || 0}):</h5>
+        ${certsHtml}
+        ${envHtml}
+
+        ${embeddedFws ? `
+          <div style="margin-top:16px;">
+            <h5 style="margin:0 0 8px 0; font-size:13px; color:#0f172a;">📦 Embedded Third-Party Frameworks (${(diag.embedded_frameworks || []).length}):</h5>
+            <div style="display:flex; flex-wrap:wrap; gap:6px;">${embeddedFws}</div>
+          </div>
+        ` : ""}
+
+        <div style="margin-top:16px;">
+          <h5 style="margin:0 0 8px 0; font-size:13px; color:#0f172a;">🔗 Linked System Frameworks (${macho.linked_frameworks?.length || 0}):</h5>
           <div style="display:flex; flex-wrap:wrap; gap:6px;">
             ${frameworks || '<span style="color:#64748b; font-size:12px;">Standard iOS Frameworks</span>'}
           </div>
@@ -6582,45 +6813,76 @@ function renderIpaSubPanels(tabId) {
   } else if (tabId === "privacy") {
     const privList = document.getElementById("iosPrivacyList");
     const perms = data.privacy_permissions || [];
+    const secrets = data.secrets || [];
     if (privList) {
-      privList.innerHTML = perms.length > 0 ? perms.map(p => `
+      const secretsHtml = secrets.length > 0 ? `
+        <div style="margin-top:14px; padding-top:12px; border-top:1px solid #e2e8f0;">
+          <div style="font-weight:700; font-size:13px; color:#b91c1c; margin-bottom:8px;">🔑 Exposed API Keys &amp; Secrets (${secrets.length}):</div>
+          ${secrets.map(s => `
+            <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:8px 10px; margin-bottom:6px; font-size:12px;">
+              <strong>${escapeHtml(s.type)}</strong>: <code>${escapeHtml(s.masked_value)}</code>
+              <div style="font-size:11px; color:#64748b; margin-top:2px;">File: <code>${escapeHtml(s.file)}</code></div>
+            </div>
+          `).join("")}
+        </div>
+      ` : "";
+      privList.innerHTML = (perms.length > 0 ? perms.map(p => `
         <div style="padding:10px 0; border-bottom:1px solid #f1f5f9;">
           <div style="font-weight:600; font-size:13px; color:#0f172a;">${escapeHtml(p.permission)} (${escapeHtml(p.category)})</div>
           <div style="font-size:12px; color:#64748b; margin-top:2px;">"${escapeHtml(p.description)}"</div>
         </div>
-      `).join("") : `<div style="color:#64748b; font-size:12px;">Tidak ada permission description khusus di Info.plist.</div>`;
+      `).join("") : `<div style="color:#64748b; font-size:12px;">Tidak ada permission description khusus di Info.plist.</div>`) + secretsHtml;
     }
 
     const urlList = document.getElementById("iosUrlSchemesList");
     const schemes = data.url_schemes || [];
+    const stagingEps = diag.staging_endpoints || [];
     if (urlList) {
-      urlList.innerHTML = schemes.length > 0 ? `
+      const stagingHtml = stagingEps.length > 0 ? `
+        <div style="margin-top:14px; padding-top:12px; border-top:1px solid #e2e8f0;">
+          <div style="font-weight:700; font-size:13px; color:#b45309; margin-bottom:8px;">⚠️ Hardcoded Staging / Beta Endpoints (${stagingEps.length}):</div>
+          ${stagingEps.map(u => `<div style="font-family:monospace; font-size:11.5px; background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:6px 8px; margin-bottom:5px; word-break:break-all;">${escapeHtml(u)}</div>`).join("")}
+        </div>
+      ` : "";
+      urlList.innerHTML = (schemes.length > 0 ? `
         <div style="display:flex; flex-wrap:wrap; gap:8px;">
           ${schemes.map(s => `<span class="sca-chip" style="background:#e0f2fe; color:#0369a1; border-color:#bae6fd; font-weight:600;">${escapeHtml(s)}://</span>`).join("")}
         </div>
         <div style="margin-top:12px; font-size:11.5px; color:#64748b;">
           Custom URL schemes memungkinkan aplikasi dibuka dari browser atau aplikasi lain via deep-link. Pastikan parameter input selalu divalidasi.
         </div>
-      ` : `<div style="color:#64748b; font-size:12px;">Tidak ditemukan custom URL scheme.</div>`;
+      ` : `<div style="color:#64748b; font-size:12px;">Tidak ditemukan custom URL scheme.</div>`) + stagingHtml;
     }
   } else if (tabId === "findings") {
     const fContainer = document.getElementById("iosFindingsContainer");
     const findings = data.findings || [];
     if (fContainer) {
-      fContainer.innerHTML = findings.length > 0 ? findings.map((f, idx) => `
-        <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid ${f.severity === 'CRITICAL' ? '#ef4444' : f.severity === 'HIGH' ? '#f97316' : '#3b82f6'}; border-radius:8px; padding:14px; margin-bottom:12px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <strong style="font-size:14px; color:#0f172a;">${idx + 1}. ${escapeHtml(f.title)}</strong>
-            <span class="badge ${f.severity === 'CRITICAL' ? 'badge-danger' : f.severity === 'HIGH' ? 'badge-warning' : 'badge-info'}">${f.severity}</span>
+      fContainer.innerHTML = findings.length > 0 ? findings.map((f, idx) => {
+        const affectedHtml = (f.affected_items && f.affected_items.length > 0) ? `
+          <div style="margin:8px 0; display:flex; flex-wrap:wrap; gap:6px;">
+            ${f.affected_items.map(it => `<code style="font-size:11px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:4px; padding:2px 6px; color:#0f172a;">${escapeHtml(it)}</code>`).join("")}
           </div>
-          <div style="font-size:11.5px; color:#64748b; margin-bottom:8px;">Kategori: ${escapeHtml(f.category)}</div>
-          <div style="font-size:12.5px; color:#334155; line-height:1.5; margin-bottom:10px;">${escapeHtml(f.description)}</div>
-          <div class="remediation-box" style="margin-top:8px;">
-            <strong>🛠️ Langkah Remediasi:</strong>
-            <div style="font-size:12px; color:#1e293b; margin-top:4px;">${escapeHtml(f.remediation)}</div>
+        ` : "";
+        const codeFixHtml = f.code_fix ? `
+          <pre style="margin:8px 0 0 0; background:#0f172a; color:#e2e8f0; padding:10px 12px; border-radius:6px; font-size:11.5px; overflow-x:auto; line-height:1.45;"><code>${escapeHtml(f.code_fix)}</code></pre>
+        ` : "";
+        return `
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-left:4px solid ${f.severity === 'CRITICAL' ? '#ef4444' : f.severity === 'HIGH' ? '#f97316' : '#3b82f6'}; border-radius:8px; padding:14px; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:8px;">
+              <strong style="font-size:14px; color:#0f172a;">${idx + 1}. ${escapeHtml(f.title)}</strong>
+              <span class="badge ${f.severity === 'CRITICAL' ? 'badge-danger' : f.severity === 'HIGH' ? 'badge-warning' : 'badge-info'}">${f.severity}</span>
+            </div>
+            <div style="font-size:11.5px; color:#64748b; margin-bottom:6px;">Kategori: ${escapeHtml(f.category)} • Rule: <code>${escapeHtml(f.id || 'IOS-SEC')}</code></div>
+            ${affectedHtml}
+            <div style="font-size:12.5px; color:#334155; line-height:1.5; margin-bottom:10px;">${escapeHtml(f.description)}</div>
+            <div class="remediation-box" style="margin-top:8px;">
+              <strong>🛠️ Saran Perbaikan &amp; Remediasi:</strong>
+              <div style="font-size:12px; color:#1e293b; margin-top:4px;">${escapeHtml(f.remediation)}</div>
+              ${codeFixHtml}
+            </div>
           </div>
-        </div>
-      `).join("") : `<div style="color:#15803d; font-size:13px;">✓ Tidak ditemukan celah keamanan kritis pada biner iOS ini.</div>`;
+        `;
+      }).join("") : `<div style="color:#15803d; font-size:13px;">✓ Tidak ditemukan celah keamanan kritis pada biner iOS ini.</div>`;
     }
   }
 }
