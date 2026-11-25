@@ -1206,7 +1206,175 @@ html, body, body.dark-theme, body.soft-theme {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-bottom: 12px;
+}
+
+.findings-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-autofix-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid #059669;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+  transition: all 0.18s ease;
+}
+
+.btn-autofix-all:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  filter: brightness(1.04);
+}
+
+.btn-autofix-all:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.finding-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-autofix-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 7px;
+  border: 1px solid #10b981;
+  background: rgba(16, 185, 129, 0.08);
+  color: #047857;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-autofix-item:hover:not(:disabled) {
+  background: #10b981;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.28);
+}
+
+.btn-autofix-item:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.autofix-banner {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.autofix-banner.loading {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.autofix-banner.success {
+  border-color: #6ee7b7;
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.autofix-banner.error {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.autofix-banner-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.autofix-score-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #10b981;
+  color: #fff;
+  font-weight: 700;
+  font-size: 11.5px;
+}
+
+.btn-download-patched {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.15s ease;
+}
+
+.btn-download-patched:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+}
+
+.autofix-changes-list {
+  margin: 10px 0 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.autofix-log-details {
+  margin-top: 8px;
+}
+
+.autofix-log-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 11.5px;
+  color: #047857;
+}
+
+.autofix-log-box {
+  margin-top: 6px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #a7f3d0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  max-height: 180px;
+  overflow-y: auto;
+  white-space: pre-wrap;
 }
 
 .findings-list {
@@ -5518,8 +5686,21 @@ body.dark-theme .android-api-page-btn.active {
   border: none;
 }
 
-/* Native Dialog Modal for MobSF Inspector */
+/* Native Dialog Modal for MobSF Inspector & Global Dialogs */
+dialog {
+  margin: auto !important;
+}
+
+dialog:modal {
+  position: fixed;
+  inset: 0;
+  margin: auto !important;
+}
+
 dialog.mobsf-native-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto !important;
   width: min(980px, 94vw);
   max-height: 86vh;
   border: 1px solid #cbd5e1;
@@ -5529,11 +5710,24 @@ dialog.mobsf-native-dialog {
   color: #0f172a;
   box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35);
   overflow: hidden;
+  z-index: 10000;
 }
 
 dialog.mobsf-native-dialog[open] {
   display: flex;
   flex-direction: column;
+  animation: mobsfModalScale 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes mobsfModalScale {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 dialog.mobsf-native-dialog::backdrop {
@@ -6588,6 +6782,31 @@ body.dark-theme .sca-chip.active {
 .ios-subpanel {
   animation: fadeIn 0.15s ease-in-out;
 }
+
+/* STRIDE Threat Modeling & Webhook Alert Hub Styles */
+.stride-category-card {
+  padding: 14px 18px;
+  border-radius: 10px;
+  background: var(--bg-secondary, #1e293b);
+  border: 1px solid var(--border-color, #334155);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.stride-category-card:hover {
+  border-color: #38bdf8;
+  transform: translateY(-1px);
+}
+
+.stride-badge-technique {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  font-weight: 600;
+}
+
 
 
 

@@ -27,6 +27,8 @@ Dilengkapi dengan antarmuka modern terinspirasi oleh **Codexer.ai v2.0** dan did
 | **Executive PDF Export** | Compliance | Menghasilkan dokumen laporan resmi berstandar OWASP MASVS, PCI-DSS, & OJK | [`pdf_reporter.py`](engine/pdf_reporter.py) |
 | **AI Forensic Chatbot** | Generative AI | Drawer chat interaktif dengan streaming kata-per-kata (SSE) & verifikasi sumber forensik | [`context_qa.py`](engine/context_qa.py), [`ai_forensic_agent.py`](engine/ai_forensic_agent.py) |
 | **Dynamic Frida Runner** | Runtime DAST | Template live instrumentation (SSL Pinning bypass, Root evasion, memory key logger) | [`frida_runner.py`](engine/frida_runner.py) |
+| **STRIDE Threat Modeling** | Enterprise SecOps | Pemetaan ancaman arsitektural STRIDE, MITRE ATT&CK for Mobile, inherent vs residual risk | [`threat_modeling.py`](engine/threat_modeling.py) |
+| **Incident Webhook & SARIF Hub** | Integrasi SIEM | Formatter notifikasi Slack Block Kit, Discord, Jira, serta ekspor standar OASIS SARIF v2.1.0 | [`webhook_notifier.py`](engine/webhook_notifier.py) |
 
 ---
 
@@ -65,11 +67,11 @@ python3 server.py
 ```
 Akses dashboard pada: **`http://localhost:8080`**.
 
-### 2. Jalankan Test Suite Komprehensif (10/10 Engine)
+### 2. Jalankan Test Suite Komprehensif (12/12 Engine)
 ```bash
 python3 test_suite.py
 ```
-Memvalidasi seluruh 10 mesin audit (APK Analyzer, Correlation Graph, MCP Hub, Context Q&A, Frontend Assets, APK Diff, Dependency SCA, AI Fix Pack, iOS IPA, dan Headless CLI).
+Memvalidasi seluruh 12 mesin audit (APK Analyzer, Correlation Graph, MCP Hub, Context Q&A, Frontend Assets, APK Diff, Dependency SCA, AI Fix Pack, iOS IPA, Dynamic Frida & CLI, STRIDE Threat Modeling, dan Webhook & SARIF Exporter).
 
 ---
 

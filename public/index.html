@@ -10,7 +10,7 @@
     } catch (_) {}
   </script>
   <title>ToolKitDev.ai — AI-Powered Context & Security Analysis</title>
-  <link rel="stylesheet" href="/style.css?v=6.0">
+  <link rel="stylesheet" href="/style.css?v=7.1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -289,6 +289,10 @@
         <a href="#" class="nav-item" data-tab="security-compliance">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
           Security &amp; Compliance
+        </a>
+        <a href="#" class="nav-item" data-tab="redteam-threat">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+          AI Red Team &amp; STRIDE
         </a>
         <a href="#" class="nav-item" data-tab="settings">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -1729,8 +1733,15 @@
             <div class="card">
               <div class="findings-header">
                 <h4 class="card-title">Temuan Celah Keamanan (Vulnerabilities)</h4>
-                <span class="badge badge-danger" id="apkVulnCount">0 Temuan</span>
+                <div class="findings-header-actions">
+                  <span class="badge badge-danger" id="apkVulnCount">0 Temuan</span>
+                  <button type="button" class="btn-autofix-all hidden" id="btnAutoFixAllVulns" title="Otomatis patch APK untuk menutup seluruh celah keamanan yang didukung">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    Tutup Semua Celah Otomatis
+                  </button>
+                </div>
               </div>
+              <div class="autofix-banner hidden" id="apkAutoPatchBanner"></div>
               <div class="findings-list" id="apkFindingsList">
                 <!-- Dynamic findings -->
               </div>
@@ -2213,26 +2224,26 @@
           </div>
         </section>
 
-        <!-- View: iOS (.ipa) Teardown & Security Inspector -->
+        <!-- View: iOS (.ipa / .zip) Teardown & Security Inspector -->
         <section id="view-ios-inspector" class="tab-view">
           <div class="card" style="margin-bottom:20px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; flex-wrap:wrap; gap:12px;">
               <div>
                 <div style="display:flex; align-items:center; gap:8px;">
                   <span class="mobsf-dialog-badge" style="background:#0284c7; color:#fff;">MULTI-PLATFORM MOBILE AUDIT</span>
-                  <h3 class="card-title" style="margin:0;">🍏 iOS (.ipa) Teardown &amp; Security Inspector</h3>
+                  <h3 class="card-title" style="margin:0;">🍏 iOS (.ipa / .zip) Teardown &amp; Security Inspector</h3>
                 </div>
                 <p class="section-desc" style="margin-top:4px;">
-                  Audit menyeluruh biner iOS Mach-O, evaluasi kepatuhan <strong>App Transport Security (ATS)</strong>, verifikasi <strong>Entitlements &amp; Provisioning Profiles</strong>, serta inspeksi proteksi runtime (PIE, Stack Canaries, ARC).
+                  Audit menyeluruh biner iOS Mach-O dari file <strong>.ipa</strong> maupun arsip <strong>.zip</strong> (<code>Payload/*.app/</code>, <code>*.app/</code>, <code>.xcarchive.zip</code>): cek <strong>ATS</strong>, <strong>Entitlements</strong>, <strong>Sertifikat SSL Pinning Expired</strong>, <strong>Kebocoran Config/Secrets</strong>, hingga <strong>Saran Perbaikan Otomatis</strong>.
                 </p>
               </div>
               <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                <select id="iosTargetFileSelect" class="mcp-form-input" style="width:250px; font-size:12px;">
+                <select id="iosTargetFileSelect" class="mcp-form-input" style="width:280px; font-size:12px;">
                   <option value="samples/sample-ios.ipa">Bank Mandiri Mobile (sample-ios.ipa)</option>
                 </select>
                 <button type="button" class="btn btn-primary" id="btnRunIpaScan">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                  <span>Pindai IPA</span>
+                  <span>Pindai IPA / ZIP</span>
                 </button>
                 <button type="button" class="btn btn-secondary" id="btnIpaFixPack" style="display:inline-flex; align-items:center; gap:6px; background:#059669; border-color:#047857; color:#fff;">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
@@ -2240,6 +2251,30 @@
                 </button>
               </div>
             </div>
+
+            <!-- iOS Upload Dropzone (.ipa & .zip) -->
+            <div id="iosDropZone" style="border:2px dashed #94a3b8; border-radius:12px; padding:18px 20px; margin-bottom:16px; background:rgba(2,132,199,0.04); cursor:pointer; transition:all 0.2s ease; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+              <div style="display:flex; align-items:center; gap:14px;">
+                <div style="width:42px; height:42px; border-radius:10px; background:rgba(2,132,199,0.12); color:#0284c7; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                </div>
+                <div>
+                  <div style="font-weight:700; font-size:13.5px; color:#0f172a;">Upload File iOS (<code>.ipa</code> atau <code>.zip</code>) untuk Audit Issue &amp; Saran Perbaikan</div>
+                  <div id="iosUploadStatus" style="font-size:12px; color:#64748b; margin-top:2px;">
+                    Tarik &amp; lepas file di sini atau klik untuk memilih — mendukung <code>.ipa</code>, <code>Payload/*.app/</code> ZIP (seperti <code>Alfagift.zip</code>), <code>*.app.zip</code>, dan <code>.xcarchive.zip</code>.
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <input type="file" id="iosFileInput" accept=".ipa,.zip" style="display:none;" />
+                <button type="button" class="btn btn-outline" id="btnChooseIosFile" style="font-size:12px; padding:7px 14px;">
+                  📂 Pilih File .ipa / .zip
+                </button>
+              </div>
+            </div>
+
+            <!-- Upload Error / Validation Suggestions Alert -->
+            <div id="iosUploadAlert" style="display:none; background:#fef2f2; border:1px solid #fecaca; border-left:4px solid #ef4444; border-radius:10px; padding:14px 16px; margin-bottom:16px; font-size:12.5px; color:#7f1d1d;"></div>
 
             <!-- iOS Hero Banner & Security Score -->
             <div id="iosHeroBanner" class="diff-hero-banner" style="margin-bottom:16px;">
@@ -2299,9 +2334,9 @@
             <!-- iOS Sub-Tabs Navigation -->
             <div class="diff-tabs-bar" role="tablist" style="margin-bottom:16px;">
               <button type="button" class="diff-tab-btn active" data-iostab="ats">🛡️ ATS &amp; Entitlements</button>
-              <button type="button" class="diff-tab-btn" data-iostab="macho">⚙️ Mach-O Proteksi Binary</button>
-              <button type="button" class="diff-tab-btn" data-iostab="privacy">🔍 Privacy &amp; URL Schemes</button>
-              <button type="button" class="diff-tab-btn" data-iostab="findings">📋 Temuan &amp; Panduan Remediasi</button>
+              <button type="button" class="diff-tab-btn" data-iostab="macho">⚙️ Mach-O, Certs &amp; Bundle</button>
+              <button type="button" class="diff-tab-btn" data-iostab="privacy">🔍 Privacy, Secrets &amp; URLs</button>
+              <button type="button" class="diff-tab-btn" data-iostab="findings">📋 Issues &amp; Saran Perbaikan</button>
             </div>
 
             <!-- Subtab 1: ATS & Entitlements -->
@@ -2444,6 +2479,176 @@
                 <div class="comp-status passed">READY</div>
                 <h4>OWASP Mobile Top 10</h4>
                 <p>Proteksi M1 (Improper Credential Usage) dan M2 (Insecure Supply Chain).</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- View: Autonomous Threat Modeling & Enterprise Alerting Hub -->
+        <section id="view-redteam-threat" class="tab-view">
+          <div class="card">
+            <div class="dash-card-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px;">
+              <div>
+                <h3 style="display:flex; align-items:center; gap:8px;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+                  Autonomous STRIDE Threat Modeling &amp; Alerting Hub
+                </h3>
+                <p class="section-desc" style="margin-top:4px;">
+                  Pemetaan ancaman sistematis berstandar <strong>STRIDE</strong>, penelusuran taktik <strong>MITRE ATT&amp;CK for Mobile</strong>, mitigasi inherent vs residual risk, serta dispatch notifikasi SIEM &amp; GitHub SARIF v2.1.0.
+                </p>
+              </div>
+
+              <!-- Controls: Select target + Actions -->
+              <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <select id="threatModelTargetSelect" class="auth-input" style="width:240px; padding:6px 12px; font-size:13px;">
+                  <option value="alfagift_analysis.json">Alfagift Mobile (alfagift_analysis.json)</option>
+                  <option value="samples/sample-debug.apk">Appium Settings (sample-debug.apk)</option>
+                </select>
+                <button type="button" id="btnRunThreatModel" class="topbar-pill-btn primary" style="background:#2563eb; color:#fff; border-color:#2563eb;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                  <span>Analisis STRIDE</span>
+                </button>
+                <button type="button" id="btnDownloadSarif" class="topbar-pill-btn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  <span>Export SARIF v2.1.0</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Threat Modeling Metric Summary Cards -->
+            <div class="metrics-grid" style="margin-top:20px; display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
+              <div class="metric-card" style="padding:16px; border-radius:12px; background:var(--bg-secondary, #1e293b); border:1px solid var(--border-color, #334155);">
+                <span style="font-size:12px; color:var(--text-muted, #94a3b8); text-transform:uppercase; font-weight:600;">Total Findings</span>
+                <div id="tmMetricFindings" style="font-size:26px; font-weight:700; color:#38bdf8; margin-top:4px;">-</div>
+                <small style="color:var(--text-muted, #94a3b8);">Dari baseline biner teraudit</small>
+              </div>
+
+              <div class="metric-card" style="padding:16px; border-radius:12px; background:var(--bg-secondary, #1e293b); border:1px solid var(--border-color, #334155);">
+                <span style="font-size:12px; color:var(--text-muted, #94a3b8); text-transform:uppercase; font-weight:600;">Inherent Risk Score</span>
+                <div id="tmMetricInherent" style="font-size:26px; font-weight:700; color:#f87171; margin-top:4px;">-</div>
+                <small style="color:var(--text-muted, #94a3b8);">Bobot keparahan sebelum mitigasi</small>
+              </div>
+
+              <div class="metric-card" style="padding:16px; border-radius:12px; background:var(--bg-secondary, #1e293b); border:1px solid var(--border-color, #334155);">
+                <span style="font-size:12px; color:var(--text-muted, #94a3b8); text-transform:uppercase; font-weight:600;">Residual Risk Score</span>
+                <div id="tmMetricResidual" style="font-size:26px; font-weight:700; color:#fbbf24; margin-top:4px;">-</div>
+                <small style="color:var(--text-muted, #94a3b8);">Potensi risiko pasca kontrol</small>
+              </div>
+
+              <div class="metric-card" style="padding:16px; border-radius:12px; background:var(--bg-secondary, #1e293b); border:1px solid var(--border-color, #334155);">
+                <span style="font-size:12px; color:var(--text-muted, #94a3b8); text-transform:uppercase; font-weight:600;">Risk Reduction</span>
+                <div id="tmMetricReduction" style="font-size:26px; font-weight:700; color:#34d399; margin-top:4px;">-</div>
+                <small style="color:var(--text-muted, #94a3b8);">Efektivitas mitigasi &amp; proteksi</small>
+              </div>
+            </div>
+
+            <!-- Two-Column Grid: STRIDE Matrix & Webhook Dispatcher -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:24px;">
+              <!-- Left: STRIDE Category Cards -->
+              <div>
+                <h4 style="margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                  <span>📋</span> Matriks Kategori STRIDE &amp; MITRE ATT&amp;CK
+                </h4>
+                <div id="strideCategoriesList" style="display:flex; flex-direction:column; gap:12px;">
+                  <div style="padding:14px; border-radius:10px; background:var(--bg-secondary, #1e293b); border:1px solid var(--border-color, #334155);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <strong>🎭 Spoofing (Penyamaran Identitas)</strong>
+                      <span class="badge" style="background:rgba(59,130,246,0.2); color:#60a5fa;">MITRE T1418</span>
+                    </div>
+                    <p style="font-size:12.5px; color:var(--text-muted, #94a3b8); margin-top:6px;">Pemalsuan intent Android, deep-link hijacking, atau manipulasi bundle ID iOS.</p>
+                  </div>
+
+                  <div style="padding:14px; border-radius:10px; background:var(--bg-secondary, #1e293b); border:1px solid var(--border-color, #334155);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <strong>⚠️ Tampering (Perusakan Integritas)</strong>
+                      <span class="badge" style="background:rgba(239,68,68,0.2); color:#f87171;">MITRE T1456</span>
+                    </div>
+                    <p style="font-size:12.5px; color:var(--text-muted, #94a3b8); margin-top:6px;">Modifikasi binary, hook Frida, reverse engineering bytecode smali, dan bypass cert pinning.</p>
+                  </div>
+
+                  <div style="padding:14px; border-radius:10px; background:var(--bg-secondary, #1e293b); border:1px solid var(--border-color, #334155);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <strong>🔓 Information Disclosure (Kebocoran Informasi)</strong>
+                      <span class="badge" style="background:rgba(245,158,11,0.2); color:#fbbf24;">MITRE T1406</span>
+                    </div>
+                    <p style="font-size:12.5px; color:var(--text-muted, #94a3b8); margin-top:6px;">Traffic HTTP plaintext, hardcoded credentials/API keys, logging memori tak tersanitasi.</p>
+                  </div>
+
+                  <div style="padding:14px; border-radius:10px; background:var(--bg-secondary, #1e293b); border:1px solid var(--border-color, #334155);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <strong>⚡ Elevation of Privilege (Eskalasi Hak Istimewa)</strong>
+                      <span class="badge" style="background:rgba(168,85,247,0.2); color:#c084fc;">MITRE T1405</span>
+                    </div>
+                    <p style="font-size:12.5px; color:var(--text-muted, #94a3b8); margin-top:6px;">Komponen exported tanpa proteksi permission signature atau mode android:debuggable aktif.</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right: Enterprise Incident Webhook & Alerting Hub -->
+              <div>
+                <h4 style="margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+                  <span>🔔</span> Enterprise Webhook Alert Hub (Slack, Discord, Jira)
+                </h4>
+                <div style="padding:16px; border-radius:12px; background:var(--bg-secondary, #1e293b); border:1px solid var(--border-color, #334155);">
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+                    <div>
+                      <label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">Platform Integrasi</label>
+                      <select id="webhookPlatformSelect" class="auth-input" style="width:100%; padding:6px 10px; font-size:13px;">
+                        <option value="slack">Slack (Block Kit)</option>
+                        <option value="discord">Discord (Rich Embeds)</option>
+                        <option value="jira">Jira Software (Issue Task)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">Tingkat Keparahan (Severity)</label>
+                      <select id="webhookSeveritySelect" class="auth-input" style="width:100%; padding:6px 10px; font-size:13px;">
+                        <option value="danger">Danger / Critical (Merah)</option>
+                        <option value="warning">Warning / High (Kuning)</option>
+                        <option value="info">Info / Low (Hijau)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style="margin-bottom:12px;">
+                    <label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px;">Pesan Notifikasi Insiden</label>
+                    <input type="text" id="webhookMessageInput" class="auth-input" value="🚨 [ToolKitDev Alert] Terdeteksi 3 celah berstatus CRITICAL pada rilis produksi mobile." style="width:100%; padding:8px 10px; font-size:13px;">
+                  </div>
+
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <button type="button" id="btnPreviewWebhook" class="topbar-pill-btn primary" style="background:#0ea5e9; color:#fff; border-color:#0ea5e9; font-size:12px; padding:6px 14px;">
+                      ⚡ Generate &amp; Preview Payload
+                    </button>
+                    <span id="webhookStatusIndicator" style="font-size:12px; color:#34d399;">✓ Ready</span>
+                  </div>
+
+                  <label style="font-size:11.5px; color:var(--text-muted, #94a3b8); display:block; margin-bottom:4px;">Payload JSON yang Dikirimkan:</label>
+                  <pre id="webhookPayloadPreview" style="background:#090d16; color:#a5f3fc; padding:12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11.5px; max-height:220px; overflow-y:auto; border:1px solid #1e293b;">// Klik 'Generate & Preview Payload' untuk melihat struktur JSON platform</pre>
+                </div>
+              </div>
+            </div>
+
+            <!-- Detailed Finding STRIDE Mapping Table -->
+            <div style="margin-top:24px;">
+              <h4 style="margin-bottom:12px;">Detail Pemetaan Kerentanan Temuan ke STRIDE</h4>
+              <div class="table-responsive" style="overflow-x:auto;">
+                <table class="data-table" id="threatModelTable" style="width:100%; border-collapse:collapse;">
+                  <thead>
+                    <tr style="text-align:left; border-bottom:1px solid var(--border-color, #334155);">
+                      <th style="padding:10px;">ID Temuan</th>
+                      <th style="padding:10px;">Kategori STRIDE</th>
+                      <th style="padding:10px;">Teknik MITRE ATT&amp;CK</th>
+                      <th style="padding:10px;">Inherent Risk</th>
+                      <th style="padding:10px;">Residual Risk</th>
+                    </tr>
+                  </thead>
+                  <tbody id="threatModelTableBody">
+                    <tr>
+                      <td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted, #94a3b8);">
+                        Pilih target dan klik <strong>Analisis STRIDE</strong> untuk menampilkan matriks ancaman.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -2668,6 +2873,10 @@
       </div>
 
       <div class="apk-modal-footer">
+        <button type="button" class="btn-autofix-all hidden" id="btnModalAutoFixVuln">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          Tutup Celah Ini Otomatis
+        </button>
         <button class="btn btn-primary" id="btnOkFindingModal">Tutup Rincian</button>
       </div>
     </div>
@@ -2911,7 +3120,7 @@
   </dialog>
 
   <div id="topbarToastContainer" class="topbar-toast-container" aria-live="polite"></div>
-  <script src="/app.js?v=6.0"></script>
+  <script src="/app.js?v=7.0"></script>
 </body>
 </html>
 
